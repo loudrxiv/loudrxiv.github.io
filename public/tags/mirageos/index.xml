@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>MirageOS on PrivSec - A practical approach to Privacy and Security</title>
+    <link>https://privsec.dev/tags/mirageos/</link>
+    <description>Recent content in MirageOS on PrivSec - A practical approach to Privacy and Security</description>
+    <image>
+      <url>https://privsec.dev/privsec.png</url>
+      <link>https://privsec.dev/privsec.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright>
+    <lastBuildDate>Fri, 26 Aug 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://privsec.dev/tags/mirageos/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Firewalling with MirageOS on Qubes OS</title>
+      <link>https://privsec.dev/posts/qubes/firewalling-with-mirageos-on-qubes-os/</link>
+      <pubDate>Fri, 26 Aug 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://privsec.dev/posts/qubes/firewalling-with-mirageos-on-qubes-os/</guid>
+      <description>MirageOS is a library operating system with which you can create a unikernel for the sole purpose of acting as Qubes OS&amp;rsquo;s firewall. In this post, I will walk you through how to set this up.
+Advantages  Small attack surface. The unikernel only contains a minimal set of libraries to function, so it has a much smaller attack surface than a general purpose operating system like a Linux distribution or openBSD.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/mirageos.png" alt="MirageOS"  />
+</p>
+<p><a href="https://mirage.io/">MirageOS</a> is a library operating system with which you can create a unikernel for the sole purpose of acting as Qubes OS&rsquo;s firewall. In this post, I will walk you through how to set this up.</p>
+<h2 id="advantages">Advantages</h2>
+<ul>
+<li>Small attack surface. The unikernel only contains a minimal set of libraries to function, so it has a much smaller attack surface than a general purpose operating system like a Linux distribution or openBSD.</li>
+<li>Low resource consumption. You only need about 64MB of RAM for each instance of the Mirage Firewall.</li>
+<li>Fast startup time.</li>
+</ul>
+<h2 id="disadvantages">Disadvantages</h2>
+<ul>
+<li>No official package for Qubes OS. This means that you need to follow the development process on GitHub and download the new build whenever there is a release.</li>
+<li>Does not work well with the Windows PV network driver. With that being said, the Windows PV networking driver is pretty buggy on its own, and I don&rsquo;t recommend that you use it anyways.</li>
+</ul>
+<h2 id="installing-the-unikernel">Installing the unikernel</h2>
+<p>To deploy MirageOS, you need to copy the <code>vmlinuz</code> and <code>initramfs</code> files from their <a href="https://github.com/mirage/qubes-mirage-firewall/releases">releases page</a> to <code>/var/lib/qubes/vm-kernels/mirage-firewall</code> in <code>dom0</code>.</p>
+<h3 id="templatevm">TemplateVM</h3>
+<p>Create a TemplateVM:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qvm-create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">kernel</span><span class="o">=</span>mirage-firewall <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">kernelopts</span><span class="o">=</span><span class="s1">&#39;&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">memory</span><span class="o">=</span><span class="m">64</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">maxmem</span><span class="o">=</span><span class="m">64</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">vcpus</span><span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">virt_mode</span><span class="o">=</span>pvh <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --label<span class="o">=</span>black <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --class TemplateVM <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  your_template_name
+</span></span></code></pre></div><p>Don&rsquo;t worry if the TemplateVM doesn&rsquo;t launch - we don&rsquo;t need it to.</p>
+<h3 id="disposable-template">Disposable Template</h3>
+<p>Next, create a disposable template based on the TemplateVM you have just created.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qvm-create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">template</span><span class="o">=</span>your_template_name <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">provides_network</span><span class="o">=</span>True <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">template_for_dispvms</span><span class="o">=</span>True <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --label<span class="o">=</span>orange <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --class AppVM <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  your_disposable_template_name
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">qvm-features your_disposable_template_name qubes-firewall <span class="m">1</span>
+</span></span><span class="line"><span class="cl">qvm-features your_disposable_template_name no-default-kernelopts <span class="m">1</span>
+</span></span></code></pre></div><p>Your disposable templates should now launch and shutdown properly.</p>
+<h3 id="disposable-firewallvms">Disposable FirewallVMs</h3>
+<p>You can now create disposable FirewallVMs based on your disposable template. I recommend replacing <code>sys-firewall</code> with a disposable Mirage firewall. If you use ProxyVMs like <code>sys-whonix</code>, I recommend that you add a disposable Mirage Firewall after the ProxyVM as well, and use it as the net qube for your AppVMs.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qvm-create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">template</span><span class="o">=</span>your_disposable_template_name <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">provides_network</span><span class="o">=</span>True <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">netvm</span><span class="o">=</span>your_net_qube_name <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --label<span class="o">=</span>orange <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --class DispVM <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  your_firwall_name
+</span></span></code></pre></div>]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>

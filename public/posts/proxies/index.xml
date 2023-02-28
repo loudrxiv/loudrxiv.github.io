@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Proxies on PrivSec - A practical approach to Privacy and Security</title>
+    <link>https://privsec.dev/posts/proxies/</link>
+    <description>Recent content in Proxies on PrivSec - A practical approach to Privacy and Security</description>
+    <image>
+      <url>https://privsec.dev/privsec.png</url>
+      <link>https://privsec.dev/privsec.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright><atom:link href="https://privsec.dev/posts/proxies/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Update your Signal TLS Proxy</title>
+      <link>https://privsec.dev/posts/proxies/update-your-signal-tls-proxy/</link>
+      <pubDate>Sat, 15 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://privsec.dev/posts/proxies/update-your-signal-tls-proxy/</guid>
+      <description>Given the current censorship situation in Iran, I decided to have a look at the Signal TLS Proxy.
+One thing immediately jumped out - the NGINX image has not been updated for years. In fact, NGINX 1.18 is so old that it has gone end of life for a year and a half as of this writing.
+If you are deploying or maintaining a Signal TLS Proxy, I highly recommend that you use the upstream nginx:alpine image instead.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/plz-merge.jpg" alt="Signal"  />
+</p>
+<p>Given the current censorship situation in Iran, I decided to have a look at the <a href="https://github.com/signalapp/Signal-TLS-Proxy">Signal TLS Proxy</a>.</p>
+<p>One thing immediately jumped out - the NGINX image has not been updated <a href="https://github.com/signalapp/Signal-TLS-Proxy/blob/ac94d6b869f942ec05d7ef76840287a1d1f487f9/nginx-relay/Dockerfile#L9">for years</a>. In fact, NGINX 1.18 is so old that it has gone end of life for <a href="https://endoflife.date/nginx">a year and a half</a> as of this writing.</p>
+<p>If you are deploying or maintaining a Signal TLS Proxy, I highly recommend that you use the upstream <code>nginx:alpine</code> image instead.</p>
+<p>My Docker Compose setup can be found <a href="https://github.com/tommytran732/Signal-TLS-Proxy">here</a>. I have also fixed the missing <code>:Z</code> flag for mountpoints and and dropped privileges to reduce the attack surface. I made a couple of pull requests for these changes, but Signal is being very slow on reviewing and merging them, so&hellip; yeah.</p>
+<ul>
+<li><a href="https://github.com/signalapp/Signal-TLS-Proxy/pull/24">Drop capabilities</a></li>
+<li><a href="https://github.com/signalapp/Signal-TLS-Proxy/pull/23">Use upstream NGINX image</a></li>
+<li><a href="https://github.com/signalapp/Signal-TLS-Proxy/pull/22">Add :Z for SELinux</a></li>
+</ul>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Commercial VPN Use Cases</title>
+      <link>https://privsec.dev/posts/proxies/commercial-vpn-use-cases/</link>
+      <pubDate>Tue, 19 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://privsec.dev/posts/proxies/commercial-vpn-use-cases/</guid>
+      <description>Virtual Private Networks are a way of creating a protected and private network over the open Internet. It was originally designed to provide remote access to an internal corporate network. However, in recent years, it has also been used by commercial VPN companies to hide their clients&amp;rsquo; real IP address from third-party websites and services.
+Should I use a VPN? Yes, unless you are already using Tor. A VPN does two things: shifting the risks from your Internet Service Provider to itself and hiding your IP from a third-party service.</description>
+      <content:encoded><![CDATA[<p>Virtual Private Networks are a way of creating a protected and private network over the open Internet. It was originally designed to provide remote access to an internal corporate network. However, in recent years, it has also been used by commercial VPN companies to hide their clients&rsquo; real IP address from third-party websites and services.</p>
+<h2 id="should-i-use-a-vpn">Should I use a VPN?</h2>
+<p><strong>Yes</strong>, unless you are already using Tor. A VPN does two things: shifting the risks from your Internet Service Provider to itself and hiding your IP from a third-party service.</p>
+<p>VPNs cannot encrypt data outside of the connection between your device and the VPN server. VPN providers can see and modify your traffic the same way your ISP could. And there is no way to verify a VPN provider&rsquo;s &ldquo;no logging&rdquo; policies in any way.</p>
+<p>However, they do hide your actual IP from a third-party service, provided that there are no IP leaks. They help you blend in with others and mitigate IP based tracking.</p>
+<h2 id="what-about-encryption">What about encryption?</h2>
+<p>Encryption offered by VPN providers are between your devices and their servers. It guarantees that this specific link is secure. This is a step up from using unencrypted proxies where an adversary on the network can intercept the communications between your devices and said proxies and modify them. However, encryption between your apps or browsers with the service providers are not handled by this encryption.</p>
+<p>In order to keep what you actually do on the websites you visit private and secure, you must use <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">TLS</a>. This will keep your passwords, session tokens, and queries safe from the VPN provider. Consider enabling &ldquo;HTTPS everywhere&rdquo; in your browser to mitigate downgrade attacks like <a href="https://www.blackhat.com/presentations/bh-dc-09/Marlinspike/BlackHat-DC-09-Marlinspike-Defeating-SSL.pdf">SSL Strip</a>.</p>
+<h2 id="should-i-use-encrypted-dns-with-a-vpn">Should I use encrypted DNS with a VPN?</h2>
+<p>Unless your VPN provider hosts the encrypted DNS servers, <strong>no</strong>. Using DOH/DOT (or any other form of encrypted DNS) with third-party servers will simply add more entities to trust and does <strong>absolutely nothing</strong> to improve your privacy/security. Your VPN provider can still see which websites you visit based on the IP addresses and other methods. Instead of just trusting your VPN provider, you are now trusting both the VPN provider and the DNS provider.</p>
+<p>A common reason to recommend encrypted DNS is that it helps against DNS spoofing. However, your browser should already be checking for <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security#Digital_certificates">TLS certificates</a> with <strong>HTTPS</strong> and warn you about it. If you are not using <strong>HTTPS</strong>, then an adversary can still just modify anything other than your DNS queries and the end result will be little different.</p>
+<p>Needless to say, <strong>you shouldn&rsquo;t use encrypted DNS with Tor</strong>. This would direct all of your DNS requests to a single entity and make you stand out from the rest of Tor users who would be using the exit node&rsquo;s DNS configuration.</p>
+<h2 id="what-if-i-need-anonymity">What if I need anonymity?</h2>
+<p>VPNs cannot provide anonymity. Your VPN provider will still see your real IP address, and often has a money trail that can be linked directly back to you. You cannot rely on &ldquo;no logging&rdquo; policies to protect your data. Use <a href="https://www.torproject.org/">Tor</a> instead.</p>
+<h2 id="should-i-use-tor-over-vpn">Should I use Tor over VPN?</h2>
+<p>By using Tor over VPN, you are creating essentially adding an extra node in the beginning of the circuit. This provides zero additional benefits to you, while increasing the latency of your connection dramatically. If you wish to hide your Tor usage from your ISP or your government, Tor has a built-in solution for that: Tor bridges.</p>
+<h2 id="what-about-vpn-over-tor">What about VPN over Tor?</h2>
+<p>By using VPN over Tor, you are adding an extra node at the end of a circuit, which is always controlled by the same entity. If you pay for the VPN using the traditional banking system, it essentially breaks the anonymity that the three hops in front of it would provide. If you pay for the VPN subscription using cash or a private cryptocurrency like Monero, your privacy is reduced to that of pseudonymity, since the VPN provider still knows the connections being made are from the same individual, they just do not know who you really are. Even if you are using a free VPN, you would still break <a href="https://www.whonix.org/wiki/Stream_Isolation">Stream Isolation</a>, one of Tor&rsquo;s important anonymity features. There are very few use cases where it would make sense to add a VPN server at the end of the chain.</p>
+<h2 id="what-about-vpn-providers-that-provide-tor-nodes">What about VPN providers that provide Tor nodes?</h2>
+<p>Do not use that feature. The point of using Tor is that you do not trust your VPN provider. Currently Tor only supports the <a href="https://en.wikipedia.org/wiki/Transmission_Control_Protocol">TCP</a> protocol. Through Tor, <a href="https://en.wikipedia.org/wiki/User_Datagram_Protocol">UDP</a> (used in <a href="https://en.wikipedia.org/wiki/WebRTC">WebRTC</a> for voice and video sharing, the new <a href="https://en.wikipedia.org/wiki/HTTP/3">HTTP3/QUIC</a> protocol, etc), <a href="https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol">ICMP</a> and other packets will be dropped. To compensate for this, VPN providers typically will route all non-TCP packets through their VPN server (your first hop). This is the case with <a href="https://protonvpn.com/support/tor-vpn/">ProtonVPN</a>. Additionally, like VPN over Tor, you lose control over other important Tor features like Stream Isolation.
+Thus, this feature should be viewed as a convenient way to access the Tor Network, not to stay anonymous. For true anonymity, use the Tor Browser Bundle, TorSocks, or a Tor gateway.</p>
+<h2 id="when-are-vpns-useful">When are VPNs useful?</h2>
+<p>A VPN is useful in a variety of scenarios, such as:</p>
+<ul>
+<li>Hiding your traffic from <strong>only</strong> your Internet Service Provider.</li>
+<li>Hiding your downloads (such as torrents) from your ISP and anti-piracy organizations.</li>
+<li>Hiding your IP from third-party websites and services, preventing IP based tracking.</li>
+</ul>
+]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>

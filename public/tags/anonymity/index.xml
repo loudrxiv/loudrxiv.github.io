@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Anonymity on PrivSec - A practical approach to Privacy and Security</title>
+    <link>https://privsec.dev/tags/anonymity/</link>
+    <description>Recent content in Anonymity on PrivSec - A practical approach to Privacy and Security</description>
+    <image>
+      <url>https://privsec.dev/privsec.png</url>
+      <link>https://privsec.dev/privsec.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright>
+    <lastBuildDate>Wed, 27 Jul 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://privsec.dev/tags/anonymity/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Using Lokinet on Qubes OS</title>
+      <link>https://privsec.dev/posts/qubes/using-lokinet-on-qubes-os/</link>
+      <pubDate>Wed, 27 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://privsec.dev/posts/qubes/using-lokinet-on-qubes-os/</guid>
+      <description>Lokinet is an Internet overlay network utilizing onion routing to provide anonymity for its users, similar to Tor network. This post will provide a quick (and non exhaustive) list of its pros and cons from an end user perspective and go over how to set it up on Qubes OS.
+Advantages  Provides anonymity by removing trust in a service provider (as opposed to a traditional VPN) Better versatility than Tor by supporting any IP based protocols (Tor only supports TCP) Generally faster speed than the Tor Network  Disadvantages  Only works well on Debian-based distributions.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/lokinet.png" alt="Lokinet"  />
+</p>
+<p><a href="https://lokinet.org">Lokinet</a> is an Internet overlay network utilizing onion routing to provide anonymity for its users, similar to Tor network. This post will provide a quick (and non exhaustive) list of its <a href="#advantages">pros</a> and <a href="#disadvantages">cons</a> from an end user perspective and go over how to set it up on Qubes OS.</p>
+<h2 id="advantages">Advantages</h2>
+<ul>
+<li>Provides anonymity by removing trust in a service provider (as opposed to a traditional VPN)</li>
+<li>Better versatility than Tor by supporting any IP based protocols (Tor only supports TCP)</li>
+<li>Generally faster speed than the Tor Network</li>
+</ul>
+<h2 id="disadvantages">Disadvantages</h2>
+<ul>
+<li>Only works well on Debian-based distributions. The client for Windows has DNS Leaks, and support for macOS, Android, and other Linux distributions is experimental. It should be noted that this is a problem with the official client, not the protocol itself.</li>
+<li>Does not have a killswitch which could lead to accidental leaks (as opposed to common commercial VPN clients which lock the connections to just the provider&rsquo;s servers).</li>
+<li>The official client requires a user to manually define an exit node, or to set certain IP ranges to be routed through certain exit nodes. While this makes it possible to setup some form of Steam Isolation, it is not as good as Tor&rsquo;s <code>isolateDestinationAddr</code> and <code>isolateDesitnationPort</code>. which automatically use a random exit node for every destination/port you visit.</li>
+<li>DNS does not work when used as a ProxyVM on Qubes OS</li>
+</ul>
+<h2 id="creating-the-templatevm">Creating the TemplateVM</h2>
+<p>As mentioned <a href="#disadvantages">above</a>, the Lokinet client only works well with Debian-based distributions. This means that our template will have to be one of the Debian-based ones, and I would highly recommend that you convert the official Debian template by the Qubes OS team into a KickSecure template to use as a base. KickSecure reduces the attack surface of Debian with a substantial set of hardening configurations, and a nice feature to go with an anonymity network like Lokinet is <a href="https://www.kicksecure.com/wiki/Boot_Clock_Randomization">Boot Clock Randomization</a> which helps defend against <a href="https://www.whonix.org/wiki/Time_Attacks">time-based denonymization attacks</a>. You will only need the <code>kicksecure-cli</code> meta package (<code>kicksecure-gui</code> is unnecessary), and experimental services like <code>proc-hidepid</code>, <code>hide-hardware-info</code> and <code>permission-hardening</code> work just fine with the Lokinet client. <a href="https://www.kicksecure.com/wiki/Hardened_Malloc">Hardened Malloc</a> and <a href="https://www.kicksecure.com/wiki/Linux_Kernel_Runtime_Guard_LKRG">LKRG</a> do not cause any problem with Lokinet, either.</p>
+<p>Since DNS with Lokinet does not work if it is installed inside of a ProxyVM, we will need to have Lokinet running inside the same AppVM as the applications you intend to run. This is less than ideal, as a compromised AppVM could reveal your IP address. Beyond that, accidental leaks can happen, too.</p>
+<p>A potential solution to this problem is to set up an unbound server or firewall script redirecting all DNS traffic to the ProxyVM to its Lokinet DNS server at <code>127.3.2.1:53</code>; however, I have been unable to get it working. Another solution is to simply override the DNS server inside the AppVM to a custom DNS server, but this will make you stand out out and break <code>.loki</code> DNS resolution. Websites like <a href="https://dnsleaktest.com">DNS leak test</a> can observe which DNS server you are actually using and potentially fingerprint you. For the same reason that you should not use custom DNS servers when connected to the Tor network, you really should not use a custom DNS server when connected to Lokinet.</p>
+<p>Start by importing the Oxen&rsquo;s PGP key:</p>
+<p><code>sudo curl --proxy http://127.0.0.1:8082 -so /etc/apt/trusted.gpg.d/oxen.gpg https://deb.oxen.io/pub.gpg</code></p>
+<p>Then, add Oxen&rsquo;s Debian repository:</p>
+<p><code>echo &quot;deb https://deb.oxen.io $(lsb_release -sc) main&quot; | sudo tee /etc/apt/sources.list.d/oxen.list</code></p>
+<p>Next, update the repositories:</p>
+<p><code>sudo apt update</code></p>
+<p>If updates for your packages are found, <strong>DO NOT</strong> attempt to upgrade them directly. Instead, use the Qubes Updater to update the TemplateVM.</p>
+<p>When you are done, install <code>lokinet-gui</code> and <code>resolvconf</code>:</p>
+<p><code>sudo apt install lokinet-gui resolvconf</code></p>
+<p>Note that you <strong>must</strong> install <code>resolveconf</code> to get DNS working.</p>
+<p>Next, edit <code>/var/lib/lokinet/lokinet.ini</code> and add the exit server you want to use:</p>
+<p><code>exit-node=exit.loki</code></p>
+<p>Note that I am using <code>exit.loki</code> here, as it is the one mentioned in the <a href="https://docs.oxen.io/products-built-on-oxen/lokinet/exit-nodes">Lokinet documentation</a>.
+There are some other exit servers listed on <a href="http://probably.loki/wiki/index.php?title=Exit_Nodes">probably.loki</a> as well, and for your convenience, I will just copy-paste them here:</p>
+<ul>
+<li><code>exit.loki</code> (USA, run by Jeff)</li>
+<li><code>exit2.loki</code> (USA, run by Jeff, same ip as exit.loki)</li>
+<li><code>xite.loki</code> (Iceland, run by Loutchi)</li>
+<li><code>peter.loki</code> (USA, run by peter)</li>
+<li><code>secret.loki</code> (Netherlands, run by Secret)</li>
+</ul>
+<p>Finally, enable the <code>lokinet</code> service:</p>
+<p><code>systemctl enable lokinet</code></p>
+<h2 id="creating-the-appvm">Creating the AppVM</h2>
+<p>Just create the AppVM as usual, and you would be good to go. There are a few things to keep in mind though:</p>
+<ul>
+<li>You should probably set networking to use <code>sys-firewall</code>. I have tested using my ProtonVPN ProxyVM for networking, and DNS was not working. Besides, it makes little sense to attempt such setup anyways, unless you are worried about accidental leaks or a compromised AppVM.</li>
+<li>You should give the AppVM the <code>network-manager</code> service so that Lokinet can set up networking properly and get DNS working.</li>
+</ul>
+]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>
