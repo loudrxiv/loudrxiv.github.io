@@ -1,0 +1,1139 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Android on A loudrxiv - A website for the academically-stunted</title>
+    <link>https://loudrxiv.github.io/tags/android/</link>
+    <description>Recent content in Android on A loudrxiv - A website for the academically-stunted</description>
+    <image>
+      <url>https://loudrxiv.github.io/waving_snail.png</url>
+      <link>https://loudrxiv.github.io/waving_snail.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright>
+    <lastBuildDate>Thu, 13 Oct 2022 19:37:58 -0700</lastBuildDate><atom:link href="https://loudrxiv.github.io/tags/android/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Building GrapheneOS with Windows Subsystem for Linux</title>
+      <link>https://loudrxiv.github.io/posts/android/building-grapheneos-with-windows-subsystem-for-linux/</link>
+      <pubDate>Thu, 13 Oct 2022 19:37:58 -0700</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/building-grapheneos-with-windows-subsystem-for-linux/</guid>
+      <description>Introduction This guide only mentions Arch Linux as it&amp;rsquo;s the only good alternative to building AOSP on besides Ubuntu. It utilises Docker Desktop for the Arch Linux image as it&amp;rsquo;s very close to stock Arch Linux instead of using tools like ArchWSL which are not very close to stock Arch Linux. Docker Desktop uses the official Arch Linux Docker image.
+AOSP and GrapheneOS dependencies: Specs: At least 400GB of fast SSD (preferably NVMe) storage At least 20GB of DDR4 memory.</description>
+      <content:encoded><![CDATA[<h1 id="introduction">Introduction</h1>
+<p>This guide only mentions Arch Linux as it&rsquo;s the only good alternative to building AOSP on besides Ubuntu. It utilises Docker Desktop for the Arch Linux image as it&rsquo;s very close to stock Arch Linux instead of using tools like ArchWSL which are not very close to stock Arch Linux. Docker Desktop uses the official Arch Linux Docker image.</p>
+<!-- raw HTML omitted -->
+<h2 id="aosp-and-grapheneos-dependencies">AOSP and GrapheneOS dependencies:</h2>
+<h3 id="specs">Specs:</h3>
+<ul>
+<li>At least 400GB of fast SSD (preferably NVMe) storage</li>
+<li>At least 20GB of DDR4 memory.</li>
+<li>At least a quad core processor</li>
+</ul>
+<h3 id="arch-deps">Arch deps:</h3>
+<ul>
+<li>base-devel</li>
+<li>repo</li>
+<li>python3</li>
+<li>python3-protobuf (python-protobuf on Arch)</li>
+<li>gpg (gnupg on Arch)</li>
+<li>libgcc (gcc-libs on Arch)</li>
+<li>binutils</li>
+<li>diffutils</li>
+<li>freetype2</li>
+<li>ttf-liberation or any other TrueType/OpenType font</li>
+<li>ncurses5 (<a href="https://aur.archlinux.org/packages/ncurses5-compat-libs">ncurses5-compat-libs</a> on AUR)</li>
+<li>ncurses</li>
+<li>openssl</li>
+<li>openssh</li>
+<li>rsync</li>
+<li>unzip</li>
+<li>zip</li>
+<li>e2fsprogs</li>
+<li>OpenJDK (jdk8-openjdk or jdk11-openjdk or jdk-openjdk for 17 on Arch)</li>
+<li>jq</li>
+<li>yarn</li>
+<li>lib32-gcc-libs</li>
+<li>lib32-glibc</li>
+<li>signify</li>
+</ul>
+<h3 id="arch-deps-for-wslg-and-aosp-emulator">Arch deps for WSLg and AOSP emulator:</h3>
+<ul>
+<li>vulkan-swrast</li>
+<li>vulkan-icd-loader</li>
+<li>xorg-fonts-encoding</li>
+<li>xorg-server</li>
+<li>xorg-server-common</li>
+<li>sdl2</li>
+<li>sdl</li>
+<li>libpulse</li>
+</ul>
+<!-- raw HTML omitted -->
+<h2 id="wsl2--wslg-dependencies">WSL2 / WSLg dependencies:</h2>
+<ul>
+<li>Windows 11 Professional (Enterprise preferred, Home will not work)</li>
+<li>Windows 11 supported hardware</li>
+<li>Intel VT-x or similar</li>
+<li>Intel VT-d or similar</li>
+<li>Up to date BIOS/UEFI</li>
+<li>Windows 11 installed with UEFI</li>
+<li>TPM 1.2 or 2.0</li>
+</ul>
+<!-- raw HTML omitted -->
+<h2 id="initial-setup">Initial setup:</h2>
+<ol>
+<li>
+<p>Open &ldquo;Turn Windows features on or off&rdquo;</p>
+</li>
+<li>
+<p>Enable:</p>
+</li>
+</ol>
+<ul>
+<li>Hyper-V</li>
+<li>Virtual Machine Platform</li>
+<li>Windows Hypervisor Platform</li>
+<li>Windows Subsystem for Linux</li>
+<li>then reboot</li>
+</ul>
+<ol start="3">
+<li>
+<p>Install the Linux kernel update package: <a href="https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi">https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi</a></p>
+</li>
+<li>
+<p>Open PowerShell and update WSL: <code>wsl --update</code></p>
+</li>
+<li>
+<p>Set WSL2 as the default version: <code>wsl --set-default-version 2</code></p>
+</li>
+</ol>
+<!-- raw HTML omitted -->
+<h2 id="docker-desktop-setup">Docker Desktop setup:</h2>
+<ol>
+<li>
+<p>Install Docker Desktop: <a href="https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe">https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe</a></p>
+</li>
+<li>
+<p>During install, install the WSL components as it says.</p>
+</li>
+<li>
+<p>Open Docker and if asked to install wsl_update_x64.msi again, install it again.</p>
+</li>
+<li>
+<p>Make sure in Docker settings it&rsquo;s using WSL backends.</p>
+</li>
+</ol>
+<!-- raw HTML omitted -->
+<h2 id="arch-linux-docker-install">Arch Linux Docker install:</h2>
+<ol>
+<li>
+<p>Using PowerShell, pull the official Arch Linux image: <code>docker pull archlinux</code></p>
+</li>
+<li>
+<p>Run the image with the name <code>archlinux-wsl</code> to setup the base image:</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="n">docker</span> <span class="n">run</span> <span class="n">-it</span> <span class="p">-</span><span class="n">-name</span> <span class="nb">archlinux-wsl</span> <span class="n">archlinux</span>
+</span></span></code></pre></div><ol start="3">
+<li>Perform the following setup commands:</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pacman -Syu
+</span></span><span class="line"><span class="cl">pacman -S sudo vim
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">EDITOR</span><span class="o">=</span>vim visudo
+</span></span><span class="line"><span class="cl"><span class="c1"># uncomment wheel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">useradd -G wheel,users -m &lt;username&gt;
+</span></span><span class="line"><span class="cl">passwd &lt;username&gt;
+</span></span><span class="line"><span class="cl"><span class="c1"># make a password</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">pwconv
+</span></span><span class="line"><span class="cl">grpconv
+</span></span><span class="line"><span class="cl"><span class="c1"># no output is expected</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># perform any extra setup yourself if you want as this is the base image</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">exit</span>
+</span></span></code></pre></div><ol start="4">
+<li>Export the docker container&rsquo;s state to a tar file:</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="n">docker</span> <span class="n">export</span> <span class="p">-</span><span class="n">-output</span> <span class="nb">archlinux-image</span><span class="n">-files</span><span class="p">.</span><span class="py">tar</span> <span class="nb">archlinux-wsl</span>
+</span></span></code></pre></div><ol start="5">
+<li>Import the container files to a drive you have more than 500GB on (can be your C drive if you have that space):</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="n">wsl</span> <span class="p">-</span><span class="n">-import</span> <span class="n">archlinux</span> <span class="p">&lt;</span><span class="n">directory</span> <span class="n">to</span> <span class="n">store</span> <span class="n">the</span> <span class="n">files</span><span class="p">&gt;</span> <span class="p">.\</span><span class="nb">archlinux-image</span><span class="n">-files</span><span class="p">.</span><span class="py">tar</span>
+</span></span></code></pre></div><ol start="6">
+<li>
+<p>Verify Arch Linux is using WSL version 2: <code>wsl -l -v</code></p>
+</li>
+<li>
+<p>Open Arch Linux: <code>wsl -d archlinux</code></p>
+</li>
+</ol>
+<!-- raw HTML omitted -->
+<h2 id="arch-linux-post-install">Arch Linux post-install</h2>
+<h3 id="root-size">Root size:</h3>
+<p>The default Virtual Hard Disk (.vhdx) created is only 256GB as shown by <code>df -h</code>. This is not enough for AOSP. We need to resize it (at this point I assume the drive you have the .vhdx file on is more than 500GB).</p>
+<p>Shut down WSL: <code>wsl --shutdown</code></p>
+<ol>
+<li>
+<p>Locate the .vhdx file from step 5 above and get the absolute path.</p>
+</li>
+<li>
+<p>Open <code>diskpart</code> (WINKEY + R then <code>diskpart</code>)</p>
+</li>
+<li>
+<p>Enter: <code>select vdisk file=&quot;&lt;PathToVHDX&gt;&quot;</code></p>
+</li>
+<li>
+<p>Expand the .vhdx file to at least 500GB: <code>expand vdisk maximum=500000</code> (500GB)</p>
+</li>
+<li>
+<p>Verify it has expanded: <code>detail vdisk</code></p>
+</li>
+</ol>
+<p>Now we must expand it in Arch Linux.</p>
+<ol>
+<li>
+<p>Open Arch Linux</p>
+</li>
+<li>
+<p>Find the root disk (<code>df -h</code>)</p>
+</li>
+<li>
+<p>Resize it: <code>sudo resize2fs /dev/sdX</code> (X being your root)</p>
+</li>
+<li>
+<p>Verify it has resized under the Size column: <code>df -h</code></p>
+</li>
+</ol>
+<h3 id="wslconf">wsl.conf:</h3>
+<p>We need to create a wsl.conf due to:</p>
+<ul>
+<li>poor disk and network performance of NTFS &lt;-&gt; ext4 directories</li>
+<li>conflicting binaries with Windows PATH being appended to the Linux PATH</li>
+<li>poor disk and network performance of Windows binaries in WSL</li>
+<li>poor network performance of the internal DNS server</li>
+<li>and AOSP, Chromium, and Linux require strict case-sensitive filesystems.</li>
+</ul>
+<ol>
+<li>
+<p>Open Arch Linux</p>
+</li>
+<li>
+<p>Create and edit the VM&rsquo;s wsl.conf:</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo vim /etc/wsl.conf
+</span></span></code></pre></div><ol start="3">
+<li>Enter:</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-Ini" data-lang="Ini"><span class="line"><span class="cl"><span class="k">[automount]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="na">options</span> <span class="o">=</span> <span class="s">&#34;case=dir&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[interop]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="na">appendWindowsPath</span> <span class="o">=</span> <span class="s">false</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[user]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="na">default</span> <span class="o">=</span> <span class="s">&lt;username&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[network]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="na">generateResolvConf</span> <span class="o">=</span> <span class="s">false</span>
+</span></span></code></pre></div><p>Save.</p>
+<ol start="4">
+<li>
+<p>Edit resolv.conf <code>sudo vim /etc/resolv.conf</code></p>
+</li>
+<li>
+<p>Remove everything and enter <code>nameserver &lt;DNS server of your choice&gt;</code></p>
+</li>
+<li>
+<p>Because we don&rsquo;t have proper systemd (for resolved and resolvconf), the file gets cleared and never saves. Lock it from all modifications to save it permanently:</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chattr +i /etc/resolv.conf
+</span></span></code></pre></div><ol start="7">
+<li>
+<p>Exit and shutdown WSL: <code>wsl --shutdown</code></p>
+</li>
+<li>
+<p>Create a system <code>.wslconfig</code> in your Windows user directory:</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="n">C:</span><span class="p">\</span><span class="n">Users</span><span class="p">\&lt;</span><span class="n">main</span> <span class="n">user</span><span class="p">&gt;\.</span><span class="py">wslconfig</span>
+</span></span></code></pre></div><ol start="9">
+<li>Enter:</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-Ini" data-lang="Ini"><span class="line"><span class="cl"><span class="k">[wsl2]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="na">swap</span> <span class="o">=</span> <span class="s">70G</span>
+</span></span><span class="line"><span class="cl"><span class="na">localhostForwarding</span> <span class="o">=</span> <span class="s">true</span>
+</span></span><span class="line"><span class="cl"><span class="na">nestedVirtualization</span> <span class="o">=</span> <span class="s">true</span>
+</span></span><span class="line"><span class="cl"><span class="na">guiApplications</span> <span class="o">=</span> <span class="s">true</span>
+</span></span></code></pre></div><p>AOSP requires a lot of memory so create a swapfile just in case. Production builds of GrapheneOS are extremely memory intensive. Can be any size you want. Then save.</p>
+<ol start="10">
+<li>Start up WSL and make sure you have a <code>$DISPLAY</code> variable: <code>echo $DISPLAY</code></li>
+</ol>
+<h3 id="aosp-emulator-pre-configuration-and-nested-virtualisation">AOSP emulator pre-configuration and nested virtualisation:</h3>
+<p>Emulator can make use of nested virtualisation (KVM). Permissions are weird on WSL though and due to lack of proper systemd, require some workarounds.</p>
+<ol>
+<li>
+<p>Open Arch Linux</p>
+</li>
+<li>
+<p>Add yourself to the <code>kvm</code> group.</p>
+</li>
+<li>
+<p>In your <code>.bashrc</code>, append <code>ulimit -n 1048575</code> as the soft limit is hardcoded <code>1024</code> and can&rsquo;t be changed even though emulator requires more than 1024 file descriptors or it will crash and freak out. It also doesn&rsquo;t seem to know how to ask for the hard limit of file descriptors. <code>/etc/security/limits.conf</code> doesn&rsquo;t seem to work on WSL and systemd ignores <code>DefaultNOFILE</code> on WSL.</p>
+</li>
+</ol>
+<p><em><strong>DO NOT</strong></em> raise 1048575 ANY HIGHER. There is a bug with pam_limits where if the file descriptors limit is greater than or equal to <code>sysctl fs.nr_open</code>, it will break sudo. The default seems to be 1048576, so set it one below that. <code>/etc/sysctl.conf</code> is ignored on WSL so no reason to attempt to modify it.</p>
+<p>If you do happen to lock yourself out from this, open a new window and run <code>wsl -d archlinux --user root</code> and make the proper change. Don&rsquo;t ask how I know.</p>
+<p>It&rsquo;s possible KVM may not work still because it can&rsquo;t access <code>/dev/kvm</code> despite being added to the <code>kvm</code> group, also due to weird WSL things. I just do <code>sudo chmod 777 /dev/kvm</code>. It doesn&rsquo;t matter if it&rsquo;s 777 because all files are created with a 000 umask on NTFS drives anyways since metadata isn&rsquo;t included by default and is still experimental. WSL is not for security.</p>
+<p>If you want to automatically set <code>/dev/kvm</code> to 777, you can set it as a WSL2 startup command in <code>/etc/wsl.conf</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-Ini" data-lang="Ini"><span class="line"><span class="cl"><span class="k">[boot]</span>
+</span></span><span class="line"><span class="cl"><span class="na">command</span> <span class="o">=</span> <span class="s">chmod 777 /dev/kvm</span>
+</span></span></code></pre></div><p>From this point on, you will <em><strong>ALWAYS</strong></em> need to do stuff in the actual Linux ext4 root. <code>/home</code> is apart of <code>/</code> so you should just do your stuff in <code>~/</code>. DO NOT do stuff in NTFS drives (<code>/mnt/c</code> for example) as I mentioned above it&rsquo;s extremely slow. This is the closest to a real Linux setup.</p>
+<p>You can now follow <a href="https://grapheneos.org/build">https://grapheneos.org/build</a> like you would on normal Linux exactly as-is. Building emulator yields near-bare-metal times (2 hours 46 minutes on WSL Arch Linux, 2 hours 6 minutes on bare-metal Arch Linux).</p>
+<h3 id="aosp-emulator-segmentation-fault-and-poor-performance">AOSP emulator segmentation fault and poor performance</h3>
+<p>You (might) need to disable the GPU (yeah, weird) to get high performance 60 FPS in the Android Virtual Device&rsquo;s config.</p>
+<ol>
+<li>Assuming you built emulator successfully at this point navigate to the output, example:</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/home/herbcookie/grapheneos-12.1/out/target/product/emulator_x86_64
+</span></span></code></pre></div><ol start="2">
+<li>
+<p>Edit <code>config.ini</code></p>
+</li>
+<li>
+<p>Set <code>hw.gpu.enabled</code> from <code>yes</code> to <code>no</code></p>
+</li>
+</ol>
+<p>Then start emulator again. You should have high performance, extremely fluid, 60 FPS. It might also fix a possible segfault.</p>
+<p>It&rsquo;s possible this isn&rsquo;t necessary and I suggest just trying to run emulator as-is before deciding if you need it. On my old machine (i7-8700k + NVIDIA GTX 1070) this was mandatory, but on my new machine (Ryzen 9 3900XT, NVIDIA RTX 3080) this was not needed.</p>
+<hr>
+<h2 id="acknowledgment">Acknowledgment</h2>
+<p>Thanks and credit to author of this article:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-prolog" data-lang="prolog"><span class="line"><span class="cl"><span class="s">commit</span> <span class="s">a8d58587976f9c479f30cb4a69b032af412de70f</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Author</span><span class="s">:</span> <span class="nv">June</span> <span class="o">&lt;</span><span class="s">june@******.**&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Date</span><span class="s">:</span> <span class="nv">Sunday</span><span class="p">,</span> <span class="nv">May</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2022</span>
+</span></span></code></pre></div><h3 id="note">Note</h3>
+<p>Author of this paper is my friend, June. I do not take any credit for this. I am simply hosting it as June is no longer on GitHub. Several people have asked me for this guide since the original repo does not exist anymore.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Android VPN Leakage with Secondary User Profiles</title>
+      <link>https://loudrxiv.github.io/posts/android/android-vpn-leakage-with-secondary-user-profiles/</link>
+      <pubDate>Mon, 10 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/android-vpn-leakage-with-secondary-user-profiles/</guid>
+      <description>Before We Start&amp;hellip;
+I have been aware of this issue for awhile now (since at least Android 11), though I have not done enough testing to see what actually causes the leak nor do I have any workaround at the moment. My guess is that applications which launch early when you log into a secondary profile can bypass the VPN killswitch.
+I have reported it on Google&amp;rsquo;s issue tracker.
+The Leak You can reproduce the leak by doing the following:</description>
+      <content:encoded><![CDATA[<p><strong>Before We Start</strong>&hellip;</p>
+<p>I have been aware of this issue for awhile now (since at least Android 11), though I have not done enough testing to see what actually causes the leak nor do I have any workaround at the moment. My guess is that applications which launch early when you log into a secondary profile can bypass the VPN killswitch.</p>
+<p>I have reported it on <a href="https://issuetracker.google.com/issues/252851265">Google&rsquo;s issue tracker</a>.</p>
+<h2 id="the-leak">The Leak</h2>
+<p>You can reproduce the leak by doing the following:</p>
+<ol>
+<li>Create a new user profile (you need to create a secondary user profile for this, as it is not reproducible on your owner profile or a work profile). Do not log into your Google account at this stage.</li>
+<li>Sideload a VPN app. The leak happens with every VPN provider I have tried (since it is likely a platform issue), though if you do not have a VPN subscription I would recommend getting a free one with <a href="https://protonvpn.com">ProtonVPN</a>.</li>
+<li>Setup the VPN and the <a href="/posts/os/android-tips/#enable-vpn-killswitch">Android VPN killswitch</a>.</li>
+<li>Log into your Google account through Play Services.</li>
+<li>Restart the phone. Open the secondary user profile again.</li>
+<li>Go to Google&rsquo;s <a href="https://myaccount.google.com/device-activity">My Devices</a> page. Observe that one of the sessions for your phone has your actual location obtained with GeoIP. In some cases, your actual IP address will be shown there as well.</li>
+</ol>
+<h2 id="notes">Notes</h2>
+<ol>
+<li>
+<p>It is unlikely that this is caused by Play Services being privileged applications. This issue is reproducible on GrapheneOS with the Sandboxed Play Services (which runs as a normal, unprivileged application) as well.</p>
+</li>
+<li>
+<p>More testing is needed to find the root cause of the problem. I do not think that this is Play Services specific. Unfortunately, I do not have access to a router to do a packet capture right now. I would appreciate it if someone can help me get to the bottom of this. You can find my contact information <a href="https://tommytran.io/contact/">here</a>.</p>
+</li>
+</ol>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Android Tips</title>
+      <link>https://loudrxiv.github.io/posts/android/android-tips/</link>
+      <pubDate>Fri, 22 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/android-tips/</guid>
+      <description>Android is a very secure and robust operating system out of the box. This post will be less of a &amp;ldquo;hardening guide&amp;rdquo;, but more of a non-exhaustive list of tips when it comes to buying and using Android phones.
+Android Devices Recommended Phones Google Pixel phones are the only devices I would recommend for purchase. Pixel phones have stronger hardware security than any other Android devices currently on the market, due to proper AVB support for third-party operating systems and Google&amp;rsquo;s custom Titan security chips acting as the Secure Element.</description>
+      <content:encoded><![CDATA[<p>Android is a very secure and robust operating system out of the box. This post will be less of a &ldquo;hardening guide&rdquo;, but more of a non-exhaustive list of tips when it comes to buying and using Android phones.</p>
+<h2 id="android-devices">Android Devices</h2>
+<h3 id="recommended-phones">Recommended Phones</h3>
+<p><img loading="lazy" src="/images/google-store.png" alt="Google Store"  />
+</p>
+<p>Google Pixel phones are the <strong>only</strong> devices I would recommend for purchase. Pixel phones have stronger hardware security than any other Android devices currently on the market, due to proper AVB support for third-party operating systems and Google&rsquo;s custom <a href="https://security.googleblog.com/2021/10/pixel-6-setting-new-standard-for-mobile.html">Titan</a> security chips acting as the Secure Element.</p>
+<p>When purchasing a device, you should buy one as new as possible. The software and firmware of mobile devices are only supported for a limited time, so buying new extends that lifespan as much as possible. Also, beginning with the <strong>Pixel 6</strong> and <strong>6 Pro</strong>, Pixel devices receive a minimum of 5 years of guaranteed security updates, ensuring a much longer lifespan compared to the 2-4 years competing OEMs typically offer.</p>
+<h3 id="phones-to-avoid">Phones to Avoid</h3>
+<p>Avoid buying the Fairphone 4, which only has just over 2 years of full security updates since its release date despite them advertising 6 years of support. This is because the System on a Chip they use (Snapdragon 750G) only has 3 years of support from Qualcomm, and the SoC was already old when the phone came out. This is not to mention, the Fairphone 4 <a href="https://forum.fairphone.com/t/bootloader-avb-keys-used-in-roms-for-fairphone-3-4/83448/11">uses the Android Verified Boot Test Key as their OEM keys</a>, effectively making Verified Boot useless. In general, you should check for how long the SoC a phone uses is supported for and not blindly trust the phone manufacturer&rsquo;s claims.</p>
+<p>You should also avoid buying the /e/ OS phones (sometimes branded as the Murena phones). /e/ OS in itself extremely insecure, not supporting verified boot, shipping userdebug build, <a href="https://divestos.org/misc/e.txt">shipping months old version of Chromium, bundling years old version Orbot into their operating system then marketing it as &ldquo;Advanced Privacy&rdquo;</a>, etc. They have recently also had an incident where their cloud service mishandled session keys and give users access to each other&rsquo;s files, then proceeded to <a href="https://community.e.foundation/t/service-announcement-26-may/41252/30">mislead the users that the server cannot see their files</a> despite there being no end-to-end encryption.</p>
+<p>You should also be very wary of low quality privacy branded phones like the Freedom Phone, BraX2 Phone, Volta Phone, and the like. These are cheap Chinese phones with the <a href="https://i.mediatek.com/p60">Mediatek Helio P60</a> from 2018, which has already reached end-of-life or is near end-of-life. Needless to say, you should also avoid any vendor who claims they are Zero-day proof like this:</p>
+<p><img loading="lazy" src="/images/volta-phone.png" alt="Volta phone"  />
+</p>
+<h2 id="android-based-operating-systems">Android-based Operating Systems</h2>
+<p><img loading="lazy" src="/images/grapheneos-aurora.jpg" alt="GrapheneOS Aurora"  />
+</p>
+<p>In certain cases, installing a custom Android-based operating system can help increase your privacy and security. This is rather tricky; however, as the vast majority of these operating systems (a.k.a. &ldquo;custom ROMs&rdquo;) do exactly the opposite - breaking the Android security model, ruining your security while providing no or dubious privacy benefits.</p>
+<p>I have written a detailed post on selecting your Android-based operating system, which you can find <a href="/posts/os/choosing-your-android-based-operating-system">here</a>.</p>
+<p><strong>TLDR</strong>: If you are using a modern Pixel, use <a href="https://grapheneos.org">GrapheneOS</a>. If you are on a device supported by <a href="https://divestos.org">DivestOS</a>, use DivestOS. Otherwise, stick to your stock operating system. Do not blindly use an OS just because it is advertised as &ldquo;degoogled&rdquo;.</p>
+<h2 id="use-new-android-versions">Use New Android Versions</h2>
+<p>It&rsquo;s important to not use an <a href="https://endoflife.date/android">end-of-life</a> version of Android. Newer versions of Android not only receive security updates for the operating system but also important privacy enhancing updates too. For example, <a href="https://developer.android.com/about/versions/10/privacy/changes">prior to Android 10</a>, any apps with the <a href="https://developer.android.com/reference/android/Manifest.permission#READ_PHONE_STATE"><code>READ_PHONE_STATE</code></a> permission could access sensitive and unique serial numbers of your phone such as <a href="https://en.wikipedia.org/wiki/International_Mobile_Equipment_Identity">IMEI</a>, <a href="https://en.wikipedia.org/wiki/Mobile_equipment_identifier">MEID</a>, your SIM card&rsquo;s <a href="https://en.wikipedia.org/wiki/International_mobile_subscriber_identity">IMSI</a>, whereas now they must be system apps to do so. System apps are only provided by the OEM or Android distribution.</p>
+<h2 id="do-not-root-your-phone">Do Not Root Your Phone</h2>
+<p><a href="https://en.wikipedia.org/wiki/Rooting_(Android)">Rooting</a> Android phones can decrease security significantly as it weakens the complete <a href="https://en.wikipedia.org/wiki/Android_(operating_system)#Security_and_privacy">Android security model</a>. This can decrease privacy should there be an exploit that is assisted by the decreased security. Common rooting methods involve directly tampering with the boot partition, making it impossible to perform successful Verified Boot. Apps that require root will also modify the system partition meaning that Verified Boot would have to remain disabled. Having root exposed directly in the user interface also increases the <a href="https://en.wikipedia.org/wiki/Attack_surface">attack surface</a> of your device and may assist in <a href="https://en.wikipedia.org/wiki/Privilege_escalation">privilege escalation</a> vulnerabilities and SELinux policy bypasses.</p>
+<h2 id="use-a-diceware-passphrase-avoid-pattern-unlock">Use a diceware passphrase, avoid pattern unlock</h2>
+<p>On Android, the phone unlock (Password, Pin, Pattern) is used to protect the encryption key for your device. Thus, it is vital that your unlock secret is secure and can withstand Bruteforce attacks.</p>
+<p>Pattern unlock is extremely insecure and should be avoided at all cost. This is discussed in detail in the <a href="/researches/Cracking-Android-Pattern-Lock-in-Five-Attempts.pdf">Cracking Android Pattern Lock in Five Attempts</a> research paper.</p>
+<p>If you trust the hardware enforced rate limiting features (typically done by the <a href="https://en.wikipedia.org/wiki/Secure_cryptoprocessor">Secure Element</a> or <a href="https://en.wikipedia.org/wiki/Trusted_execution_environment">Trusted Execution Environment</a>) of your device, a 8+ digit PIN may be sufficient.</p>
+<p>Ideally, you should be using a 8-10 word <a href="https://en.wikipedia.org/wiki/Diceware">diceware passphrase</a> to secure your phone. This would make your phone unlock practically impossible to bruteforce, regardless of whether there is proper rate limiting or not.</p>
+<h2 id="setup-auditor">Setup Auditor</h2>
+<p><a href="https://github.com/GrapheneOS/Auditor">Auditor</a> provides attestation for GrapheneOS phones and the stock operating systems on <a href="https://attestation.app/about">a number of devices</a>. It uses hardware security features to make sure that the firmware and operating system have not been downgraded or tampered with.</p>
+<p>Attestation can be done <a href="https://grapheneos.org/install/web#verifying-installation">locally</a> by pairing with another Android 8+ device or remotely using <a href="https://attestation.app/about">the remote attestation service</a>. To make sure that your hardware and operating system is genuine, perform local attestation immediately after the device has been setup and prior to any internet connection.</p>
+<h2 id="use-global-toggles">Use Global Toggles</h2>
+<p>Modern Android devices have global toggles for disabling Bluetooth and location services. Android 12 introduced toggles for the camera and microphone. When not in use, you should disable these features. Apps cannot use disabled features (even if granted individual permission) until re-enabled.</p>
+<h2 id="manage-android-permissions">Manage Android Permissions</h2>
+<p><a href="https://developer.android.com/guide/topics/permissions/overview">Permissions on Android</a> grant you control over what apps are allowed to access. Google regularly makes <a href="https://developer.android.com/about/versions/11/privacy/permissions">improvements</a> on the permission system in each successive version. All apps you install are strictly <a href="https://source.android.com/security/app-sandbox">sandboxed</a>, therefore, there is no need to install any antivirus apps.</p>
+<p>You can manage Android permissions by going to <strong>Settings</strong> → <strong>Privacy</strong> → <strong>Permission Manager</strong>. Be sure to remove from apps any permissions that they do not need.</p>
+<h2 id="enable-vpn-killswitch">Enable VPN Killswitch</h2>
+<p>Android 7 and above supports a VPN killswitch and it is available without the need to install third-party apps. This feature can prevent leaks if the VPN is disconnected. It can be found in <strong>Settings</strong> → <strong>Network &amp; internet</strong> → <strong>VPN</strong> → <strong>Block connections without VPN</strong>.</p>
+<h2 id="connectivity-check">Connectivity Check</h2>
+<p>Connectivity checks on Android <a href="https://mullvad.net/en/blog/2022/10/10/android-leaks-connectivity-check-traffic/">do not go through the VPN tunnel</a> (they are not supposed to anyway). This is generally not a cause for concern, however, you should be aware that Google and a network observer on your internet service provider (ISP)&rsquo;s network can see that there is an Android device with your actual IP address.</p>
+<p>On GrapheneOS, connectivity checks by default are done with GrapheneOS&rsquo;s own servers, instead of with Google ones. A network observer on your ISP’s network can see that you are using a GrapheneOS device. If you are using a VPN and want to appear like a regular Android device to your ISP, go to <strong>Settings</strong> → <strong>Network &amp; internet</strong> → <strong>Internet connectivity check</strong> and select <strong>Standard (Google)</strong> instead. Note that this will not stop a determined adversarial ISP from finding out you are not using stock OS <a href="https://grapheneos.org/faq#default-dns">through your DNS fallback</a>.</p>
+<p>If you want to, you can disable connectivity check altogether. Note that this will stop captive portal from working.</p>
+<ul>
+<li>On GrapheneOS and DivestOS, go to <strong>Settings</strong> → <strong>Network &amp; internet</strong> → <strong>Internet connectivity check</strong> and select <strong>Disabled</strong></li>
+<li>On other Android-based operating systems, you can <a href="https://gitlab.com/CalyxOS/calyxos/-/issues/1226#note_1130393164">disable captive portal via ADB</a>.</li>
+</ul>
+<p>To disable:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell settings put global captive_portal_mode <span class="m">0</span>
+</span></span></code></pre></div><p>To re-enable:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">adb shell settings delete global captive_portal_mode
+</span></span></code></pre></div><h2 id="enable-secure-exec-spawning">Enable Secure Exec Spawning</h2>
+<p>GrapheneOS and DivestOS have the option to spawn fresh processes when launching applications instead of using the traditional Zygote spawning model. You can read more about this <a href="https://grapheneos.org/usage#exec-spawning">here</a>.</p>
+<p>On GrapheneOS, this feature is enabled by default. On DivestOS, it is not enabled by default, and you should enable it in <strong>Settings</strong> → <strong>Security</strong> → <strong>Enable secure app spawning</strong>.</p>
+<h2 id="restrict-usb-peripherals">Restrict USB Peripherals</h2>
+<p>USB peripherals should be disabled or set to only be allowed when the device is unlocked if possible.</p>
+<p>On GrapheneOS, you can adjust this settings in <strong>Settings</strong> → <strong>Security</strong> → <strong>USB accessories</strong>. The OS defaults to &ldquo;Allow new USB peripherals when unlocked&rdquo;.</p>
+<p>On DivestOS, you can adjust this settings in <strong>Settings</strong> → <strong>Privacy</strong> → <strong>Trust</strong> → <strong>Restrict USB</strong>. The OS defaults to &ldquo;Always allow USB connections&rdquo;, and you should change it to one of the two other options as mentioned above.</p>
+<h2 id="media-access">Media Access</h2>
+<p>Quite a few applications allow you to &ldquo;share&rdquo; a file with them for media upload. If you want to, for example, tweet a picture to Twitter, do not grant Twitter access to your &ldquo;media and photos&rdquo;, because it will have access to all of your pictures then. Instead, go to your file manager (documentsUI), hold onto the picture, then share it with Twitter.</p>
+<p>If you are using GrapheneOS, you should utilize the Storage Scopes feature to force apps that request broad storage access permission to function with scoped storage.</p>
+<p><img loading="lazy" src="/images/vlc-storage-scopes.png" alt="VLC Storage Scopes"  />
+</p>
+<h2 id="user-profiles">User Profiles</h2>
+<p>Multiple user profiles can be found in <strong>Settings</strong> → <strong>System</strong> → <strong>Multiple users</strong> and are the simplest way to isolate in Android.</p>
+<p>With user profiles, you can impose restrictions on a specific profile, such as: making calls, using SMS, or installing apps on the device. Each profile is encrypted using its own encryption key and cannot access the data of any other profiles. Even the device owner cannot view the data of other profiles without knowing their password. Multiple user profiles are a more secure method of isolation.</p>
+<p>Note that there is currently a <a href="/posts/android/android-vpn-leakage-with-secondary-user-profiles">VPN leakage with secondary user profiles</a>.</p>
+<h2 id="work-profile">Work Profile</h2>
+<p><a href="https://support.google.com/work/android/answer/6191949">Work Profiles</a> are another way to isolate individual apps and may be more convenient than separate user profiles.</p>
+<p>A <strong>device controller</strong> such as <a href="https://gitea.angry.im/PeterCxy/Shelter#shelter">Shelter</a> is required, unless you&rsquo;re using CalyxOS which includes one.</p>
+<p>The work profile is dependent on a device controller to function. Features such as <em>File Shuttle</em> and <em>contact search blocking</em> or any kind of isolation features must be implemented by the controller. You must also fully trust the device controller app, as it has full access to your data inside of the work profile.</p>
+<p>This method is generally less secure than a secondary user profile; however, it does allow you the convenience of running apps in both the work and personal profiles simultaneously.</p>
+<h2 id="baseband-modem-attack-surface-reduction">Baseband Modem Attack Surface Reduction</h2>
+<p>By default, your baseband modem will typically set to support just about every generation of mobile cellular technology, from 2G to 5G. This gives a large attack surface.</p>
+<p>You can reduce this attack surface by limiting the baseband modem to just using the generation that in needs. In most cases, this would be 4G/LTE.</p>
+<p>GrapheneOS has the LTE only mode exposed in settings. You can set this by going to <strong>Settings</strong> → <strong>Internet</strong> → <strong>Your carrier name</strong> → <strong>Preferred network type</strong> → <strong>LTE Only</strong>.</p>
+<p>If your Android-based operating system does not expose this setting in the Settings app, or if you want to set your baseband modem to a less restrictive mode, dial <code>*#*#4636#*#*</code> then hit <strong>Phone information</strong>. Here, you can set preferred network type to just the generations that you intend to use. For example, if you only want to use 5G and 4G, you can set it to <code>NR/LTE</code>.</p>
+<p>Depending on the carrier, you may need to enable additional network types for Wifi calling to work. For example, Google Fi requires WCDMA for this feature. Thus, if you want 5G, 4G, and Wifi calling for Google Fi, you need to set the network type as <code>NR/LTE/WCDMA</code>.</p>
+<h2 id="carrier-tracking">Carrier Tracking</h2>
+<p>Carriers can track your coarse location via cell towers using the IMSI and IMEI broadcasted by your baseband modem. In order to avoid this type of tracking, you have to enable the airplane mode which would disable the baseband modem.</p>
+<p>I have seen several common suggestions in the privacy community to mitigate this problem which do not actually work:</p>
+<ul>
+<li>
+<p><strong>Removing the SIM Card</strong>: The baseband modem will continue to contact the cell towers with its IMEI to prepare for emergency calls. In fact, this is how you are able to call <code>911</code> even when you do not have a SIM card inserted.</p>
+</li>
+<li>
+<p><strong>Using PGPP as a carrier</strong>: The service randomizes your IMSI by regularly reprovisioning your eSIM. However, the IMEI broadcasted by the baseband modem would remain unchanged, allowing the carriers to track you anyways.</p>
+</li>
+</ul>
+<h2 id="where-to-get-your-applications">Where to Get Your Applications</h2>
+<h3 id="grapheneos-app-store">GrapheneOS App Store</h3>
+<p>GrapheneOS&rsquo;s app store is available on <a href="https://github.com/GrapheneOS/Apps/releases">GitHub</a>. It supports Android 12 and above and is capable of updating itself. The app store has standalone applications built by the GrapheneOS project such as the <a href="https://attestation.app/">Auditor</a>, <a href="https://github.com/GrapheneOS/Camera">Camera</a>, and <a href="https://github.com/GrapheneOS/PdfViewer">PDF Viewer</a>. If you are looking for these applications, I highly recommend that you get them from GrapheneOS&rsquo;s app store instead of the Play Store, as the apps on their store are signed by the GrapheneOS&rsquo;s project own signature that Google does not have access to.</p>
+<h3 id="aurora-store">Aurora Store</h3>
+<p>The <a href="https://auroraoss.com/download/AuroraStore/">Aurora Store</a> is a proxy for the Google Play Store. It is great for privacy in the sense that it automatically gives you a disposable account to download apps, and it works on Android-based distributions that do not support Google Play Services. That being said, it lacks security features like certificate pinning and does not support Play Asset Delivery.</p>
+<p>My recommendation is to stick with the Google Play Store unless your threat model calls for not logging into Google Services at all.</p>
+<h3 id="f-droid">F-Droid</h3>
+<p>F-Droid, despite being often recommended in the privacy community, has various security deficiencies. You can read more about them <a href="/posts/android/f-droid-security-issues/">here</a>.</p>
+<p>I do not recommend that you use F-Droid at all unless you have no other choice to obtain certain apps. In some rare cases, there may be some apps which require the F-Droid version to work properly without Google Play Services. If you do end up using F-Droid, I highly recommend that you avoid the official F-Droid client (which is extremely outdated and targets API level 25) and use a more modern client with seamless updates such as <a href="https://github.com/NeoApplications/Neo-Store">NeoStore</a>. You should also avoid using the official F-Droid repository as much as possible and stick to the F-Droid repositories hosted by the app developers instead.</p>
+<h3 id="github">GitHub</h3>
+<p>You can also obtain your apps directly from their GitHub repositories. In most cases, there would be a pre-built APK for you to download. You can verify the signature of the downloaded using apksinger:</p>
+<ul>
+<li>Install the <a href="https://developer.android.com/studio">Android Studio</a> which includes <code>apksinger</code>. On macOS, <code>apksigner</code> can be found at <code>~/Library/Android/sdk/build-tools/&lt;version&gt;/apksigner</code>.</li>
+<li>Run <code>apksigner verify --print-certs --verbose myCoolApp.apk</code> to verify the certificate of the apk.</li>
+</ul>
+<p>After you have verified the signature of the apk and installed it on your phone, there are several strategies you can use to keep the application up-to-date.</p>
+<p>The first strategy is to add the atom feed of the application&rsquo;s release page to an RSS Reader like <a href="https://github.com/Ashinch/ReadYou">ReadYou</a> to get notified of new releases. You will still need to download and install the new releases manually. If you are confused, here is a video that could help with this process:</p>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/FFz57zNR_M0" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<p>The second strategy is to use the <a href="https://apt.izzysoft.de/fdroid/">IzzyOnDroid</a> F-Droid repository with a modern F-Droid client like <a href="https://github.com/NeoApplications/Neo-Store">NeoStore</a>, as mentioned <a href="#f-droid">above</a>. The IzzyOnDroid repository pulls new releases from various GitHub repositories to their server, which can then be automatically downloaded and installed by NeoStore. The downside of this strategy is that not every application on GitHub is on IzzyOnDroid, and sometimes IzzyOnDroid fails to pull a new release, resulting in you not getting any updates at all.</p>
+<p>It should be noted that since Android has automatic signature checking for existing applications on the system, you only need to manually check the signature of the apk the first time you install an application. If you do use IzzyOnDroid to update the applications, you will need to manually confirm the first update of an application to authorize the NeoStore as the installation source. After that, future updates will be seamless.</p>
+<h2 id="google">Google</h2>
+<p>If you are using a device with Google services, either your stock operating system or an operating system that safely sandboxes Google Play Services like GrapheneOS, there are a number of additional changes you can make to improve your privacy.</p>
+<h3 id="enroll-in-the-advanced-protection-program">Enroll in the Advanced Protection Program</h3>
+<p><img loading="lazy" src="/images/advanced-protection-program.png" alt="Advanced Protection Program"  />
+</p>
+<p>If you have a Google account we suggest enrolling in the <a href="https://landing.google.com/advancedprotection/">Advanced Protection Program</a>. It is available at no cost to anyone with two or more hardware security keys with <a href="/knowledge/multi-factor-authentication/#fido2-fast-identity-online">FIDO2</a> support.</p>
+<p>The Advanced Protection Program provides enhanced threat monitoring and enables:</p>
+<ul>
+<li>Stricter two factor authentication; e.g. that <a href="/posts/knowledge/multi-factor-authentication/#fido2-fast-identity-online">FIDO2</a> <strong>must</strong> be used and disallows the use of <a href="/posts/knowledge/multi-factor-authentication/#fido2-fast-identity-online">SMS OTP</a>, <a href="/posts/knowledge/multi-factor-authentication/#time-based-one-time-password-totp">TOTP</a> and <a href="https://en.wikipedia.org/wiki/OAuth">OAuth</a></li>
+<li>Only Google and verified third-party apps can access account data</li>
+<li>Scanning of incoming emails on Gmail accounts for <a href="https://en.wikipedia.org/wiki/Phishing#Email_phishing">phishing</a> attempts</li>
+<li>Stricter <a href="https://www.google.com/chrome/privacy/whitepaper.html#malware">safe browser scanning</a> with Google Chrome</li>
+<li>Stricter recovery process for accounts with lost credentials</li>
+</ul>
+<p>If you use non-sandboxed Google Play Services (common on stock operating systems), the Advanced Protection Program also comes with <a href="https://support.google.com/accounts/answer/9764949?hl=en">additional benefits</a> such as:</p>
+<ul>
+<li>Not allowing app installation outside of the Google Play Store, the OS vendor&rsquo;s app store, or via <a href="https://en.wikipedia.org/wiki/Android_Debug_Bridge"><code>adb</code></a></li>
+<li>Mandatory automatic device scanning with <a href="https://support.google.com/googleplay/answer/2812853?hl=en#zippy=%2Chow-malware-protection-works%2Chow-privacy-alerts-work">Play Protect</a></li>
+<li>Warning you about unverified applications</li>
+</ul>
+<h3 id="google-play-system-updates">Google Play System Updates</h3>
+<p>In the past, Android security updates had to be shipped by the operating system vendor. Android has become more modular beginning with <a href="https://www.android.com/android-10/">Android 10</a>, and Google <a href="https://blog.google/products/android-enterprise/android-10-security/">can push security updates</a> for <strong>some</strong> system components via the privileged Play Services.</p>
+<p>If you have an EOL device shipped with Android 10 or above (shipped beginnning 2020) and are unable to run any of our recommended operating systems on your device, you are likely going to be better off sticking with your OEM Android installation (as opposed to an insecure operating system here such as LineageOS or /e/ OS). This will allow you to receive <strong>some</strong> security fixes from Google, while not violating the Android security model by using an insecure Android derivative and increasing your attack surface. You should still upgrade to a supported device as soon as possible.</p>
+<h3 id="disable-advertising-id">Disable Advertising ID</h3>
+<p>All devices with Google Play Services installed automatically generate an <a href="https://support.google.com/googleplay/android-developer/answer/6048248?hl=en">advertising ID</a> used for targeted advertising. Disable this feature to limit the data collected about you.</p>
+<p>On Android distributions with <a href="https://grapheneos.org/usage#sandboxed-google-play">Sandboxed Google Play</a>, go to <strong>Settings</strong> → <strong>Apps</strong> → <strong>Sandboxed Google Play</strong> → <strong>Google Settings</strong> → <strong>Ads</strong>, and select <em>Delete advertising ID</em>.</p>
+<p>On Android distributions with privileged Google Play Services (such as stock OSes), the setting may be in one of several locations. Check</p>
+<ul>
+<li><strong>Settings</strong> → <strong>Google</strong> → <strong>Ads</strong></li>
+<li><strong>Settings</strong> → <strong>Privacy</strong> → <strong>Ads</strong></li>
+</ul>
+<p><img loading="lazy" src="/images/ads-id.png" alt="Ads id"  />
+</p>
+<p>You will either be given the option to delete your advertising ID or to <em>Opt out of interest-based ads</em>, this varies between OEM distributions of Android. If presented with the option to delete the advertising ID that is preferred. If not, then make sure to opt out and reset your advertising ID.</p>
+<h3 id="google-messages">Google Messages</h3>
+<p>Google is currently pushing for the adoption of <a href="https://support.google.com/messages/answer/10262381?hl=en">RCS with end to end encryption</a> to compete with iMessage. On certain Android devices, especially Google Pixels with stock OS, <a href="https://messages.google.com/">Google Messages</a> is set as the default SMS app to provide this feature.</p>
+<p>If you are on an OS with Play Services installed, I highly recommend that you use Google Messages as the SMS app to get opportunistic end to end encryption with your contacts. It works fairly well on GrapheneOS with Sandboxed Play Services, too.</p>
+<p>You can disable telemetry in Google Messages by going to <strong>⋮</strong> → <strong>Settings</strong> → <strong>General</strong> → <strong>Help Improve Messages</strong> and toggling it off. There are also some other configurations in <strong>⋮</strong> → <strong>Settings</strong> → <strong>General</strong> → <strong>Chat features</strong> that you might want to go over such as sending typing indicator or read receipt.</p>
+<p>If you have trouble connecting to RCS, try disabling your VPN and the VPN killswitch first, then reconnect to RCS. Once you have connected to the server, you can re-enable your VPN and the killswitch and it should work just fine across reboots. I am not sure what is causing this issue, but it might be related to <a href="https://issuetracker.google.com/issues/189577131">this bug</a>.</p>
+<h3 id="google-fi">Google Fi</h3>
+<p>Google Fi provides <a href="https://fi.google.com/about/end-to-end-encrypted-calls">opportunistic end to end encryption</a> for phone calls between Android Fi users. Google also includes <a href="https://support.google.com/fi/answer/9040000?visit_id=638021545722263144-1946671988&amp;p=vpn_help&amp;rd=1">Fi VPN</a> in the subscription plan. On the Pixel 4 and above, Google Fi will take advatage of the <a href="https://www.gstatic.com/fi/wormhole/whitepaper-a00cc4732620f382da5b7aac2bcb6905f970ba6b.pdf">virtual carrier network</a> to proxy hotspot, tetherting and secondary user profiles traffic.</p>
+<p>This is not without its caveats:</p>
+<ul>
+<li>Google Fi requires Play Services and the <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.tycho&amp;hl=en_US">Fi app</a> to work properly. Without Play Services, all of the features mentioned above, along with visual voicemail will not work. SMS messages will have random strings added at the end of each of them.</li>
+<li>On GrapheneOS, Fi VPN and end to end encrypted calls with Fi will not work. Fi VPN requires privileged integration with the operating system which GrapheneOS developers are not willing to bundle, so it will likely never work in the foreseeable future. I am not entirely sure why end to end encrypted calls with FI are not working at the moment.</li>
+</ul>
+<p>If you are living in the United States and use the stock operating system, I highly recommend using Google Fi as the carrier to take advantage of the end to end encrypted calls and Fi VPN. Pixel 4 and bove users will benefit the most from the VCN as mentioned.</p>
+<p>If you are using GrapheneOS and do not mind installing Sandboxed Play Services, Fi is still a better option than to other providers thanks to Google&rsquo;s general good security practices and the fact that you can enroll in the Advanced Protection Program to have much better protection for your account. Some other provides do not even have multi-factor authentication support, and most will not let you enforce FIDO2 as the authentication method.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Choosing Your Android-Based Operating System</title>
+      <link>https://loudrxiv.github.io/posts/android/choosing-your-android-based-operating-system/</link>
+      <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/choosing-your-android-based-operating-system/</guid>
+      <description>Android is a secure operating system that has strong app sandboxing, Verified Boot (AVB), and a robust permission control system.
+When you buy an Android phone, the device&amp;rsquo;s default operating system often comes with invasive integration with apps and services that are not part of the Android Open-Source Project. An example of such is Google Play Services, which has irrevocable privileges to access your files, contacts storage, call logs, SMS messages, location, camera, microphone, hardware identifiers, and so on.</description>
+      <content:encoded><![CDATA[<p>Android is a secure operating system that has strong <a href="https://source.android.com/security/app-sandbox">app sandboxing</a>, <a href="https://source.android.com/security/verifiedboot">Verified Boot</a> (AVB), and a robust <a href="https://developer.android.com/guide/topics/permissions/overview">permission</a> control system.</p>
+<p>When you buy an Android phone, the device&rsquo;s default operating system often comes with invasive integration with apps and services that are not part of the <a href="https://source.android.com/">Android Open-Source Project</a>. An example of such is Google Play Services, which has irrevocable privileges to access your files, contacts storage, call logs, SMS messages, location, camera, microphone, hardware identifiers, and so on. These apps and services increase the attack surface of your device and are the source of various privacy concerns with Android.</p>
+<p>This problem could be solved by using a custom Android-based operating system that does not come with such invasive integration. Unfortunately, many custom Android-based operating systems often violate the Android security model by not supporting critical security features such as AVB, rollback protection, firmware updates, and so on. Some of them also ship <a href="https://source.android.com/setup/build/building#choose-a-target"><code>userdebug</code></a> builds which expose root over <a href="https://developer.android.com/studio/command-line/adb">ADB</a> and require <a href="https://github.com/LineageOS/android_system_sepolicy/search?q=userdebug&amp;type=code">more permissive</a> SELinux policies to accommodate debugging features, resulting in a further increased attack surface and weakened security model.</p>
+<p>When choosing a custom Android-based operating system, you should make sure that it upholds the Android security model. Ideally, the custom operating system should have substantial privacy and security improvements to justify adding yet another party to trust.</p>
+<h2 id="baseline-security">Baseline Security</h2>
+<h3 id="verified-boot">Verified Boot</h3>
+<p><img loading="lazy" src="/images/verified-boot.png" alt="Verified Boot"  />
+</p>
+<p><a href="https://source.android.com/security/verifiedboot">Verified Boot</a> is an important part of the Android security model. It provides protection against <a href="https://en.wikipedia.org/wiki/Evil_maid_attack">evil maid</a> attacks, malware persistence, and ensures security updates cannot be downgraded with <a href="https://source.android.com/security/verifiedboot/verified-boot#rollback-protection">rollback protection</a>.</p>
+<p>On Android, only your data (inside of the /data partition) is encrypted, and the operating system files are left unencrypted. Verified Boot ensures the integrity of the operating system files, thereby preventing an adversary with physical access from tampering or installing malware on the device. In the unlikely case that malware is able to exploit other parts of the system and gain higher privileged access, Verified Boot will prevent and revert changes to the system partition upon rebooting the device.</p>
+<p>Unfortunately, OEMs are only obliged to support Verified Boot on their stock Android distribution. Only a few OEMs such as Google support custom AVB key enrollment on their devices. Additionally, some AOSP derivatives such as LineageOS or /e/ OS do not support Verified Boot even on hardware with Verified Boot support for third-party operating systems. These AOSP derivatives should be avoided at all cost.</p>
+<h3 id="firmware-updates">Firmware Updates</h3>
+<p>Firmware updates are critical for maintaining security and without them your device cannot be secure. OEMs have support agreements with their partners to provide the closed-source components for a limited support period. These are detailed in the monthly <a href="https://source.android.com/security/bulletin">Android Security Bulletins</a>.</p>
+<p>On a custom Android distribution, it is the responsibility of the operating system vendor to extract the firmware from the stock operating system, test it against their Android builds, then ship them to the user.</p>
+<p>Unfortunately, many custom Android distributions, including extremely popular ones like LineageOS and /e/ OS do not ship firmware updates for most of their supported device. Instead, they expect the user to keep track of stock OS updates, extract and flash the firmware themselves. Beyond the lack of testing, this is extremely burdensome and not feasible for most end users and is yet another reason to not use these distributions.</p>
+<h3 id="patch-levels">Patch Levels</h3>
+<p>As the <a href="https://source.android.com/security/bulletin">Android Security Bulletins</a> is updated every month, Android-Based operating systems are expected to apply all security fixes before the next bulletin update comes out. Beside extracting the firmware, testing it and shipping it to the end user as described <a href="#firmware-updates">above</a>, the AOSP based system also need to be updated.</p>
+<p>This is a particularly challenging thing to do, especially around the time of a new major Android release since there are a lot of changes. Sometimes, newer firmware versions require newer major versions of AOSP, and if the developer takes too long to update their base operating system to the next major AOSP version, they cannot ship firmware updates either, leaving users vulnerable.</p>
+<p>This has happened to CalyxOS during the Android 11 to Android 12 transition. It took them <a href="https://github.com/privacyguides/privacyguides.org/pull/578#issue-1112002737">4 months</a> to update to Android 12; and during those 4 months, they could not ship any firmware updates at all, leaving the user vulnerable during that time period.</p>
+<p>It would be much better if you just stick to the stock operating system (which got updated to Android 12 shortly after the AOSP 12 release) instead of using a custom operating system which could not keep up with updates as described.</p>
+<h3 id="chromium-webview-updates">Chromium Webview Updates</h3>
+<p>Android comes with a system <a href="https://developer.android.com/reference/android/webkit/WebView">webview</a>, a component that many apps rely on to use as part of their activity layout. It effectively behaves like a minimal browser, opening random websites with arbitrary code the internet. Thus, it is very important that this component is consistently kept up to dater.</p>
+<p>Some Android-based operating systems, including ones like CalyxOS, often fall behind on security updates for this component. Particularly, this has gotten so bad that they actually fell behind for <a href="https://github.com/privacyguides/privacyguides.org/pull/548#issuecomment-1018245074">3 months</a> back in January 2022 and <a href="https://github.com/privacyguides/privacyguides.org/pull/1378">2 months</a> in June 2022. It is a good indication that these operating systems cannot keep up with security updates and should not be used.</p>
+<h3 id="user-builds">User Builds</h3>
+<p>As mentioned <a href="/posts/os/choosing-your-android-based-operating-system/">above</a>, <code>userdebug</code> builds expose root over ADB and require more permissive SELinux policies to accommodate debugging features. <code>userdebug</code> builds violate the Android security model and are really only meant for developers to test out their android builds during development.</p>
+<p>End users should be using the production <code>user</code> builds, and any distributions that fail to deliver them like LineageOS or /e/ OS should be avoided.</p>
+<h3 id="selinux-in-enforcing-mode">SELinux in Enforcing Mode</h3>
+<p><a href="https://source.android.com/security/selinux">SELinux</a> is a critical part of the Android security model, having the Linux kernel enforcing confinement for all processes, including system processes running as root.</p>
+<p>In order for a system to be secure, it must have SELinux in Enforcing mode, accompanied by fine-grained SELinux policies.</p>
+<p>Unfortunately, many custom Android-based operating system builds (especially unofficial LineageOS builds) disables SELinux or set it into Permissive mode. You can check whether SELinux is in enforcing mode or not by executing <code>getenforce</code> in the ADB shell (the expected output is <code>Enforcing</code>). You should avoid any Android-based operating system builds that do not have SELinux in enforcing mode at all cost.</p>
+<p><img loading="lazy" src="/images/adb-selinux.png" alt="ADB SELinux"  />
+</p>
+<h2 id="recommended-android-based-operating-systems">Recommended Android-Based Operating Systems</h2>
+<p>Currently, I am only aware of two Android-based operating systems that should be used over the stock operating systems:</p>
+<h3 id="grapheneos">GrapheneOS</h3>
+<p><img loading="lazy" src="/images/grapheneos-aurora.jpg" alt="GrapheneOS Aurora"  />
+</p>
+<p><a href="https://grapheneos.org">GrapheneOS</a> is the <strong>only</strong> custom Android-based operating system you should buy a new phone for. It provides additional <a href="https://en.wikipedia.org/wiki/Hardening_(computing)">security hardening</a> and privacy improvements over the stock operating system from Google. It has a <a href="https://github.com/GrapheneOS/hardened_malloc">hardened memory allocator</a>, network and sensor permissions, and various other <a href="https://grapheneos.org/features">security feature</a>. GrapheneOS also comes with full firmware updates and signed builds, so verified boot is fully supported. Here is a quick video demonstrating the network and sensors permissions:</p>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/0ic6QK0xUMY" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<p>For usability purposes, GrapheneOS supports <a href="https://grapheneos.org/usage#sandboxed-google-play">Sandboxed Google Play</a>, which runs Google Play Services fully sandboxed like any other regular app. This means you can take advantage of most Google Play Services, such as <a href="https://firebase.google.com/docs/cloud-messaging/">push notifications</a>, while giving you full control over their permissions and access, and while containing them to a specific work profile or user profile of your choice. Most interestingly, the <a href="https://android-doc.github.io/google/play/billing/api.html">In-app Billing API</a>, <a href="https://play.google.com/googleplaygames">Google Play Games</a>, <a href="https://developer.android.com/guide/playcore/asset-delivery">Play Asset Delivery</a>, <a href="/posts/knowledge/multi-factor-authentication/#fido2-fast-identity-online">FIDO2</a> all work exceptionally well. Most <a href="https://landing.google.com/advancedprotection/">Advanced Protection Program</a> features, except for <a href="https://support.google.com/googleplay/answer/2812853?hl=en">Play Protect</a> and restricted app installation, also work.</p>
+<p>Because GrapheneOS does not grant any Google Apps and Services apart from the opt-in eSIM action app privileged access to the system, Play Protect cannot disable or uninstall known malicious applications when it detects them. As for restricted app installation, this feature is not that useful on stock operating system anyways, since it is bypassable with <code>adb push</code>.</p>
+<p>Recently, GrapheneOS has also added the <a href="https://grapheneos.org/usage#storage-access">Storage Scopes</a> feature, allowing you to force apps that request broad storage access permission to function with scoped storage. With this new feature, you no longer have to grant certain apps access to all of your media or files to use them anymore. You can watch a video of Storage Scope in action here:</p>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/WjrANjvrSzw" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<p>Currently, Google Pixel phones are the only devices that meet GrapheneOS&rsquo;s <a href="https://grapheneos.org/faq#device-support">hardware security requirements</a>.</p>
+<h3 id="divestos">DivestOS</h3>
+<p><a href="https://divestos.org/">DivestOS</a> is a great aftermarket operating system for devices that have gone end-of-life or are near end-of-life. Note that this is a harm reduction project, ran by one developer on the best effort basis, and you should not buy a new device just to run DivestOS.</p>
+<p>Being a soft-fork of <a href="https://lineageos.org/">LineageOS</a>, DivestOS inherits many <a href="https://divestos.org/index.php?page=devices&amp;base=LineageOS">supported devices</a> from LineageOS. It has signed builds, making it possible to have <a href="https://source.android.com/security/verifiedboot">verified boot</a> on some non-Pixel devices.</p>
+<p>It comes with substantial hardening over AOSP. DivestOS has automated kernel vulnerability (<a href="https://en.wikipedia.org/wiki/Common_Vulnerabilities_and_Exposures">CVE</a>) <a href="https://gitlab.com/divested-mobile/cve_checker">patching</a>, fewer proprietary blobs, a custom <a href="https://divested.dev/index.php?page=dnsbl">hosts</a> file, and various security features ported from GrapheneOS. A non-exhaustive list of this includes:</p>
+<ul>
+<li>A hardened webview. <a href="https://gitlab.com/divested-mobile/mulch">Mulch</a> comes with <em>some</em> patches from GrapheneOS&rsquo;s Vanadium browser and the <a href="https://github.com/bromite/bromite">Bromite</a> project. It gets updated fairly quickly and do not fall behind nearly as much as Bromite.</li>
+<li>Kernel patches from GrapheneOS and enables all available kernel security features via <a href="https://github.com/Divested-Mobile/DivestOS-Build/blob/master/Scripts/Common/Functions.sh#L758">defconfig hardening</a>. All kernels newer than version 3.4 include full page <a href="https://lwn.net/Articles/334747/">sanitization</a> and all ~22 Clang-compiled kernels have <a href="https://reviews.llvm.org/D54604?id=174471"><code>-ftrivial-auto-var-init=zero</code></a> enabled.</li>
+<li>GrapheneOS&rsquo;s <a href="https://developer.android.com/training/basics/network-ops/connecting"><code>INTERNET</code></a> and SENSORS permission toggle.</li>
+<li><a href="https://github.com/GrapheneOS/hardened_malloc">Hardened memory allocator</a></li>
+<li><a href="https://grapheneos.org/usage#exec-spawning">Secure Exec-Spawning</a></li>
+<li>Partial <a href="https://en.wikipedia.org/wiki/Bionic_(software)">bionic</a> hardening patchsets from GrapheneOS</li>
+<li>GrapheneOS&rsquo;s per-network full <a href="https://en.wikipedia.org/wiki/MAC_address#Randomization">MAC randomization</a> option on version 17.1 and higher</li>
+<li>Automatic reboot/Wi-Fi/Bluetooth <a href="https://grapheneos.org/features">timeout options</a></li>
+</ul>
+<p>With that being said, DivestOS is not without its faults. The developer does not have all of the devices he is building for, and for a lot of them he simply publishes the builds blind without actually testing them. Firmware update support <a href="https://gitlab.com/divested-mobile/firmware-empty/-/blob/master/STATUS">varies</a> across devices. DivestOS also takes a very long time to update to a new major Android, and actually took longer than CalyxOS did as mentioned <a href="#firmware-updates">above</a>. It does not tend to fall behind on Chromium updates like CalyxOS, however.</p>
+<p>Also, please note that I am only recommending DivestOS here, and not any of its related apps. For instance, I would not recommend using Mull, since it is just a Firefox Android fork with better defaults and still inherits many security deficiencies from its upstream, including the lack of support for <a href="https://wiki.mozilla.org/Project_Fission">site isolation</a> and <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1565196">isolatedProcess</a>.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Banking Applications Compatibility with GrapheneOS</title>
+      <link>https://loudrxiv.github.io/posts/android/banking-applications-compatibility-with-grapheneos/</link>
+      <pubDate>Wed, 26 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/banking-applications-compatibility-with-grapheneos/</guid>
+      <description>A maintained compatibility list of working international banking apps that are tested, submitted, reviewed and published below.
+View list | Submit report | Update report
+Introduction This is a crowd-sourced project dataset for GrapheneOS&amp;rsquo;s users that are on currently supported devices.
+First time visitors here should read the official usage guide on banking apps for detailed information explaining how banking apps work on GrapheneOS.
+Important: SafetyNet is being replaced by Play Integrity API and may cause your banking app to suddenly stop working after an update.</description>
+      <content:encoded><![CDATA[<p>A maintained <em>compatibility</em> list of <em>working</em> international <strong>banking apps</strong> that are tested, submitted, reviewed and published below.</p>
+<p><strong><a href="#international-banking-apps">View list</a> | <a href="#submit-a-new-app-report">Submit report</a> | <a href="#update-status-of-app-report">Update report</a></strong></p>
+<h2 id="introduction">Introduction</h2>
+<p>This is a crowd-sourced project dataset for <a href="https://grapheneos.org">GrapheneOS</a>&rsquo;s users that are on currently <a href="https://grapheneos.org/faq#supported-devices">supported devices</a>.</p>
+<p>First time visitors here should read the official usage guide on <a href="https://grapheneos.org/usage#banking-apps">banking apps</a> for detailed information explaining how banking apps work on GrapheneOS.</p>
+<p><strong>Important</strong>: <a href="https://akc3n.page/posts/banking-app-issues/#safetynet-replaced-by-play-integrity-api">SafetyNet is being replaced by Play Integrity API</a> and may cause your banking app to suddenly stop working after an update.</p>
+<blockquote>
+<p><em><strong>If your newly installed banking app aborts at first launch or suddenly stops working after your app updates, then you should try one of these <a href="https://akc3n.page/posts/banking-app-issues/#possible-solutions">possible solutions to resolve the compatibiity issue</a>.</strong></em></p>
+</blockquote>
+<hr>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<h2 id="international-banking-apps">International banking apps</h2>
+<h3 id="australia">Australia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.anz.android.gomoney">ANZ Australia</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/157">Report</a></li>
+<li><a href="#">Affinity Credit Union</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/204">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fusion.banking">Bank Australia App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/55">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bendigobank.mobile">Bendigo Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/88">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.commbank.netbank">CommBank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/75">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.mebank.banking">ME Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/203">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.nab.mobile">NAB Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/76">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.bank86400">ubank – Daily Money App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/156">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.up.money">Up Money</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/102">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.westpac.bank">Westpac</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/77">Report</a></li>
+</ul>
+<h3 id="austria">Austria</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.bankaustria.android.olb">Bank Austria Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/15">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=at.rsg.pfp">Mein ELBA-App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/62">Report</a></li>
+</ul>
+<h3 id="belgium">Belgium</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=be.belfius.directmobile.android">Belfius Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/110">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ing.banking">ING Belgium</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/45">Report</a></li>
+</ul>
+<h3 id="brazil">Brazil</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=br.com.gabba.Caixa">Caixa</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/89">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.nu.production">Nubank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/92">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.santander.app">Santander Brasil</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/151">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.santandermovelempresarial.app">Santander Empresas</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/153">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=br.com.santander.way">Santander Way: App de cartões</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/152">Report</a></li>
+</ul>
+<h3 id="canada">Canada</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=ca.affinitycu.mobile">Affinity Credit Union</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/71">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.coastcapitalsavings.dcu">Coast Capital Savings</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/175">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bmo.mobile">BMO Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/19">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.eqbank.eqbank">EQ Bank Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/103">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ca.koho">KOHO Financial</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/104">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?hl=en&amp;id=com.rbc.mobile.android">RBC Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/32">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.questrade.questmobile">QuestMobile: Invest &amp; Trade</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/115">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.questrade.my">Questrade</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/114">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.scotiabank.banking">Scotiabank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/176">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.pcfinancial.mobile">Simplii Financial</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/17">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ca.tangerine.clients.banking.app">Tangerine Mobile App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/16">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.td">TD Canada</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/199">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.wealthsimple">Wealthsimple</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/116">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.wealthsimple.trade">Wealthsimple Invest</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/117">Report</a></li>
+</ul>
+<h3 id="czech-republic">Czech Republic</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=cz.airbank.android">AirBank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/31">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=cz.creditas.richee">CREDITAS Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/78">Report</a></li>
+</ul>
+<h3 id="denmark">Denmark</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.danskebank.mobilebank3.dk">Mobilbank DK – Danske Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/5">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=dk.danskebank.mobilepay">MobilePay</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/7">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=dk.e_nettet.mobilekey.everyone">NemID nøgleapp</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/10">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=dk.nordea.mobilebank">Nordea Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/118">Report</a></li>
+</ul>
+<h3 id="finland">Finland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=fi.spankki">S-mobiili</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/43">Report</a></li>
+</ul>
+<h3 id="france">France</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.boursorama.android.clients">Boursorama Banque</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/147">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.arkea.android.application.cmb">Crédit Mutuel de Bretagne</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/150">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fortuneo.android">Fortuneo</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/208">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bnpp.hellobank">Hello bank!</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/163">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fullsix.android.labanquepostale.accountaccess">La Banque Postale</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/14">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=fr.creditagricole.androidapp">Ma Banque</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/73">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=net.bnpparibas.mescomptes">Mes Comptes BNP Paribas</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/165">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=fr.lcl.android.customerarea">Mes Comptes - LCL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/196">Report</a></li>
+</ul>
+<h3 id="germany">Germany</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=de.direkt1822.banking">1822direkt Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/167">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.commerzbanking.mobil">Commerzbank Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/22">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.db.pwcc.dbmobile">Deutsche Bank Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/38">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.android.wlwallet">Digitales Bezahlen</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/160">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.dkbcodefactory.banking">DKB</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/106">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.xcom.flatexde">flatex next</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/59">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.ingdiba.bankingapp">ING Banking to go</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/48">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.kontist">Kontist</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/23">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.number26.android&amp;hl=en_US&amp;gl=US">N26 — The Mobile Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/21">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.getpenta.app">Penta — Business Banking App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/24">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.psd.banking.app">PSD Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/159">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.santander.presentation">Santander Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/119">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.securego.wl">SecureGo plus</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/161">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.starfinanz.smob.android.sfinanzstatus">Sparkasse</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/44">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=one.tomorrow.app">Tomorrow Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/20">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.banking.vr">Volksbanken Raiffeisenbanken</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/36">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.android.vrwallet">Volksbanken Raiffeisenbanken — Companion App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/35">Report</a></li>
+</ul>
+<h3 id="ghana">Ghana</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.breezeghana.ui">SC Mobile Ghana</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/174">Report</a></li>
+</ul>
+<h3 id="hungary">Hungary</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=hr.asseco.android.jimba.mUCI.hu">UniCredit mBanking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/87">Report</a></li>
+</ul>
+<h3 id="india">India</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.axis.mobile">Axis Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/139">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=in.org.npci.upiapp">BHIM</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/135">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.infrasofttech.CentralBank">Cent Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/142">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.snapwork.hdfc">HDFC Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/138">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.msf.kbank.mobile">Kotak - 811 &amp; Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/137">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.phonepe.app">PhonePe</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/134">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=net.one97.paytm">Paytm</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/140">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.infrasoft.uboi">Union Bank of India - nxt</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/141">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.sbi.lotusintouch">YONO SBI</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/79">Report</a></li>
+</ul>
+<h3 id="ireland">Ireland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=aib.ibank.android">AIB Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/202">Report</a></li>
+</ul>
+<h3 id="italy">Italy</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=posteitaliane.posteapp.appbpol">BancoPosta</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/181">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=it.bnl.apps.banking">BNL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/144">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fineco.it">Fineco</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/131">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.latuabancaperandroid">Intesa Sanpaolo Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/197">Report</a></li>
+</ul>
+<h3 id="kazakhstan">Kazakhstan</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=kz.kaspi.mobile">Kaspi.kz</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/149">Report</a></li>
+</ul>
+<h3 id="luxembourg">Luxembourg</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=lu.bcee.snetmobile">S-Net Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/211">Report</a></li>
+</ul>
+<h3 id="lithuania">Lithuania</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.revolut.revolut">Revolut</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/90">Report</a></li>
+</ul>
+<h3 id="netherlands">Netherlands</h3>
+<!-- raw HTML omitted -->
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.abnamro.nl.mobile.payments">ABN AMRO</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/108">Report</a></li>
+<li><a href="https://play.google.com/store/search?q=asn%20bank&amp;c=apps&amp;hl=nl&amp;gl=US">ASN Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/105">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=nl.rabomobiel">Rabobank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/47">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.triodos.bankingnl">Triodos Bankieren NL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/133">Report</a></li>
+</ul>
+<h3 id="norway">Norway</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.banknorwegian">Bank Norwegian</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/95">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.dnb.spare">DNB Spare</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/98">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.sparebank1.mobilbank">Engangskode SpareBank 1</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/100">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.kronmobilapp">Kron</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/97">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.nordnet">Nordnet</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/99">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.evry.mobile.android.smartbankmobile.obos">Obos Mobilbank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/192">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.skandiabanken">Sbanken</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/96">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.evry.android.cardcompanion.ngtv">Trumf Visa</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/101">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.dnb.vipps">Vipps</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/74">Report</a></li>
+</ul>
+<h3 id="poland">Poland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=wit.android.bcpBankingApp.millenniumPL">Bank Millenium</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/171">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.pkobp.iko">IKO</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/25">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.alior.mobile.exchange.prd">Kantor Walutowy Alior Banku</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/172">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.mbank">mBank PL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/136">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.ing.mojeing">Moje ING mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/169">Report</a></li>
+</ul>
+<h3 id="portugal">Portugal</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=pt.cgd.caixadirectaempresas">Caixadirecta Empresas</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/120">Report</a></li>
+</ul>
+<h3 id="romania">Romania</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=ro.btrl.pay">BT Pay — Banca Transilvania</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/83">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ro.bcr.georgego">George Romania</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/179">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ro.raiffeisen.smartmobile">Raiffeisen Smart Mobile PI</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/86">Report</a></li>
+</ul>
+<h3 id="russia">Russia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.idamob.tinkoff.android">Tinkoff</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/198">Report</a></li>
+</ul>
+<h3 id="serbia">Serbia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=rs.Raiffeisen.mobile">Moja mBanka Raiffeisen</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/70">Report</a></li>
+</ul>
+<h3 id="singapore">Singapore</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.dbs.sg.iwealth">DBS digibank - wealth</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/183">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ocbc.mobile">OCBC Digital</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/146">Report</a></li>
+</ul>
+<h3 id="slovenia">Slovenia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=si.delavskahranilnica.dhdenarnik">DH Denarnik</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/178">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.hrc.eb.mobile.android.hibismobiledh">DH Mobilni</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/177">Report</a></li>
+</ul>
+<h3 id="spain">Spain</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=es.evobanco.bancamovil">Evo Banco</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/112">Report</a></li>
+</ul>
+<h3 id="sweden">Sweden</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=se.avanzabank.androidapplikation">Avanza</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/11">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bankid.bus">BankID säkerhetsapp</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/8">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.kivra.Kivra">Kivra</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/193">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.lf.mobile.android">Länsförsäkringar</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/91">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.danskebank.mobilebank3.se">Mobilbank SE — Danske Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/4">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.nordea.mobilebank">Nordea Mobile — Sverige</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/9">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.swedbank.mobil">Swedbank private</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/12">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.bankgirot.swish">Swish payments</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/6">Report</a></li>
+</ul>
+<h3 id="switzerland">Switzerland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.bcn.android.mbanking">BCN Mobile banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/145">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.csg.cs.dnmb">Credit Suisse</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/72">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.neonbanking.app">neon - your account app</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/207">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ch.raiffeisen.android">Raiffeisen E-Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/26">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ch.zkb.digipass">ZKB Access</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/94">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ch.zkb.slv.mobile.client.android">ZKB Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/93">Report</a></li>
+</ul>
+<h3 id="taiwan">Taiwan</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.cathaybk.mymobibank.android">Cathay United Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/29">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.mitake.android.epost">Chunghwa Post</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/27">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.chinatrust.mobilebank">CTBC Bank Home Bank</a> -<a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/30">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.esunbank">E.Sun Bank</a> -<a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/162">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=tw.com.taishinbank.mobile">Taishin International Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/28">Report</a></li>
+</ul>
+<h3 id="thailand">Thailand</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.scb.phone">SCB Easy</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/195">Report</a></li>
+</ul>
+<h3 id="ukraine">Ukraine</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=ua.privatbank.ap24">Privat24</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/124">Report</a></li>
+</ul>
+<h3 id="united-arab-emirates">United Arab Emirates</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.adcb.bank">ADCB</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/123">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fab.personalbanking">FAB Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/180">Report</a></li>
+</ul>
+<h3 id="united-kingdom">United Kingdom</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.americanexpress.android.acctsvcs.uk">Amex United Kingdom</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/40">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.barclays.bca">Barclaycard</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/42">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.chase.intl">Chase UK</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/69">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.cooperativebank.bank">Co-operative Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/205">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.firstdirect.bankingonthego">First Direct</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/128">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=uk.co.hsbc.hsbcukmobilebanking">HSBC UK Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/33">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.grppl.android.shell.CMBlloydsTSB73">Lloyds Bank Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/53">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=co.uk.getmondo">Monzo Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/58">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=co.uk.getmondo">Metro Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/209">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.revolut.revolut">Revolut</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/90">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=uk.co.santander.santanderUK">Santander UK</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/210">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.starlingbank.android">Starling Bank - Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/39">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.tescobank.mobile">Tesco Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/129">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.tideplatform.banking">Tide - Business Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/206">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.triodos.bankinguk">Triodos Bank UK</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/132">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=uk.co.tsb.newmobilebank">TSB Internet Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/143">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.virginmoney.uk.mobile.android">Virgin Money Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/54">Report</a></li>
+</ul>
+<h3 id="united-states">United States</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=org.alliant.mobile">Alliant Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/85">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ally.MobileBanking">Ally: Banking &amp; Investing</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/113">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.afcu.mobilebanking">America First Mobile Banking</a> - <a href="https://play.google.com/store/apps/details?id=com.afcu.mobilebanking">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.americanexpress.android.acctsvcs.us">American Express</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/125">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.becu.androidapp">BECU</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/60">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.konylabs.capitalone">Capital One Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/107">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.chase.sig.android">Chase Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/13">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.onedebit.chime">Chime Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/46">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.citizensbank.androidapp">Citizens Bank Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/66">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ifs.banking.fiid1454">CommunityAmerica Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/154">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.projectfinance.android.dcu">DCU Digital Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/67">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.discoverfinancial.mobile">Discover Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/64">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fidelity.android">Fidelity Investments</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/65">Repor</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.clairmail.fth">Fifth Third Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/41">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.mfoundry.mb.android.mb_lx7">First Merchants Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/158">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.q2e.universityofiowacommunitycreditunion5086.mobile.production">Greenstate CU Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/122">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.growfinancialfcu.growfinancialfcu">Grow Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/68">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.gtefinancial.mobile">GTE Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/81">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.a84102934.wallet.cardcontrol">GTE Cards (GTE Financial - Debit/Credit card management)</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/82">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.mainstreetcu.grip">Mainstreet Credit Union</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/111">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.schoolsfirstfcu.mobile.banking.isam">SchoolsFirst FCU Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/126">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.schwab.mobile">Schwab Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/61">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ifs.mobilebanking.fiid9094">Service CU Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/166">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ifs.banking.fiid1373">Texan CU Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/56">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.usaa.mobile.android.usaa">USAA Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/80">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.usbank.mobilebanking">U.S. Bank Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/84">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.wf.wellsfargomobile">Wells Fargo Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/63">Report</a></li>
+</ul>
+<hr>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>This section covers how to submit or update a banking app report.</p>
+<h3 id="submit-a-new-app-report">Submit a new app report</h3>
+<p>There are several methods for GrapheneOS users to contribute their banking app report:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Description</th>
+<th style="text-align:center">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>GitHub</strong></td>
+<td style="text-align:left">Fill out form on <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues">issue-tracker</a> using your GitHub account</td>
+<td style="text-align:center"><a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/new?assignees=&amp;labels=&amp;template=app_report.yml"><code>SUBMIT REPORT</code></a></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Non-GitHub</strong></td>
+<td style="text-align:left">View gist → Raw → Save template markdown file to fill out.</td>
+<td style="text-align:center"><a href="https://gist.github.com/akc3n/e845078ddbbb28ada0dd055c51ec45af"><code>Gist</code></a></td>
+</tr>
+<tr>
+<td style="text-align:left">Curl</td>
+<td style="text-align:left">Terminal → <code>curl -O</code> → paste copied url (gist form <code>.md</code> template) ⟶</td>
+<td style="text-align:center"><a href="https://gist.githubusercontent.com/akc3n/e845078ddbbb28ada0dd055c51ec45af/raw/5fdacb267aad5fa95ebf576cdcbd319f80bf9d12/banking-app-report-issue-form.md"><code>Copy link address</code></a></td>
+</tr>
+<tr>
+<td style="text-align:left">Google Form</td>
+<td style="text-align:left">N/A at the moment</td>
+<td style="text-align:center">N/A</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="https://github.com/ohmyform/ohmyform">OhMyForm</a></td>
+<td style="text-align:left">N/A at the moment, need to test</td>
+<td style="text-align:center">N/A</td>
+</tr>
+</tbody>
+</table>
+<p>Alternatively, curl and pipe the output directly into vi/vim/neovim for editing:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl https://gist.githubusercontent.com/akc3n/e845078ddbbb28ada0dd055c51ec45af/raw/5fdacb267aad5fa95ebf576cdcbd319f80bf9d12/banking-app-report-issue-form.md<span class="se">\?</span>T <span class="p">|</span> nvim -
+</span></span></code></pre></div><h3 id="update-status-of-app-report">Update status of app report</h3>
+<p>Please do not open a new issue to update the status of a banking app report!</p>
+<p>Use the <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues">issue tracker to search</a> for the banking app name listed above in the <a href="#international-banking-apps">International banking apps</a> section and add a comment to that report.</p>
+<p>If you are a non-github user and have tried every combination suggested for <a href="https://akc3n.page/banking-issues">possible solutions</a> without being unable to resolving your specific banking app compatibiliity issue, then <a href="https://privsec.dev/about#akc3n">contact me</a> afterwards please.</p>
+<hr>
+<h2 id="note">Note</h2>
+<p>GrapheneOS has a <a href="https://grapheneos.org/articles/attestation-compatibility-guide">detailed guide</a> for app developers on how to support GrapheneOS with the hardware attestation API. Direct use of the hardware attestation API provides much higher assurance than using SafetyNet so these apps have nothing to lose by using a more meaningful API and supporting a more secure OS.</p>
+<blockquote>
+<p>GrapheneOS users are strongly encouraged to share this documentation with app developers enforcing only being able to use the stock OS. Send an email to the developers and leave a review of the app with a link to this information. Share it with other users and create pressure to support GrapheneOS rather than locking users into the stock OS without a valid security reason. GrapheneOS not only upholds the app security model but substantially reinforces it, so it cannot be justified with reasoning based on security, anti-fraud, etc.</p>
+</blockquote>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>F-Droid Security Issues</title>
+      <link>https://loudrxiv.github.io/posts/android/f-droid-security-issues/</link>
+      <pubDate>Sun, 02 Jan 2022 21:28:31 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/f-droid-security-issues/</guid>
+      <description>F-Droid is a popular alternative app repository for Android, especially known for its main repository dedicated to free and open-source software. F-Droid is often recommended among security and privacy enthusiasts, but how does it stack up against Play Store in practice? This write-up will attempt to emphasize major security issues with F-Droid that you should consider.
+Before we start, a few things to keep in mind:
+The main goal of this write-up was to inform users so they can make responsible choices, not to trash someone else&amp;rsquo;s work.</description>
+      <content:encoded><![CDATA[<p>F-Droid is a popular alternative app repository for Android, especially known for its main repository dedicated to free and open-source software. F-Droid is often recommended among security and privacy enthusiasts, but how does it stack up against Play Store in practice? This write-up will attempt to emphasize major security issues with F-Droid that you should consider.</p>
+<p>Before we start, a few things to keep in mind:</p>
+<ul>
+<li>The main goal of this write-up was to inform users so they can make responsible choices, not to trash someone else&rsquo;s work. I have respect for any work done in the name of good intentions. Likewise, please don&rsquo;t misinterpret the intentions of this article.</li>
+<li>You have your own reasons for using open-source or free/libre/whatever software which won&rsquo;t be discussed here. A development model shouldn&rsquo;t be an excuse for bad practices and shouldn&rsquo;t lure you into believing that it can provide strong guarantees it cannot.</li>
+<li>A lot of information in this article is sourced from official and trusted sources, but you&rsquo;re welcome to do your own research.</li>
+<li>These analyses do not account for threat models and personal preferences. As the author of this article, I&rsquo;m only interested in facts and not ideologies.</li>
+</ul>
+<p><em>This is not an in-depth security review, nor is it exhaustive.</em></p>
+<h2 id="1-the-trusted-party-problem">1. The trusted party problem</h2>
+<p>To understand why this is a problem, you&rsquo;ll have to understand a bit about F-Droid&rsquo;s architecture, the things it does very differently from other app repositories, and the <a href="https://arxiv.org/pdf/1904.05572.pdf">Android platform security model</a> (some of the issues listed in this article are somewhat out of the scope of the OS security model, but the majority is).</p>
+<p>Unlike other repositories, F-Droid signs all the apps in the main repository with <strong>its own signing keys</strong> (unique per app) at the exception of the very few <a href="https://f-droid.org/en/docs/Reproducible_Builds/">reproducible builds</a>. A signature is a mathematical scheme that guarantees the authenticity of the applications you download. Upon the installation of an app, Android pins the signature across the entire OS (including user profiles): that&rsquo;s what we call a <em>trust-on-first-use</em> model since all subsequent updates of the app must have the corresponding signature to be installed.</p>
+<p>Normally, the developer is supposed to sign their own app prior to its upload on a distribution channel, whether that is a website or a traditional repository (or both). You don&rsquo;t have to trust the source (usually recommended by the developer) except for the first installation: future updates will have their authenticity cryptographically guaranteed. The issue with F-Droid is that all apps are signed by the same party (F-Droid) which is also not the developer. You&rsquo;re now adding another party you&rsquo;ll have to trust since <strong>you still have to trust the developer</strong> anyway, which isn&rsquo;t ideal: <strong>the fewer parties, the better</strong>.</p>
+<p>On the other hand, Play Store now manages the app signing keys too, as <a href="https://developer.android.com/studio/publish/app-signing#app-signing-google-play">Play App Signing</a> is required for app bundles which are required for new apps since August 2021. These signing keys can be uploaded or automatically generated, and are securely stored by <a href="https://services.google.com/fh/files/misc/security_whitepapers_march2018.pdf">Google Cloud Key Management Service</a>. It should be noted that the developer still has to sign the app with <strong>an upload key</strong> so that Google can verify its authenticity before signing it with the app signing key. For apps created before August 2021 that may have <a href="https://developer.android.com/studio/publish/app-signing#opt-out">not opted in Play App Signing</a> yet, the developer still manages the private key and is responsible for its security, as a compromised private key can allow a third party to sign and distribute malicious code.</p>
+<p>F-Droid requires that the source code of the app is exempt from any proprietary library or ad service, according to their <a href="https://f-droid.org/en/docs/Inclusion_Policy/">inclusion policy</a>. Usually, that means that some developers will have to maintain a slightly different version of their codebase that should comply with F-Droid&rsquo;s requirements. Besides, their &ldquo;quality control&rdquo; offers <strong>close to no guarantees</strong> as having access to the source code doesn&rsquo;t mean it can be easily proofread. Saying Play Store is filled with malicious apps is beyond the point: the <strong>false sense of security</strong> is a real issue. Users should not think of the F-Droid main repository as free of malicious apps, yet unfortunately many are inclined to believe this.</p>
+<blockquote>
+<p>But&hellip; can&rsquo;t I just trust F-Droid and be done with it?</p>
+</blockquote>
+<p><a href="https://forum.f-droid.org/t/is-it-as-safe-as-it-is-from-fdroid-official-repo/15956/12">You don&rsquo;t have to take my word for it</a>: they openly admit themselves it&rsquo;s a <a href="https://forum.f-droid.org/t/is-it-as-safe-as-it-is-from-fdroid-official-repo/15956/2">very basic process</a> relying on badness enumeration (this doesn&rsquo;t work by the way) which consists in a few scripts scanning the code for proprietary blobs and known trackers. You are therefore not exempted from trusting upstream developers and it goes for any repository.</p>
+<p><em>A tempting idea would be to compare F-Droid to the desktop Linux model where users trust their distribution maintainers out-of-the-box (this can be sane if you&rsquo;re already trusting the OS anyway), but the desktop platform is intrinsically chaotic and heterogeneous for better and for worse. It really shouldn&rsquo;t be compared to the Android platform in any way.</em></p>
+<p>While we&rsquo;ve seen that F-Droid controls the signing servers (much like Play App Signing), F-Droid also fully controls the build servers that run the disposable VMs used for building apps. And from June to November of 2022, their guest VM image <a href="https://gitlab.com/groups/fdroid/-/milestones/5#tab-issues">officially ran an end-of-life release of Debian LTS</a>. It is also worth noting that Debian LTS seperate project from Debian which attempts to extend the lifetime of releases that are deemed end-of-life by the Debian project and <a href="https://wiki.debian.org/LTS">does not get handled by the Debian Security team</a>. The version they were using (Debian Stretch) was actually discontinued <a href="https://wiki.debian.org/DebianStretch">2 years prior</a>. Undoubtedly, this raises questions about their whole infrastructure security.</p>
+<blockquote>
+<p>How can you be sure that the app repository can be held to account for the code it delivers?</p>
+</blockquote>
+<p>F-Droid&rsquo;s answer, interesting yet largely unused, is <a href="https://f-droid.org/en/docs/Reproducible_Builds/">build reproducibility</a>. While deterministic builds are a neat idea in theory, it requires the developer to make their toolchain match with what F-Droid provides. It&rsquo;s additional work on both ends sometimes resulting in <a href="https://code.briarproject.org/briar/briar/-/issues/1612">apps severely lagging behind in updates</a>, so reproducible builds are not as common as we would have wanted. It should be noted that reproducible builds in the main repository can be exclusively developer-signed.</p>
+<p>Google&rsquo;s approach is <a href="https://developer.android.com/guide/app-bundle/code-transparency">code transparency for app bundles</a>, which is a simple idea addressing some of the concerns with Play App Signing. A JSON Web Token (JWT) signed by a key private to the developer is included in the app bundle before its upload to Play Store. This token contains a list of DEX files and native <code>.so</code> libraries and their hashes, allowing end-users to verify that the running code was built and signed by the app developer. Code transparency has known limitations, however: not all resources can be verified, and this verification can only be done manually since it&rsquo;s not part of the Android platform itself (so requiring a code transparency file cannot be enforced by the OS right now). Despite its incompleteness, code transparency is still helpful, easy to implement, and thus something we should see more often as time goes by.</p>
+<blockquote>
+<p>What about other app repositories such as Amazon?</p>
+</blockquote>
+<p><a href="https://developer.amazon.com/docs/app-submission/understanding-submission.html#code_wrapper">To my current knowledge</a>, the Amazon Appstore has always been wrapping APKs with their own code (including their own trackers), and this means they were effectively resigning submitted APKs.</p>
+<p>If you understood correctly the information above, Google can&rsquo;t do this for apps that haven&rsquo;t opted in Play App Signing. As for apps concerned by Play App Signing, while Google could technically introduce their own code like Amazon, they wouldn&rsquo;t do that without telling about it since this will be easily noticeable by the developer and more globally researchers. They have other means on the Android app development platform to do so. Believing they won&rsquo;t do that based on this principle is not a strong guarantee, however: hence the above paragraph about code transparency for app bundles.</p>
+<p>Huawei AppGallery seems to have a <a href="https://developer.huawei.com/consumer/en/doc/distribution/app/20210812">similar approach</a> to Google, where submitted apps could be developer-signed, but newer apps will be resigned by Huawei.</p>
+<h2 id="2-slow-and-irregular-updates">2. Slow and irregular updates</h2>
+<p>Since you&rsquo;re adding one more party to the mix, that party is now responsible for delivering proper builds of the app: it&rsquo;s a common thing among traditional Linux distributions and their packaging system. They have to catch up with <em>upstream</em> on a regular basis, but very few do it well (Arch Linux comes to my mind). Others, like Debian, prefer making extensive <em>downstream</em> changes and delivering security fixes for a subset of vulnerabilities assigned to a CVE (yeah, it&rsquo;s as bad as it sounds, but that&rsquo;s another topic).</p>
+<p>Not only does F-Droid require specific changes for the app to comply with its inclusion policy, which often leads to more maintenance work, it also has a rather strange way of triggering new builds. Part of its build process seems to be <a href="https://f-droid.org/en/docs/FAQ_-_App_Developers/">automated</a>, which is the least you could expect. Now here&rsquo;s the thing: app signing keys are on an <strong>air-gapped server</strong> (meaning it&rsquo;s disconnected from any network, at least that&rsquo;s what they claim: see <a href="https://f-droid.org/docs/Building_a_Signing_Server/">their recommendations</a> for reference), which forces an irregular update cycle where a human has to manually trigger the signing process. It is far from an ideal situation, and you may argue it&rsquo;s the least to be expected since by entrusting all the signing keys to one party, you could also introduce a single point of failure. Should their system be compromised (whether from the inside or the outside), this could lead to serious security issues affecting plenty of users.</p>
+<p><em>This is one of the main reasons why Signal refused to support the inclusion of a third-party build in the F-Droid official repository. While <a href="https://github.com/signalapp/Signal-Android/issues/127">this GitHub issue</a> is quite old, many points still hold true today.</em></p>
+<p>Considering all this, and the fact that their build process is often broken using outdated tools, you have to expect <strong>far slower updates</strong> compared to a traditional distribution system. Slow updates mean that you will be exposed to security vulnerabilities more often than you should&rsquo;ve been. It would be unwise to have a full browser updated through the F-Droid official repository, for instance. F-Droid third-party repositories somewhat mitigate the issue of slow updates since they can be managed directly by the developer. It isn&rsquo;t ideal either as you will see below.</p>
+<h2 id="3-low-target-api-level-sdk-for-client--apps">3. Low target API level (SDK) for client &amp; apps</h2>
+<p>SDK stands for <em>Software Development Kit</em> and is the collection of software to build apps for a given platform. On Android, a higher SDK level means you&rsquo;ll be able to make use of modern API levels of which each iteration brings <strong>security and privacy improvements</strong>. For instance, API level 31 makes use of all these improvements on Android 12.</p>
+<p>As you may already know, Android has a strong sandboxing model where each application is sandboxed. You could say that an app compiled with the highest API level benefits from all the latest improvements brought to the app sandbox; as opposed to outdated apps compiled with older API levels, which have a <strong>weaker sandbox</strong>.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># b/35917228 - /proc/misc access
+</span></span><span class="line"><span class="cl"># This will go away in a future Android release
+</span></span><span class="line"><span class="cl">allow untrusted_app_25 proc_misc:file r_file_perms;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"># Access to /proc/tty/drivers, to allow apps to determine if they
+</span></span><span class="line"><span class="cl"># are running in an emulated environment.
+</span></span><span class="line"><span class="cl"># b/33214085 b/33814662 b/33791054 b/33211769
+</span></span><span class="line"><span class="cl"># https://github.com/strazzere/anti-emulator/blob/master/AntiEmulator/src/diff/strazzere/anti/emulator/FindEmulator.java
+</span></span><span class="line"><span class="cl"># This will go away in a future Android release
+</span></span><span class="line"><span class="cl">allow untrusted_app_25 proc_tty_drivers:file r_file_perms;
+</span></span></code></pre></div><p>This is a mere sample of the <a href="https://android.googlesource.com/platform/system/sepolicy/+/refs/tags/android-12.0.0_r21/private">SELinux exceptions</a> that have to be made on older API levels so that you can understand why it matters.</p>
+<p>It turns out the official F-Droid client doesn&rsquo;t care much about this since it lags behind quite a bit, <strong><a href="https://gitlab.com/fdroid/fdroidclient/-/blob/2a8b16683a2dbee16d624a58e7dd3ea1da772fbd/app/build.gradle#L33">targeting the API level 25</a></strong> (Android 7.1) of which some SELinux exceptions were shown above. As a workaround, some users recommended third-party clients such as <a href="https://f-droid.org/en/packages/nya.kitsunyan.foxydroid/">Foxy Droid</a> or <a href="https://f-droid.org/en/packages/com.aurora.adroid/">Aurora Droid</a>. While these clients might be technically better, they&rsquo;re poorly maintained for some, and they also introduce yet another party to the mix. <a href="https://github.com/Iamlooker/Droid-ify">Droid-ify</a> (recently rebranded to Neo-Store) seems to be a better option than the official client in most aspects.</p>
+<p>Furthermore, F-Droid <strong>doesn&rsquo;t enforce a minimum target SDK</strong> for the official repository. Play Store <a href="https://developer.android.com/google/play/requirements/target-sdk">does that quite aggressively</a> for new apps and app updates:</p>
+<ul>
+<li>Since August 2021, Play Store requires new apps to target at least API level 30.</li>
+<li>Since November 2021, existing apps must at least target API level 30 for updates to be submitted.</li>
+</ul>
+<p>While it may seem bothersome, it&rsquo;s a necessity to keep the <strong>app ecosystem modern and healthy</strong>. Here, F-Droid sends the wrong message to developers (and even users) because they should care about it, and this is why many of us think it may be even harmful to the FOSS ecosystem. Backward compatibility is often the enemy of security, and while there&rsquo;s a middle-ground for convenience and obsolescence, it shouldn&rsquo;t be exaggerated. As a result of this philosophy, the main repository of F-Droid is filled with obsolete apps from another era, just for these apps to be able to run on the more than ten years old Android 4.0 Ice Cream Sandwich. Let&rsquo;s not make the same mistake as the desktop platforms: instead, complain to your vendors for selling devices with no decent OS/firmware support.</p>
+<p>There is little practical reason for developers not to increase the target SDK version (<code>targetSdkVersion</code>) along with each Android release. This attribute matches the version of the platform an app is targeting, and allows access to modern improvements, rules and features on a modern OS. The app can still ensure backwards compatibility in such a way that it can run on older platforms: the <code>minSdkVersion</code> attribute informs the system about the minimum API level required for the application to run. Setting it too low isn&rsquo;t practical though, because this requires having a lot of fallback code (most of it is handled by common libraries) and separate code paths.</p>
+<p>At the time of writing:</p>
+<ul>
+<li>Android 9 is the oldest Android version that is <a href="https://endoflife.date/android">getting security updates</a>.</li>
+<li><a href="https://developer.android.com/about/dashboards">~80% of the Android devices</a> used in the world are <strong>at least</strong> running 8.0 Oreo.</li>
+</ul>
+<p><em>Overall statistics do not reflect real-world usage of a given app (people using old devices are not necessarily using your app). If anything, it should be viewed as an underestimation.</em></p>
+<h2 id="4-general-lack-of-good-practices">4. General lack of good practices</h2>
+<p>The F-Droid client allows multiple repositories to coexist within the same app. Many of the issues highlighted above were focused on the main official repository which most of the F-Droid users will use anyway. However, having <strong>other repositories in a single app also violates the security model of Android</strong> which was not designed for this at all. The OS expects you to trust <strong>an app repository as a single source</strong> of apps, yet F-Droid isn&rsquo;t that by design as it mixes several repositories in one single app. This is important because the OS management APIs and features (such as <a href="https://developer.android.com/reference/android/os/UserManager">UserManager</a> which can be used to prevent a user from installing third-party apps) are not meant for this and see F-Droid as a single source, so you&rsquo;re trusting the app client to not mess up far more than you should, especially when the <strong>privileged extension</strong> comes into the picture.</p>
+<p>There is indeed a serious security issue with the OS first-party source feature being misused, as the privileged extension makes use of the <code>INSTALL_PACKAGES</code> <a href="https://developer.android.com/reference/android/Manifest.permission#INSTALL_PACKAGES">API</a> in an insecure manner (i.e. not implementing it with the appropriate security checks). The privileged extension accepts any request from F-Droid, which again suffers from various bugs and security issues and allows user-defined repositories by design. A lot can go wrong, and bypassing security checks for powerful APIs should definitely not be taken lightly.</p>
+<p>On that note, it is also worth noting the repository metadata format isn&rsquo;t properly signed by lacking whole-file signing and key rotation. <a href="https://f-droid.org/2021/02/05/apis-for-all-the-things.html#the-repo-index">Their index v1</a> format <a href="https://gitlab.com/fdroid/fdroidserver/-/blob/3182b77d180b2313f4fdb101af96c035380abfd7/fdroidserver/signindex.py">uses JAR signing</a> with <code>jarsigner</code>, which has serious security flaws. It seems that <a href="https://gitlab.com/fdroid/fdroidserver/-/commit/3182b77d180b2313f4fdb101af96c035380abfd7">work is in progress on a v2 format</a> with support for <code>apksigner</code>, although the final implementation remains to be seen. This just seems to be an over-engineered and flawed approach since better suited tools such as <code>signify</code> could be used to sign the metadata JSON.</p>
+<p>As a matter of fact, the <a href="https://developer.android.com/reference/android/Manifest.permission#UPDATE_PACKAGES_WITHOUT_USER_ACTION">new unattended update API</a> added in API level 31 (Android 12) that allows seamless app updates for app repositories without <a href="https://f-droid.org/en/packages/org.fdroid.fdroid.privileged/">privileged access</a> to the system (such an approach is not compatible with the security model) won&rsquo;t work with F-Droid &ldquo;as is&rdquo;. It should be mentioned that the aforementioned third-party client <a href="https://github.com/Iamlooker/Droid-ify/issues/20">Neo-Store</a> supports this API, although the underlying issues about the F-Droid infrastructure largely remain. Indeed, this secure API allowing for unprivileged unattended updates not only requires for the app repository client to target API level 31, but the apps to be updated also have to at least target API level 29.</p>
+<p>Their client also lacks <strong>TLS certificate pinning</strong>, unlike Play Store which improves security for all connections to Google (they generally use a limited set of root CAs including <a href="https://pki.goog/">their own</a>). Certificate pinning is a way for apps to increase the security of their connection to services <a href="https://developer.android.com/training/articles/security-config#CertificatePinning">by providing a set of public key hashes</a> of known-good certificates for these services instead of trusting pre-installed CAs. This can avoid some cases where an interception (<em>man-in-the-middle</em> attack) could be possible and lead to various security issues considering you&rsquo;re trusting the app to deliver you other apps.</p>
+<p>It is an important security feature that is also straightforward to implement using the <a href="https://developer.android.com/training/articles/security-config">declarative network security configuration</a> available since Android 7.0 (API level 24). See how GrapheneOS pins both root and CA certificates in their <a href="https://github.com/GrapheneOS/Apps">app repository client</a>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- res/xml/network_security_config.xml --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;network-security-config&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;base-config</span> <span class="na">cleartextTrafficPermitted=</span><span class="s">&#34;false&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;domain-config&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;domain</span> <span class="na">includeSubdomains=</span><span class="s">&#34;true&#34;</span><span class="nt">&gt;</span>apps.grapheneos.org<span class="nt">&lt;/domain&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;pin-set&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- ISRG Root X1 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- ISRG Root X2 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- Let&#39;s Encrypt R3 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- Let&#39;s Encrypt E1 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>J2/oqMTsdhFWW/n85tys6b4yDBtb6idZayIEBx7QTxA=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            ...
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;/pin-set&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/domain-config&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/network-security-config&gt;</span>
+</span></span></code></pre></div><p>To be fair, they&rsquo;ve thought several times about adding certificate pinning to their client <a href="https://gitlab.com/fdroid/fdroidclient/-/issues/105">at least for the default repositories</a>. <a href="https://gitlab.com/fdroid/fdroidclient/-/blob/1.14-alpha4/app/src/main/java/org/fdroid/fdroid/FDroidCertPins.java">Relics of preliminary work</a> can even be found in their current codebase, but it&rsquo;s unfortunate that they haven&rsquo;t been able to find <a href="https://github.com/f-droid/fdroidclient/commit/7f78b46664981b9b73cadbfdda6391f6fe939c77">any working implementation</a> so far. Given the overly complex nature of F-Droid, that&rsquo;s largely understandable.</p>
+<p>F-Droid also has a problem regarding the adoption of <strong><a href="https://source.android.com/security/apksigning">new signature schemes</a></strong> as they <a href="https://forum.f-droid.org/t/why-f-droid-is-still-using-apk-signature-scheme-v1/10602">held out on the v1 signature scheme</a> (which was <a href="https://www.xda-developers.com/janus-vulnerability-android-apps/">horrible</a> and deprecated since 2017) until they were forced by Android 11 requirements to support the newer v2/v3 schemes (v2 was introduced in Android 7.0). Quite frankly, this is straight-up bad, and <strong>signing APKs with GPG</strong> is no better considering <a href="https://latacora.micro.blog/2019/07/16/the-pgp-problem.html">how bad PGP and its reference implementation GPG are</a> (even Debian <a href="https://wiki.debian.org/Teams/Apt/Spec/AptSign">is trying to move away from it</a>). Ideally, F-Droid should fully move on to newer signature schemes, and should completely phase out the legacy signature schemes which are still being used for some apps and metadata.</p>
+<h2 id="5-confusing-ux">5. Confusing UX</h2>
+<p>It is worth mentioning that their website has (for some reason) always been hosting an <a href="https://forum.f-droid.org/t/why-does-the-f-droid-website-nearly-always-host-an-outdated-f-droid-apk/6234">outdated APK of F-Droid</a>, and this is still the case today, leading to many users wondering why they can&rsquo;t install F-Droid on their secondary user profile (due to the downgrade prevention enforced by Android). &ldquo;Stability&rdquo; seems to be the main reason mentioned on their part, which doesn&rsquo;t make sense: either your version isn&rsquo;t ready to be published in a stable channel, or it is and new users should be able to access it easily.</p>
+<p>F-Droid should enforce the approach of prefixing the package name of their alternate builds with <code>org.f-droid</code> for instance (or add a <code>.fdroid</code> suffix as some already have). Building and signing while <strong>reusing the package name</strong> (<a href="https://developer.android.com/studio/build/configure-app-module">application ID</a>) is bad practice as it causes <strong>signature verification errors</strong> when some users try to update/install these apps from other sources, even directly from the developer. That is again due to the security model of Android which enforces a signature check when installing app updates (or installing them again in a secondary user profile). Note that this is going to be an issue with Play App Signing as well, and developers are encouraged to follow this approach should they intend to distribute their apps through different distribution channels.</p>
+<p>This results in a confusing user experience where it&rsquo;s hard to keep track of who signs each app, and from which repository the app should be downloaded or updated.</p>
+<h2 id="6-misleading-permissions-approach">6. Misleading permissions approach</h2>
+<p>F-Droid shows a list of the <a href="https://developer.android.com/reference/android/Manifest.permission">low-level permissions</a> for each app: these low-level permissions are usually grouped in the standard high-level permissions (Location, Microphone, Camera, etc.) and special toggles (nearby Wi-Fi networks, Bluetooth devices, etc.) that are explicitly based on a type of sensitive data. While showing a list of low-level permissions could be useful information for a developer, it&rsquo;s often a <strong>misleading</strong> and inaccurate approach for the end-user. Since Android 6, apps have to <a href="https://developer.android.com/guide/topics/permissions/overview#runtime">request the standard permissions at runtime</a> and do not get them simply by being installed, so showing all the &ldquo;under the hood&rdquo; permissions without proper context is not useful and makes the permission model unnecessarily confusing.</p>
+<p>F-Droid claims that these low-level permissions are relevant because they support Android 5.1+, meaning they support very outdated versions of Android where apps could have <a href="https://source.android.com/devices/tech/config/runtime_perms">install-time permissions</a>. Anyway, if a technical user wants to see all the manifest permissions for some reason, then they can access the app manifest pretty easily (in fact, exposing the raw manifest would be less misleading). But this is already beyond the scope of this article because anyone who cares about privacy and security wouldn&rsquo;t run a 8 years old version of Android that has not received security updates for years.</p>
+<p>A <a href="https://gitlab.com/fdroid/fdroid-website/-/merge_requests/834">discussion about this</a> took place on F-Droid&rsquo;s GitLab repository. In short, F-Droid downplayed the issue with their misleading permission labels, and their lead developer proceeded to call the Android permission model a &ldquo;dumpster fire&rdquo; and claim that the operating system cannot sandbox untrusted apps while still remaining useful.</p>
+<p><em>To clear up confusion: even apps targeting an API level below 23 (Android 5.1 or older) do not have permissions granted at install time on modern Android, which instead displays a legacy permission grant dialog. Whether or not permissions are granted at install time does not just depend on the app&rsquo;s <code>targetSdkVersion</code>. And even if this were the case, the OS package installer on modern Android would&rsquo;ve been designed to show the requested permissions for those legacy apps.</em></p>
+<p>For example, the low-level permission <code>RECEIVE_BOOT_COMPLETED</code> is referred to in F-Droid as the <em>run at startup</em> description, when in fact this permission is not needed to start at boot and just refers to a specific time broadcasted by the system once it finishes booting, and is not about background usage (though power usage may be a valid concern). To be fair, these short summaries used to be provided by the Android documentation years ago, but the permission model has drastically evolved since then and most of them aren&rsquo;t accurate anymore.</p>
+<blockquote>
+<p><em>Allows the app to have itself started as soon as the system has finished booting. This can make it take longer to start the phone and allow the app to slow down the overall phone by always running.</em></p>
+</blockquote>
+<p>In modern Android, the background restriction toggle is what really provides the ability for apps to run in the background. Some low-level permissions don&rsquo;t even have a security/privacy impact and shouldn&rsquo;t be misinterpreted as having one. Anyhow, you can be sure that each dangerous low-level permission has a <strong>high-level representation</strong> that is <strong>disabled by default</strong> and needs to be <strong>granted dynamically</strong> to the app (by a toggle or explicit user consent in general).</p>
+<p>Another example to illustrate the shortcomings of this approach would be the <code>QUERY_ALL_PACKAGES</code> low-level permission, which is referred to as the <em>query all packages</em> permission that &ldquo;allows an app to see all installed packages&rdquo;. While this is somewhat correct, this can also be misleading: apps do not need <code>QUERY_ALL_PACKAGES</code> to list other apps within the same user profile. Even without this permission, some apps are visible automatically (visibility is restricted by default <a href="https://developer.android.com/training/package-visibility">since Android 11</a>). If an app needs more visibility, it will declare a <code>&lt;queries&gt;</code> element in its manifest file: in other words, <code>QUERY_ALL_PACKAGES</code> is only one way to achieve visibility. Again, this goes to show low-level manifest permissions are not intended to be interpreted as high-level permissions the user should fully comprehend.</p>
+<p>Play Store for instance conveys the permissions in a way less misleading way: the main low-level permissions are first grouped in their high-level user-facing toggles, and the rest is shown under &ldquo;Other&rdquo;. This permission list can only be accessed by taping &ldquo;About this app&rdquo; then &ldquo;App permissions - See more&rdquo; at the bottom of the page. Play Store will tell the app may request access to the following permissions: this kind of wording is more important than it seems. <em>Update: since July 2022, Play Store doesn&rsquo;t offer a way to display low-level permissions anymore.</em></p>
+<p>Moreover, <a href="https://support.google.com/googleplay/android-developer/answer/9888170">Play Store restricts the use of highly invasive permissions</a> such as <code>MANAGE_EXTERNAL_STORAGE</code> which allows apps to opt out of scoped storage if they can&rsquo;t work with <a href="https://developer.android.com/guide/topics/providers/document-provider">more privacy friendly approaches</a> (like a file explorer). Apps that can&rsquo;t justify their use of this permission (which again has to be granted dynamically) may be removed from Play Store. This is where an app repository can actually be useful in their review process to protect end-users from installing poorly made apps that might compromise their privacy. Not that it matters much if these apps target very old API levels that are inclined to require invasive permissions in the first place&hellip;</p>
+<h2 id="conclusion-what-should-you-do">Conclusion: what should you do?</h2>
+<p>So far, you have been presented with referenced facts that are easily verifiable. In the next part, I&rsquo;ll allow myself to express my own thoughts and opinions. You&rsquo;re free to disagree with them, but don&rsquo;t let that overshadow the rest.</p>
+<p>While some improvements could easily be made, I don&rsquo;t think F-Droid is in an ideal situation to solve all of these issues because some of them are <strong>inherent flaws</strong> in their architecture. I&rsquo;d also argue that their core philosophy is not aligned with some security principles expressed in this article. In any case, I can only wish for them to improve since they&rsquo;re one of the most popular alternatives to commercial app repositories, and are therefore trusted by a large userbase.</p>
+<p>F-Droid is often seen as the only way to get and support open-source apps: that is not the case. Sure, F-Droid could help you in finding FOSS apps that you wouldn&rsquo;t otherwise have known existed. Many developers also publish their FOSS apps on the <strong>Play Store</strong> or their website directly. Most of the time, releases are available on <strong>GitHub</strong>, which is great since each GitHub releases page has an Atom feed. If downloading APKs from regular websites, you can use <code>apksigner</code> to validate the authenticity by comparing the certificate fingerprint against the fingerprint from another source (it wouldn&rsquo;t matter otherwise).</p>
+<p>This is how you may proceed to get the app certificate:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">apksigner verify --print-certs --verbose myCoolApp.apk
+</span></span></code></pre></div><p>Also, as written above: the OS pins the app signature (for all profiles) upon installation, and enforces signature check for app updates. In practice, this means the source doesn&rsquo;t matter as much after the initial installation.</p>
+<p>For most people, I&rsquo;d recommend just <strong>sticking with Play Store</strong>. Play Store isn&rsquo;t quite flawless, but emphasises the adoption of modern security standards which in turn encourages better privacy practices; as strange as it may sound, Google is not always doing bad things in that regard.</p>
+<p><em>Note: this article obviously can&rsquo;t address all the flaws related to Play Store itself. Again, the main topic of this article is about F-Droid and should not be seen as an exhaustive comparison between different app repositories.</em></p>
+<blockquote>
+<p>Should I really care?</p>
+</blockquote>
+<p><strong>It&rsquo;s up to your threat model</strong>, and of course your personal preferences. Most likely, your phone won&rsquo;t turn into a nuclear weapon if you install F-Droid on it - and this is far from the point that this article is trying to make. Still, I believe the information presented will be valuable for anyone who values a <strong>practical approach to privacy</strong> (rather than an ideological one). Such an approach is partially described below.</p>
+<blockquote>
+<p>But there is more malware in Play Store! How can you say that it&rsquo;s more secure?</p>
+</blockquote>
+<p>As explained above, it doesn&rsquo;t matter as you shouldn&rsquo;t really rely on any quality control to be the sole guarantee that a software is free of malicious or exploitable code. Play Store and even the Apple App Store may have a considerable amount of malware because a full reverse-engineering of any uploaded app isn&rsquo;t feasible realistically. However, they fulfill their role quite well, and that is all that is expected of them.</p>
+<blockquote>
+<p>With Play App Signing being effectively enforced for new apps, isn&rsquo;t Play Store as &ldquo;flawed&rdquo; as F-Droid?</p>
+</blockquote>
+<p>I&rsquo;ve seen this comment repeatedly, and it would be dismissing all the other points made in this article. Also, I strongly suggest that you carefully read the sections related to Play App Signing, and preferably the official documentation on this matter. It&rsquo;s not a black and white question and there are many more nuances to it.</p>
+<blockquote>
+<p>Aren&rsquo;t open-source apps more secure? Doesn&rsquo;t it make F-Droid safer?</p>
+</blockquote>
+<p>You can still find and get your open-source apps elsewhere. And no, open-source apps <a href="https://seirdy.one/2022/02/02/floss-security.html">aren&rsquo;t necessarily more private or secure</a>. Instead, you should rely on the strong security and privacy guarantees provided by a modern operating system with <strong>a robust sandboxing/permission model</strong>, namely modern Android, GrapheneOS and iOS. Pay close attention to the permissions you grant, and avoid legacy apps as they could require invasive permissions to run.</p>
+<p>When it comes to <em>trackers</em> (this really comes up a lot), you shouldn&rsquo;t believe in the flawed idea that you can enumerate all of them. The <em>enumerating badness</em> approach is <a href="https://www.ranum.com/security/computer_security/editorials/dumb/">known to be flawed in the security field</a>, and the same applies to privacy. You shouldn&rsquo;t believe that a random script can detect every single line of code that can be used for data exfiltration. Data exfiltration can be properly prevented in the first place by the permission model, which again <strong>denies access to sensitive data by default</strong>: this is a simple, yet rigorous and effective approach.</p>
+<p>No app should be unnecessarily entrusted with any kind of permission. It is only if you deem it necessary that you should allow access to a type of data, and this access should be as fine-grained as possible. That&rsquo;s the way the Android platform works (regular apps run in the explicit <code>untrusted_app</code> domain) and continues evolving. Contrary to some popular beliefs, usability and most productivity tasks can still be achieved in a secure and private way.</p>
+<blockquote>
+<p>Isn&rsquo;t Google evil? Isn&rsquo;t Play Store spyware?</p>
+</blockquote>
+<p>Some people tend to exaggerate the importance of Google in their threat model, at the cost of pragmatism and security/privacy good practices. Play Store isn&rsquo;t spyware and can run unprivileged like it does on GrapheneOS (including with unattended updates support). On the vast majority of devices though, Google Play is a privileged app and a core part of the OS that provides low-level system modules. In that case, the trust issues involved with Play App Signing could be considered less important since Google Play is already trusted as a privileged component.</p>
+<p><strong>Play Store evidently has some privacy issues</strong> given it&rsquo;s a proprietary service which requires an account (this cannot be circumvented), and Google services have a history of nagging users to enable privacy-invasive features. Again, some of these privacy issues can be mitigated by setting up the <a href="https://grapheneos.org/usage#sandboxed-google-play">Play services compatibility layer from GrapheneOS</a> which runs Play services and Play Store in the regular app sandbox (the <code>untrusted_app</code> domain). <a href="https://protonaosp.org/features#privacy-and-security">ProtonAOSP also shares that feature</a>. This solution could very well be ported to other Android-based operating systems. If you want to go further, consider using a properly configured account with the least amount of personally indentifiable information possible (note that the phone number requirement appears to be region-dependent).</p>
+<p>If you don&rsquo;t have Play services installed, you can use a third-party Play Store client called <strong><a href="https://auroraoss.com/">Aurora Store</a></strong>. Aurora Store has some issues of its own, and some of them overlap in fact with F-Droid. Aurora Store somehow still requires <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/blob/26f5d4fd558263a89baee4c3cbe1d220913da104/app/src/main/AndroidManifest.xml#L28-32">the legacy storage permission</a>, has yet to <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/issues/697">implement certificate pinning</a>, has been known to sometimes retrieve wrong versions of apps, and <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/issues/722">distributed account tokens</a> over <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/issues/734">cleartext HTTP</a> until fairly recently; not that it matters much since tokens were designed to be shared between users, which is already concerning. I&rsquo;d recommend against using the shared &ldquo;anonymous&rdquo; accounts feature: you should make your own throwaway account with minimal information.</p>
+<h3 id="looking-to-the-future">Looking to the future</h3>
+<p><strong><a href="https://accrescent.app/">Accrescent</a></strong> is an up-and-coming app repository which strives to tackle the issues discussed here <a href="https://accrescent.app/features">and more</a>. Hopefully Accrescent or a project like it can flourish as a secure and open ecosystem for app delivery.</p>
+<p>It&rsquo;s also worth keeping an eye on the great work <strong>GrapheneOS</strong> does on <a href="https://github.com/GrapheneOS/Apps">their future app repository</a>. It will serve as a simple, secure, modern app repository, albeit only for a curated list of high-quality apps, some of which will have their own builds (for instance, Signal still uses their <a href="https://github.com/signalapp/Signal-Android/issues/9362">original 1024-bits RSA key</a> that has never been rotated since then).</p>
+<hr>
+<h2 id="meta">Meta</h2>
+<p>This article aims to be <strong>purely technical</strong>. It is not an attack on F-Droid or their mission &mdash; it is meant as an informative piece for end users and a springboard for improvement of the F-Droid project.</p>
+<p>In spite of this, the release of this article has unfortunately triggered a mostly negative response from the F-Droid team and some of their community, who seem to take a dismissive stance toward this article rather than bringing relevant counterpoints. Some of these individuals go as far as engaging in harassment campaigns against projects and security researchers that do not share their views; hopefully they realize that such unethical behavior undermines their own project and reputation. Creating a rift between developers and security researchers is not in anyone&rsquo;s best interest.</p>
+<p>Some individuals have also falsely associated this article with GrapheneOS. <em>This article is an entirely independent work and unrelated to the GrapheneOS project. It was not written by a GrapheneOS developer and does not claim to represent the GrapheneOS project&rsquo;s official stance.</em> Either way, dismissing the article on the basis of association instead of addressing the actual technical content is silly and not helpful to anyone.</p>
+]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>

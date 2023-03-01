@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Knowledge Base on A loudrxiv - A website for the academically-stunted</title>
+    <link>https://loudrxiv.github.io/posts/knowledge/</link>
+    <description>Recent content in Knowledge Base on A loudrxiv - A website for the academically-stunted</description>
+    <image>
+      <url>https://loudrxiv.github.io/waving_snail.png</url>
+      <link>https://loudrxiv.github.io/waving_snail.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright><atom:link href="https://loudrxiv.github.io/posts/knowledge/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Badness Enumeration</title>
+      <link>https://loudrxiv.github.io/posts/knowledge/badness-enumeration/</link>
+      <pubDate>Wed, 27 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/knowledge/badness-enumeration/</guid>
+      <description>Badness enumeration is the concept of making a list of known bad actors and attempting to block them. While it seems intuitive at first glance, badness enumeration should not be relied on for privacy or security. In many cases, it actually does the exact opposite and directly harms the user. This post will attempt to explain why badness enumeration as a concept is flawed and give some examples of its failings in practice.</description>
+      <content:encoded><![CDATA[<p>Badness enumeration is the concept of making a list of known bad actors and attempting to block them. While it seems intuitive at first glance, badness enumeration should not be relied on for privacy or security. In many cases, it actually does the exact opposite and directly harms the user. This post will attempt to explain why badness enumeration as a concept is flawed and give <em>some</em> examples of its failings in practice.</p>
+<h2 id="the-obvious-problem">The Obvious Problem</h2>
+<p>The obvious argument against badness enumeration is that there are so many threat actors out there, it is impossible to make a list to block all of them. Even when you make a magical list that somehow includes all of the threat actors that exist today, tomorrow a new threat actor will pop up and attack you anyways. Enumerating badness does not systematically solve the underlying problem. Instead, it is running away from the problem and hoping that a competent adversary will not come after you. Badness enumeration does not work, cannot work, has never worked, and will never work.</p>
+<h2 id="adblocking-extensions">Adblocking Extensions</h2>
+<p>On top of the <a href="#the-obvious-problem">obvious problem</a> mentioned above, there are various technical reasons why advertisement/tracker blocking extensions cannot provide privacy. One of which is the fact that tracking can be done without any scripts at all. For example, a website only needs to know your session ID using a cookie and save all logs associated with that ID. It can then analyize when you visited the website, how long you visited the website for, which page on the website you spent the most time on, what you looked at, and so on. Another problem is that a website can just host its own tracking code or <a href="https://gist.github.com/paivaric/211ca15afd48c5686226f5f747539e8b">proxy third party tracking code under its own domain</a>. Just because your adblocker blocks connections to Google Analytics does not mean that you you are actually &ldquo;safe&rdquo; from Google Analytics at all. Even if you are successful in doing so, there is nothing stopping the website from sharing the analytics data it collected on its own with Google either.</p>
+<p>&ldquo;Okay, so adblockers are unreliable, but what is the harm?&rdquo; you may ask.</p>
+<p>The problem here is that adblockers (especially with Manifest v2) are highly privileged and have access to all of your data within the browser. All it takes is for the extension developer to turn malicious for your passwords, session ids, TOTP secrets, etc to get compromised. Even if you were to assume that the extension developer is trustworthy, one vulnerability within the extension could still be catastrophic. This is made worse by the fact that adblockers typically use third-party blocklists, extending trust to the blocklist maintainers to not exploit the extension should a vulnerability be found. The <a href="https://portswigger.net/research/ublock-i-exfiltrate-exploiting-ad-blockers-with-css">&ldquo;uBlock, I exfiltrate&rdquo;</a> blog post describes in detail how a CSS injection vulnerability in uBlockOrigin lead to data exfiltration with one single bad filtering rule.</p>
+<p>Overall, adblockers increase your attack surface for dubious privacy benefits. If you insist on getting an adblocker however, I highly recommend that you use purely declarative, permission less Manifest V3 ones like <a href="https://chrome.google.com/webstore/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh">uBlock Origin Lite</a>. While they do block fewer ads and trackers than their Manifest V2 counterparts and V3 extensions with &ldquo;Read and change all your data on all websites&rdquo;, they pose much less of a threat to your privacy and security while still providing the convenience of blocking annoyances.</p>
+<h2 id="dns-filtering">DNS Filtering</h2>
+<p>DNS filtering solutions. while not having any negative impact on security, are trivially bypassable by just hosting the advertisement and trackers under the apex domain instead of a subdomain. For example, instead of hosting advertisement and trackers under ads.example.com, the webmaster can move them to be under example.com/ads and it would be impossible for DNS filters to block. Other bypasses include an application implementing its own DNS resolution instead of relying on the DNS servers set by the operating system, or connecting directly to certain IP addresses without any DNS resolution at all.</p>
+<p>It should also be noted that websites can detect which DNS servers a visitor uses. You can look at <a href="https://www.dnsleaktest.com/">DNSLeakTest</a> as an example. Using non-network provided DNS servers adds to the fingerprint and make you more identifiable.</p>
+<p>The best way to do DNS filtering is to use a VPN provider which has this feature built in like <a href="https://protonvpn.com">ProtonVPN</a>, <a href="https://mullvad.net">Mullvad</a>, and <a href="https://www.ivpn.net/">IVPN</a> in order to not standout from other users of the same VPN provider. Even then, DNS filtering is purely a convenience feature and cannot be relied on for privacy and security.</p>
+<h2 id="antiviruses">Antiviruses</h2>
+<p>Antiviruses are highly privileged processes with access to virtually all of your files and data, parsing through them trying to find something that matches a known bad signature. Beyond the fact that you need to trust the Antivirus company to not exfiltrate your sensitive data and that the signature list will never have all of the malware in existence, a vulnerable parser could lead to a system compromise. The <a href="/researches/Abusing-File-Processing-in-Malware-Detectors-for-Fun-and-Profit.pdf">Abusing File Processing in Malware Detectors for Fun and Profit</a> research paper by Suman Jana and Vitaly Shmatikov discusses this in detail.</p>
+<p>Here are some other examples of Anviruses being attack surfaces on their own:</p>
+<ul>
+<li><a href="https://github.com/taviso/avscript">Arbitrary Code Execution with Avast&rsquo;s Javascript Interpreter</a></li>
+<li><a href="https://landave.io/2020/11/bitdefender-upx-unpacking-featuring-ten-memory-corruptions/">Memory Corruption with Bitdefender</a></li>
+<li><a href="https://web.archive.org/web/20210729054039/https://palant.info/2019/08/19/kaspersky-in-the-middle-what-could-possibly-go-wrong/">Kaspersky in the Middle</a></li>
+</ul>
+<p>The proper way to deal with untrusted applications is not to scan them with an Antivirus, but to confine them in such a way that even if they were malicious, they cannot do much damage at all. This has already been achieved on secure mobile operating systems like Android and iOS with their application sandbox. Typically, attacks against these systems require an exploit chain against the operating system, or for the user to actually mess up and grant an app access to sensitive data. On desktop operating systems, you should utilize virtualization to contain untrusted applications in their own virtual machine. This can be done with a system like Qubes OS, the <a href="https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-overview">Windows Sandbox</a>, or just general KVM / HyperV virtual machines.</p>
+<h2 id="default-permit">Default Permit</h2>
+<p>Surprisingly (or unsurprisingly), the <a href="https://www.ranum.com/security/computer_security/editorials/dumb/">The Six Dumbest Ideas in Computer Security</a> article from almost 20 years ago still holds true today. It explains the problem with Default Permit better than I ever could. In short, when setting up a Firewall or some sort of filter list, it is better to start out by blocking everything, then allowing only the traffic that you need. That way, you don&rsquo;t have to worry about applications that you didn&rsquo;t care enough to block turning out to be vulnerable. Sometimes, &ldquo;goodness enumeration&rdquo; is the solution to the problem.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>By now, I hope I have clearly explained why badness enumeration is never the solution to the problem. Sometimes, it can be a nice-to-have thing, like a VPN provider blocking advertisements and trackers on the DNS level to make the web experience more enjoyable. Other times, it can be harmful to your privacy and security, like with a malicious/vulnerable extension or antivirus. The important thing to keep in mind is that you cannot rely on badness enumeration for true privacy and security, and you should always be aware of the privacy and security implications that certain options may entail.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Threat Modeling</title>
+      <link>https://loudrxiv.github.io/posts/knowledge/threat-modeling/</link>
+      <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/knowledge/threat-modeling/</guid>
+      <description>The first task a person should do when taking steps to protect their privacy and security is to make a threat model.
+Defining a threat To make a threat model, we must first define a threat. A common mistake made by people who are just getting into the privacy space is to define the threat as &amp;ldquo;big-tech companies.&amp;rdquo; There is a fundamental problem with this definition:
+Why are we not trusting &amp;ldquo;big-tech companies,&amp;rdquo; but then shift our trust to &amp;ldquo;small-tech companies&amp;rdquo;?</description>
+      <content:encoded><![CDATA[<p>The first task a person should do when taking steps to protect their privacy and security is to make a threat model.</p>
+<h2 id="defining-a-threat">Defining a threat</h2>
+<p><img loading="lazy" src="/images/cameras-1.jpg" alt="Cameras"  />
+</p>
+<p>To make a threat model, we must first define a threat. A common mistake made by people who are just getting into the privacy space is to define the threat as &ldquo;big-tech companies.&rdquo; There is a fundamental problem with this definition:</p>
+<p>Why are we not trusting &ldquo;big-tech companies,&rdquo; but then shift our trust to &ldquo;small-tech companies&rdquo;? What happens if those &ldquo;small-tech companies&rdquo; turn out to be malicious? What happens when our favorite &ldquo;small-tech company&rdquo; becomes successful and grow exponentially? <strong>The proper way to define the threat here is the &ldquo;service provider,&rdquo; not &ldquo;big-tech.&rdquo;</strong></p>
+<p>Generally, there are four primary threats a person would want to protect themselves from:</p>
+<ul>
+<li>A service provider spying their users</li>
+<li>Cross site/service tracking and data sharing, a.k.a. &ldquo;mass surveillance&rdquo;</li>
+<li>An app developer spying on users through their malicious software</li>
+<li>A hacker trying to get into the users&rsquo; computers</li>
+</ul>
+<p>A typical person would have several of these threats in their threat model. Some of these threats may weigh more than others. For example, a software developer would have a hacker stealing their source code, signing keys and secrets as their primary threat, but beyond that they would also want privacy from the websites they visit and so on. Likewise, an average Joe may have their primary threat as mass surveillance and service providers, but beyond that they also need to have decent security to prevent a hacker from stealing their data.</p>
+<p>For whistleblowers, the threat model is much more extreme. Beyond what is mentioned above, they also need anonymity. Beyond just hiding what they do, what data they have, not getting hacked by hackers or governments, they also have to hide who they are.</p>
+<h2 id="privacy-from-service-providers">Privacy from service providers</h2>
+<p>In most setups, our &ldquo;private&rdquo; messages, emails, social interactions are typically stored on a server somewhere. The obvious problem with this is that the service provider (or a hacker who has compromised the server) can look into your &ldquo;private&rdquo; conversations whenever and however they want, without you ever knowing. This applies to many common services like SMS messaging, Telegram, Discord, and so on.</p>
+<p>With end-to-end encryption, you can alleviate this issue by encrypting communications between you and your desired recipients before they are even sent to the server. The confidentiality of your messages is guaranteed, so long as the service provider does not have access to the private keys of either party.</p>
+<p>In practice, the effectiveness of different end-to-end encryption implementations varies. Applications such as Signal run natively on your device, and every copy of the application is the same across different installations. If the service provider were to backdoor their application in an attempt to steal your private keys, that could later be detected using reverse engineering.</p>
+<p>On the other hand, web-based end-to-end encryption implementations such as Proton Mail&rsquo;s webmail or Bitwarden&rsquo;s web vault rely on the server dynamically serving JavaScript code to the browser to handle cryptographic operations. A malicious server could target a specific user and send them malicious JavaScript code to steal their encryption key, and it would be extremely hard for the user to ever notice such a thing. Even if the user does notice the attempt to steal their key, it would be incredibly hard to prove that it is the provider trying to do so, because the server can choose to serve different web clients to different users.</p>
+<p>Therefore, when relying on end-to-end encryption, you should choose to use native applications over web clients whenever possible.</p>
+<p>Even with end-to-end encryption, service providers can still profile you based on <strong>metadata</strong>, which is typically not protected. While the service provider could not read your messages to see what you&rsquo;re saying, they can still observe things like who you&rsquo;re talking to, how often you message them, and what times you&rsquo;re typically active. Protection of metadata is fairly uncommon, and you should pay close attention to the technical documentation of the software you are using to see if there is any metadata minimization or protection at all, if that is a concern for you.</p>
+<h2 id="protection-from-cross-siteservice-tracking">Protection from cross site/service tracking</h2>
+<p>You can be tracked across websites and services using some form of identifiers. These are typically:</p>
+<ul>
+<li>Your IP address</li>
+<li>Browser cookies</li>
+<li>Your browser fingerprint</li>
+<li>Data you submit to websites</li>
+<li>Payment method correlation</li>
+</ul>
+<p>Your goals should be to segregate your online identities from each other, to blend in with other people, and simply to avoid giving out identifying information to anyone as much as possible.</p>
+<p>Instead of relying on privacy policies (which are promises that could be violated), try to obfuscate your information in such a way that it is very difficult for different providers to correlate data with each other and build a profile on you. This could come in the form of using encryption tools like Cryptomator prior to uploading your data to cloud services, using prepaid cards or cryptocurrency to protect your credit/debit card information, using a VPN to hide your IP address from websites and services on the internet, etc. The privacy policy should only be relied upon as a last resort, when you have exhausted all of your option for true privacy and need to put complete trust in your service provider.</p>
+<p>Bear in mind that companies can hide their ownership or share your information with data brokers, even if they are not in the advertising business. Thus, it makes little sense to solely focus on the &ldquo;ad-tech&rdquo; industry as a threat in your threat model. Rather, it makes a lot more sense to protect yourself from service providers as a whole, and any kind of corporate surveillance threat that most people are concerned about will be thwarted along with the rest.</p>
+<h2 id="limiting-public-information">Limiting Public Information</h2>
+<p>The best way to ensure your data is private is to simply not put it out there in the first place. Deleting information you find about yourself online is one of the best first steps you can take to regain your privacy.</p>
+<p>On sites where you do share information, checking the privacy settings of your account to limit how widely that data is spread is very important. For example, if your accounts have a &ldquo;private mode,&rdquo; enable it to make sure your account isn&rsquo;t being indexed by search engines and can&rsquo;t be viewed by people you don&rsquo;t vet beforehand.</p>
+<p>If you have already submitted your real information to a number of sites which shouldn&rsquo;t have it, consider employing disinformation tactics such as submitting fictitious information related to the same online identity to make your real information indistinguishable from the false information.</p>
+<h2 id="protection-from-malware-and-hackers">Protection from malware and hackers</h2>
+<p><img loading="lazy" src="/images/motherboard-1.jpg" alt="Motherboard"  />
+</p>
+<p>You need security to obtain any semblance of privacy: <strong>Using tools which appear private is futile if they could easily be exploited by attackers to release your data later.</strong></p>
+<p>When it comes to application security, we generally do not (and sometimes cannot) know if the software that we use is malicious, or might one day become malicious. Even with the most trustworthy developers, there is generally no guarantee that their software does not have a serious vulnerability that could later be exploited.</p>
+<p>To minimize the potential damage that a malicious piece of software can do, you should employ security by compartmentalization. This could come in the form of using different computers for different jobs, using virtual machines to separate different groups of related applications, or using a secure operating system with a strong focus on application sandboxing and mandatory access control.</p>
+<p>Mobile operating systems are generally safer than desktop operating systems when it comes to application sandboxing. Apps cannot obtain root access and only have access to system resources which you grant them.</p>
+<p>Desktop operating systems generally lag behind on proper sandboxing. ChromeOS has similar sandboxing properties to Android, and macOS has full system permission control and opt-in (for developers) sandboxing for applications, however these operating systems do transmit identifying information to their respective OEMs. Linux tends to not submit information to system vendors, but it has poor protection against exploits and malicious apps. This can be mitigated somewhat with specialized distributions which make heavy use of virtual machines or containers, such as Qubes OS.</p>
+<p>Web browsers, email clients, and office applications all typically run untrusted code sent to you from third-parties. Running multiple virtual machines to separate applications like these from your host system as well as each other is one technique you can use to avoid an exploit in these applications from compromising the rest of your system. Technologies like Qubes OS or Microsoft Defender Application Guard on Windows provide convenient methods to do this seamlessly, for example.</p>
+<p>If you are concerned about physical attacks you should use an operating system with a secure verified boot implementation, such as Android, iOS, ChromeOS, or macOS. You should also make sure that your drive is encrypted, and that the operating system uses a TPM or Secure <a href="https://support.apple.com/guide/security/secure-enclave-sec59b0b31ff/1/web/1">Enclave</a> or <a href="https://developers.google.com/android/security/android-ready-se">Secure Element</a> for rate limiting attempts to enter the encryption passphrase. You should avoid sharing your computer with people you don&rsquo;t trust, because most desktop operating systems do not encrypt data separately per-user.</p>
+<h2 id="bad-practices">Bad Practices</h2>
+<p>As a beginner, you may often fall into some bad practices while making a threat model. These include:</p>
+<ul>
+<li>Solely focusing on advertising networks instead of service providers as a whole</li>
+<li>Heavy reliance on privacy policies</li>
+<li>Blindly shifting trust from one service provider to another</li>
+<li>Heavy reliance on badness enumeration for privacy instead of systematically solving the problem</li>
+<li>Blindly trusting open-source software</li>
+</ul>
+<p>As discussed, focusing solely on advertising networks and relying solely on privacy policies does not make up a sensible threat model. When switching away from a service provider, try to determine what the root problem is and see if your new provider has any technical solution to the problem. For example, you may not like Google Drive as it means giving Google access to all of your data. The underlying problem here is the lack of end to end encryption, which you can solve by using an encryption tool like Cryptomator or by switching to a provider who provides it out of the box like Proton Drive. Blindly switching from Google Drive to a provider who does not provide end to end encryption like the Murena Cloud does not make sense.</p>
+<p>You should also keep in mind that <a href="/knowledge/badness-enumeration/">badness enumeration does not work, cannot work, has never worked, and will never work</a>. While things like ad blockers and antiviruses may help block the low hanging fruits, they can never fully protect you from the threat. On the other hand, they often increase your attack surface and are not worth the security sacrifice. At best, they are merely covenience tools and should not be thought of as part of a defense strategy.</p>
+<p>Another thing to keep in mind is that open-source software is not automatically private or secure. Malicious code can be sneaked into the package by the developer of the project, contributors, library developers or the person who compiles the code. Beyond that, sometimes, a piece of open-source software may have worse security properties than its proprietary counterpart. An example of this would be traditional Linux desktops lacking verified boot, system integrity protection, or a full system access control for apps when compared to macOS. When doing threat modeling, it is vital that you evaluate the privacy and security properties of each piece of software being used, rather than just blindly trusting it because it is open-source.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Multi-factor Authentication</title>
+      <link>https://loudrxiv.github.io/posts/knowledge/multi-factor-authentication/</link>
+      <pubDate>Sat, 16 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/knowledge/multi-factor-authentication/</guid>
+      <description>Multi-factor authentication is a security mechanism that requires additional verification beyond your username (or email) and password. This usually comes in the form of a one-time passcode, a push notification, or plugging in and tapping a hardware security key.
+Common protocols Email and SMS MFA Email and SMS MFA are examples of the weaker MFA protocols. Email MFA is not great as whoever controls your email account can typically both reset your password and receive your MFA verification.</description>
+      <content:encoded><![CDATA[<p><strong>Multi-factor authentication</strong> is a security mechanism that requires additional verification beyond your username (or email) and password. This usually comes in the form of a one-time passcode, a push notification, or plugging in and tapping a hardware security key.</p>
+<h2 id="common-protocols">Common protocols</h2>
+<h3 id="email-and-sms-mfa">Email and SMS MFA</h3>
+<p>Email and SMS MFA are examples of the weaker MFA protocols. Email MFA is not great as whoever controls your email account can typically both reset your password and receive your MFA verification. SMS, on the other hand, is problematic due to the lack of any kind of encryption, making it vulnerable to sniffing. <a href="https://en.wikipedia.org/wiki/SIM_swap_scam">Sim swap</a> attacks, if carried out successfully, will allow an attacker to receive your one-time passcode while locking you out of your own account. In certain cases, websites or services may also allow the user to reset their account login by calling them using the phone number used for MFA, which could be faked with a <a href="https://en.wikipedia.org/wiki/Caller_ID_spoofing">spoofed CallerID</a>.</p>
+<p>Only use these protocols when it is the only option you have, and be very careful with SMS MFA as it could actually worsen your security.</p>
+<h3 id="push-confirmations">Push Confirmations</h3>
+<p>Push confirmation MFA is typically a notification being sent to an app on your phone asking you to confirm new account logins. This method is a lot better than SMS or email, since an attacker typically wouldn&rsquo;t be able to get these push notifications without having an already logged-in device.</p>
+<p>Push confirmation in most cases relies on a third-party provider like <a href="https://duo.com/">Duo</a>. This means that trust is placed in a server that neither you nor your service provider control. A malicious push confirmation server could compromise your MFA or profile you based on which website and account you use with the service.</p>
+<p>Even if the push notification application and server is provided by a first-party as is the case with Microsoft login and <a href="https://www.microsoft.com/en-us/security/mobile-authenticator-app">Microsoft Authenticator</a>, there is still a risk of you accidentally tapping on the confirmation button.</p>
+<h3 id="time-based-one-time-password-totp">Time-based One-time Password (TOTP)</h3>
+<p>TOTP is one of the most common forms of MFA available. When you set up TOTP, you setup a &ldquo;<a href="https://en.wikipedia.org/wiki/Shared_secret">shared secret</a>&rdquo; with the service that you intend to use and store it in your authentication app.</p>
+<p>The time-limited code is then derived from the shared secret and the current time. As the code is only valid for a short time, without access to the shared secret, an adversary cannot generate new codes.</p>
+<p>If you have a <a href="https://www.yubico.com/">Yubikey</a>, you should store the &ldquo;shared secrets&rdquo; on the key itself using the <a href="https://www.yubico.com/products/yubico-authenticator/">Yubico Authenticator</a> app. After the initial setup, the Yubico Authenticator will only expose the 6 digit code to the machine it is running on, but not the shared secret. Additional security can be set up by requiring touch confirmation, protecting digit codes not in used from a compromised operating system.</p>
+<p>Unlike <a href="#fido2-fast-identity-online">WebAuthn</a>, TOTP offers no protection against <a href="https://en.wikipedia.org/wiki/Phishing">phishing</a> or reuse attacks. If an adversary obtains a valid code from you, they may use it as many times as they like until it expires (generally 30 seconds + grace period).</p>
+<p>Despite its short comings, we consider TOTP better and safer than Push Confirmations.</p>
+<h3 id="yubico-otp">Yubico OTP</h3>
+<p>Yubico OTP is an authentication protocol typically implemented in hardware security keys. When you decide to use Yubico OTP, the key will generate a public ID, private ID, and a Secret Key which is then uploaded to the Yubico OTP server.</p>
+<p>When logging into a website, all you need to do is to physically touch the security key. The security key will emulate a keyboard and print out a one-time password into the password field.</p>
+<p>The service will then forward the one-time password to the Yubico OTP server for validation. A counter is incremented both on the key and Yubico&rsquo;s validation server. The OTP can only be used once, and when a successful authentication occurs, the counter is increased which prevents reuse of the OTP. Yubico provides a <a href="https://developers.yubico.com/OTP/OTPs_Explained.html">detailed document</a> about the process.</p>
+<p><img loading="lazy" src="/images/yubico-otp.png" alt="Yubico OTP"  />
+</p>
+<p>The Yubico validation server is a cloud based service, and you&rsquo;re placing trust in Yubico that their server won&rsquo;t be used to bypass your MFA or profile you. The public ID associated with Yubico OTP is reused on every website and could be another avenue for third-parties to profile you. Like TOTP, Yubico OTP does not provide phishing resistance.</p>
+<p>Yubico OTP is an inferior protocol compared to TOTP since TOTP does not need trust in a third-party server and most security keys that support Yubico OTP (namely the Yubikey and OnlyKey) supports TOTP anyway. Yubico OTP is still better than Push Confirmation, however.</p>
+<h3 id="fido2-fast-identity-online">FIDO2 (Fast IDentity Online)</h3>
+<p><a href="https://en.wikipedia.org/wiki/FIDO_Alliance">FIDO</a> includes a number of standards; first there was U2F and then later <a href="https://en.wikipedia.org/wiki/FIDO2_Project">FIDO2</a> which includes the web standard <a href="https://en.wikipedia.org/wiki/WebAuthn">WebAuthn</a>.</p>
+<p>U2F and FIDO2 refer to the <a href="https://en.wikipedia.org/wiki/Client_to_Authenticator_Protocol">Client to Authenticator Protocol</a>, which is the protocol between the security key and the computer, such as a laptop or phone. It complements WebAuthn which is the component used to authenticate with the website (the &ldquo;Relying Party&rdquo;) you&rsquo;re trying to log in on.</p>
+<p>WebAuthn is the most secure and private form of second factor authentication. While the authentication experience is similar to Yubico OTP, the key does not print out a one-time password and validate with a third-party server. Instead, it uses <a href="https://en.wikipedia.org/wiki/Public-key_cryptography">public key cryptography</a> for authentication.</p>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/aMo4ZlWznao" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<p>Since FIDO2/WebAuthn uses unique cryptographic keys with each internet site, a site pretending to be another one will not be able to get the correct response to the challenge for MFA, making FIDO2/Webauthn is invulnerable phising. It is also because of this authentication mechanism that a physical FIDO2 security key is not identifiable across different services like Yubico OTP. Even better, FIDO2 uses a counter for each authentication, which would help with detecting cloned keys.</p>
+<p>If a website or service supports WebAuthn for the authentication, it is highly recommended that you use it over any other form of MFA.</p>
+<h2 id="notes">Notes</h2>
+<h3 id="initial-set-up">Initial Set Up</h3>
+<p>When buying a security key, it is important that you change the default credentials, set up password protection for the key, and enable touch confirmation if your key supports it. Products such as the YubiKey have multiple interfaces with separate credentials for each one of them, so you should go over each interface and set up protection as well.</p>
+<h3 id="backups">Backups</h3>
+<p>You should always have backups for your MFA method. Hardware security keys can get lost, stolen, or simply stop working over time. It is recommended that you have a pair of hardware security keys with the same access to your accounts instead of just one.</p>
+<p>When using TOTP with an authenticator app, be sure to back up your recovery keys to an offline and encrypted storage device.</p>
+<h3 id="weakest-link">Weakest link</h3>
+<p>You are only as secure as the weakest authentication method you use. For instance, it makes little sense to add SMS 2FA as an alternative MFA method if you are already using FIDO2. An adversary who can compromise your SMS 2FA will get into your account just as easily as if you didn&rsquo;t use FIDO2 at all.</p>
+<p>Thus, it is important to stick to the best authentication method you have access to. It is better to have 2 Yubikeys for FIDO2 than 1 FIDO2 key and one authenticator app for TOTP. Likewise, it is better to have 1 TOTP instance and a backup key than to use TOTP alongside with Email or SMS 2FA.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>FLOSS Security</title>
+      <link>https://loudrxiv.github.io/posts/knowledge/floss-security/</link>
+      <pubDate>Wed, 02 Feb 2022 23:16:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/knowledge/floss-security/</guid>
+      <description>While source code is critical for user autonomy, it isn&amp;rsquo;t required to evaluate software security or understand run-time behavior.
+One of the biggest parts of the Free and Open Source Software definitions is the freedom to study a program and modify it; in other words, access to editable source code. I agree that such access is essential; however, far too many people support source availability for the wrong reasons. One such reason is that source code is necessary to have any degree of transparency into how a piece of software operates, and is therefore necessary to determine if it is at all secure or trustworthy.</description>
+      <content:encoded><![CDATA[<p>While source code is critical for user autonomy, it isn&rsquo;t required to evaluate software security or understand run-time behavior.</p>
+<p>One of the biggest parts of the Free and Open Source Software definitions is the freedom to study a program and modify it; in other words, access to editable source code. I agree that such access is essential; however, far too many people support source availability for the <em>wrong</em> reasons. One such reason is that source code is necessary to have any degree of transparency into how a piece of software operates, and is therefore necessary to determine if it is at all secure or trustworthy. Although security through obscurity is certainly not a robust measure, this claim has two issues:</p>
+<ul>
+<li>Source code describes what a program is designed to do; it is unnecessary and insufficient to determine if what it actually does aligns with its intended design.</li>
+<li>Vulnerability discovery doesn&rsquo;t require source code.</li>
+</ul>
+<p>I&rsquo;d like to expand on these issues, focusing primarily on compiled binaries. Bear in mind that I do not think that source availability is <em>useless</em> from a security perspective (it certainly makes audits easier), and I <em>do</em> think that source availability is required for user freedom. I&rsquo;m arguing only that <strong>source unavailability doesn&rsquo;t imply insecurity</strong>, and <strong>source availability doesn&rsquo;t imply security</strong>. It&rsquo;s possible (and often preferable) to perform security analysis on binaries, without necessarily having source code. In fact, vulnerability discovery doesn&rsquo;t typically rely upon source code analysis.</p>
+<p>I&rsquo;ll update this post occasionally as I learn more on the subject. If you like it, check back in a month or two to see if it has something new.</p>
+<p><em>PS: this stance is not absolute; I concede to several <a href="#good-counter-arguments">good counter-arguments in a dedicated section</a>!</em></p>
+<h2 id="how-security-fixes-work">How security fixes work</h2>
+<p>I don&rsquo;t think anyone seriously claims that software&rsquo;s security instantly improves the second its source code is published. The argument I&rsquo;m responding to is that source code is necessary to understand what a program does and how (in)secure it is, and without it we can&rsquo;t know for sure.</p>
+<p>Assuming a re-write that fundamentally changes a program&rsquo;s architecture is not an option<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>, software security typically improves by fixing vulnerabilities via something resembling this process:</p>
+<ol>
+<li>Someone discovers a vulnerability</li>
+<li>Developers are informed of the vulnerability</li>
+<li>Developers reproduce the issue and understand what caused it</li>
+<li>Developers patch the software to fix the vulnerability</li>
+</ol>
+<p>Source code is typically helpful (sometimes essential) to Step 3. If someone has completed Step 3, they will require source code to proceed to Step 4. Source code <em>isn&rsquo;t necessary for Steps 1 and 2</em>; these steps rely upon understanding how a program misbehaves. For that, we use <em>reverse engineering</em> and/or <em>fuzzing</em>.</p>
+<h2 id="reverse-engineering">Reverse engineering</h2>
+<p>Understanding <em>how a program is designed</em> is not the same as understanding <em>what a program does.</em> A reasonable level of one type of understanding does not imply the other.</p>
+<p>Source code<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup> is essential to describe a program&rsquo;s high-level, human-comprehensible design; it represents a contract that outlines how a developer <em>expects</em> a program to behave. A compiler or interpreter<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup> must then translate it into machine instructions. But source code isn&rsquo;t always easy to map directly to machine instructions because it is part of a complex system:</p>
+<ul>
+<li>
+<p>Compilers (sometimes even interpreters) can apply optimizations and hardening measures that are difficult to reason about. This is especially true for Just-In-Time compilers that leverage run-time information.</p>
+</li>
+<li>
+<p>The operating system itself may be poorly understood by the developers, and run a program in a way that contradicts a developer&rsquo;s expectations.</p>
+</li>
+<li>
+<p>Toolchains, interpreters, and operating systems can have bugs that impact program execution.</p>
+</li>
+<li>
+<p>Different compilers and compiler flags can offer different security guarantees and mitigations.</p>
+</li>
+<li>
+<p>Source code can be deceptive by featuring sneaky obfuscation techniques, sometimes unintentionally. Confusing naming patterns, re-definitions, and vulnerabilities masquerading as innocent bugs have all been well-documented: look up &ldquo;hypocrite commits&rdquo; or the <a href="https://en.wikipedia.org/wiki/Underhanded_C_Contest">Underhanded C Contest</a> for examples.</p>
+</li>
+<li>
+<p>All of the above points apply to each dependency and the underlying operating system, which can impact a program&rsquo;s behavior.</p>
+</li>
+</ul>
+<p>Furthermore, all programmers are flawed mortals who don&rsquo;t always fully understand source code. Everyone who&rsquo;s done a non-trivial amount of programming is familiar with the feeling of encountering a bug during run-time for which the cause is impossible to find&hellip;until they notice it staring them in the face on Line 12. Think of all the bugs that <em>aren&rsquo;t</em> so easily noticed.</p>
+<p>Reading the source code, compiling, and passing tests isn&rsquo;t sufficient to show us a program&rsquo;s final behavior. The only way to know what a program does when you run it is to&hellip;run it.<sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup></p>
+<h3 id="special-builds">Special builds</h3>
+<p>Almost all programmers are fully aware of their limited ability, which is why most already employ techniques to analyze run-time behavior that don&rsquo;t depend on source code. For example, developers of several compiled languages<sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup> can build binaries with sanitizers to detect undefined behavior, races, uninitialized reads, etc. that human eyes may have missed when reading source code. While source code is necessary to <em>build</em> these binaries, it isn&rsquo;t necessary to run them and observe failures.</p>
+<p>Distributing binaries with sanitizers and debug information to testers is a valid way to collect data about a program&rsquo;s potential security issues.</p>
+<h3 id="dynamic-analysis">Dynamic analysis</h3>
+<p>It&rsquo;s hard to figure out which syscalls and files a large program program needs by reading its source, especially when certain libraries (e.g. the libc implementation/version) can vary. A syscall tracer like <a href="https://strace.io/"><code>strace(1)</code></a><sup id="fnref:6"><a href="#fn:6" class="footnote-ref" role="doc-noteref">6</a></sup> makes the process trivial.</p>
+<p>A personal example: the understanding I gained from <code>strace</code> was necessary for me to write <a href="https://sr.ht/~seirdy/bwrap-scripts/">my bubblewrap scripts</a>. These scripts use <a href="https://github.com/containers/bubblewrap"><code>bubblewrap(1)</code></a> to sandbox programs with the minimum permissions possible. Analyzing every relevant program and library&rsquo;s source code would have taken me months, while <code>strace</code> gave me everything I needed to know in an afternoon: analyzing the <code>strace</code> output told me exactly which syscalls to allow and which files to grant access to, without even having to know what language the program was written in. I generated the initial version of the syscall allow-lists with the following command<sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">strace name-of-program program-args 2&gt;&amp;1 \
+</span></span><span class="line"><span class="cl">	| rg &#39;^([a-z_]*)\(.*&#39; --replace &#39;$1&#39; \
+</span></span><span class="line"><span class="cl">	| sort | uniq
+</span></span></code></pre></div><p>This also extends to determining how programs utilize the network: packet sniffers like <a href="https://www.wireshark.org/">Wireshark</a> can determine when a program connects to the network, and where it connects.</p>
+<p>These methods are not flawless. Syscall tracers are only designed to shed light on how a program interacts with the kernel. Kernel interactions tell us plenty (it&rsquo;s sometimes all we need), but they don&rsquo;t give the whole story. Furthermore, packet inspection can be made a bit painful by transit encryption<sup id="fnref:8"><a href="#fn:8" class="footnote-ref" role="doc-noteref">8</a></sup>; tracing a program&rsquo;s execution alongside packet inspection can offer clarity, but this is not easy.</p>
+<p>For more information, we turn to <a href="https://en.wikipedia.org/wiki/Core_dump"><strong>core dumps</strong></a>, also known as memory dumps. Core dumps share the state of a program during execution or upon crashing, giving us greater visibility into exactly what data a program is processing. Builds containing debugging symbols (e.g. <a href="https://dwarfstd.org/">DWARF</a>) have more detailed core dumps. Vendors that release daily snapshots of pre-release builds typically include some symbols to give testers more detail concerning the causes of crashes. Web browsers are a common example: Chromium dev snapshots, Chrome Canary, Firefox Nightly, WebKit Canary builds, etc. all include debug symbols. <a href="https://twitter.com/MisteFr/status/1168597562703716354?s=20">Until 2019</a>, <em>Minecraft: Bedrock Edition</em> included debug symbols which were used heavily by the modding community.<sup id="fnref:9"><a href="#fn:9" class="footnote-ref" role="doc-noteref">9</a></sup></p>
+<h4 id="dynamic-analysis-example-zoom">Dynamic analysis example: Zoom</h4>
+<p>In 2020, Zoom Video Communications came under scrutiny for marketing its &ldquo;Zoom&rdquo; software as a secure, end-to-end encrypted solution for video conferencing. Zoom&rsquo;s documentation claimed that it used &ldquo;AES-256&rdquo; encryption. Without source code, did we have to take the docs at their word?</p>
+<p><a href="https://citizenlab.ca/">The Citizen Lab</a> didn&rsquo;t. On 2020-04-03, it published <a href="https://citizenlab.ca/2020/04/move-fast-roll-your-own-crypto-a-quick-look-at-the-confidentiality-of-zoom-meetings/">a report</a> revealing critical flaws in Zoom&rsquo;s encryption. It utilized Wireshark and <a href="https://mitmproxy.org/">mitmproxy</a> to analyze networking activity, and inspected core dumps to learn about its encryption implementation. The Citizen Lab&rsquo;s researchers found that Zoom actually used an incredibly flawed implementation of a weak version of AES-128 (ECB mode), and easily bypassed it.</p>
+<p>Syscall tracing, packet sniffing, and core dumps are great, but they rely on manual execution which might not hit all the desired code paths. Fortunately, there are other forms of analysis available.</p>
+<h3 id="binary-analysis">Binary analysis</h3>
+<p>Tracing execution and inspecting memory dumps can be considered forms of reverse engineering, but they only offer a surface-level view of what&rsquo;s going on. Reverse engineering gets much more interesting when we analyze a binary artifact.</p>
+<p>Static binary analysis is a powerful way to inspect a program&rsquo;s underlying design. Decompilation (especially when supplemented with debug symbols) can re-construct a binary&rsquo;s assembly or source code. Symbol names may look incomprehensible in stripped binaries, and comments will be missing. What&rsquo;s left is more than enough to decipher control flow to uncover how a program processes data. This process can be tedious, especially if a program uses certain forms of binary obfuscation.</p>
+<p>The goal doesn&rsquo;t have to be a complete understanding of a program&rsquo;s design (incredibly difficult without source code); it&rsquo;s typically to answer a specific question, fill in a gap left by tracing/fuzzing, or find a well-known property. When developers publish documentation on the security architecture of their closed-source software, reverse engineering tools like decompilers are exactly what you need to verify their honesty (or lack thereof).</p>
+<p>Decompilers are seldom used alone in this context. Instead, they&rsquo;re typically a component of reverse engineering frameworks that also sport memory analysis, debugging tools, scripting, and sometimes even IDEs. I use <a href="https://rizin.re/">the Rizin framework</a>, but <a href="https://ghidra-sre.org/">Ghidra</a> is also popular. Their documentation should help you get started if you&rsquo;re interested.</p>
+<h3 id="example-malware-analysis">Example: malware analysis</h3>
+<p>These reverse-engineering techniques&mdash;a combination of tracing, packet sniffing, binary analysis, and memory dumps&mdash;make up the workings of most modern malware analysis. See <a href="https://www.hybrid-analysis.com/sample/1ef3b7e9ba5f486afe53fcbd71f69c3f9a01813f35732222f64c0981a0906429/5e428f69c88e9e64c33afe64">this example of a fully-automated analysis of the Zoom Windows installer</a>. It enumerates plenty of information about Zoom without access to its source code: reading unique machine information, anti-VM and anti-reverse-engineering tricks, reading config files, various types of network access, scanning mounted volumes, and more.</p>
+<p>To try this out yourself, use a sandbox designed for dynamic analysis. <a href="https://github.com/cuckoosandbox">Cuckoo</a> is a common and easy-to-use solution, while <a href="https://drakvuf.com/">DRAKVUF</a> is more advanced.</p>
+<h3 id="extreme-example-the-truth-about-intel-me-and-amt">Extreme example: the truth about Intel ME and AMT</h3>
+<p>The Intel Management Engine (ME) is a mandatory subsystem of all Intel processors (after 2008) with extremely privileged access to the host system. Active Management Technology (AMT) runs atop it on the subset of Intel processors with &ldquo;vPro&rdquo; branding. The latter can be disabled and is intended for organizations to remotely manage their inventory (installing software, monitoring, remote power-on/sleep/wake, etc).</p>
+<p>The fact that Intel ME has such deep access to the host system and the fact that it&rsquo;s proprietary have both made it the subject of a high degree of scrutiny. Many people (most of whom have little experience in the area) connected these two facts together to allege that the ME is a backdoor, often by confusedly citing functionality of Intel AMT instead of ME. Is it really impossible to know for sure?</p>
+<p>I picked Intel ME+AMT to serve as an extreme example: it shows both the power and limitations of the analysis approaches covered. ME isn&rsquo;t made of simple executables you can just run in an OS because it sits far below the OS, in what&rsquo;s sometimes called &ldquo;Ring -3&rdquo;.<sup id="fnref:10"><a href="#fn:10" class="footnote-ref" role="doc-noteref">10</a></sup> Analysis is limited to external monitoring (e.g. by monitoring network activity) and reverse-engineering unpacked partially-obfuscated firmware updates, with help from official documentation. This is slower and harder than analyzing a typical executable or library.</p>
+<p>Answers are a bit complex and…more boring than what sensationalized headlines would say. <a href="https://twitter.com/igorskochinsky">Igor Skochinsky</a> (the developer of <a href="https://github.com/skochinsky/me-tools">me-tools</a>) and <a href="https://github.com/corna">Nicola Corna</a> (the developer of <a href="https://github.com/corna/me_cleaner">me_cleaner</a>) presented their analysis of ME in <a href="https://fahrplan.events.ccc.de/congress/2017/Fahrplan/system/event_attachments/attachments/000/003/391/original/Intel_ME_myths_and_reality.pdf">Intel Me: Myths and Reality</a>; Vassilios Ververis thoroughly analyzed AMT in <a href="https://kth.diva-portal.org/smash/get/diva2:508256/FULLTEXT01">Security Evaluation of Intel&rsquo;s Active Management Technology</a>. Interestingly, the former pair argues that auditing binary code is preferable to potentially misleading source code: binary analysis allows auditors to “cut the crap” and inspect what software is truly made of. However, this was balanced by a form of binary obfuscation that the pair encountered; I’ll describe it in a moment.</p>
+<p>Simply monitoring network activity and systematically testing all claims made by the documentation allowed Ververis to uncover a host of security issues in Intel AMT. However, no undocumented features have (to my knowledge) been uncovered. The problematic findings revolved around flawed/insecure implementations of documented functionality. In other words: there&rsquo;s been no evidence of AMT being &ldquo;a backdoor&rdquo;, but its security flaws could have had a similar impact. Fortunately, AMT can be disabled. What about ME?</p>
+<p>This is where some binary analysis comes in. Neither Skochinsky&rsquo;s <a href="https://recon.cx/2014/slides/Recon%202014%20Skochinsky.pdf">ME Secrets</a> presentation nor <!-- raw HTML omitted -->Intel Me: Myths and Reality<!-- raw HTML omitted --> seem to enumerate any contradictions with <a href="https://link.springer.com/book/10.1007/978-1-4302-6572-6">official Intel documentation</a>.</p>
+<p>Unfortunately, some components are poorly understood due to being obfuscated using <a href="http://io.netgarage.org/me/">Huffman compression with unknown dictionaries</a>. Understanding the inner workings of the obfuscated components blurs the line between software reverse-engineering and figuring out how the chips are actually made, the latter of which is nigh-impossible if you don&rsquo;t have access to a chip lab full of cash. However, black-box analysis does tell us about the capabilities of these components: see page 21 of &ldquo;ME Secrets&rdquo;. Thanks to zdctg for clarifying this.</p>
+<p>Skochinsky&rsquo;s and Corna&rsquo;s analysis was sufficient to clarify (but not completely contradict) sensationalism claiming that ME can remotely lock any PC (it was a former opt-in feature), can spy on anything the user does (they clarified that access is limited to unblocked parts of the host memory and the integrated GPU, but doesn&rsquo;t include e.g. the framebuffer), etc.</p>
+<p>While claims such as &ldquo;ME is a black box that can do anything&rdquo; are misleading, ME not without its share of vulnerabilities. My favorite look at its issues is a presentation by <a href="https://www.blackhat.com/eu-17/speakers/Mark-Ermolov.html">Mark Ermolov</a> and <a href="https://www.blackhat.com/eu-17/speakers/Maxim-Goryachy.html">Maxim Goryachy</a> at Black Hat Europe 2017: <a href="https://www.blackhat.com/docs/eu-17/materials/eu-17-Goryachy-How-To-Hack-A-Turned-Off-Computer-Or-Running-Unsigned-Code-In-Intel-Management-Engine-wp.pdf">How to Hack a Turned-Off Computer, or Running Unsigned Code in Intel Management Engine</a>.</p>
+<p>In short: ME being proprietary doesn&rsquo;t mean that we can&rsquo;t find out how (in)secure it is. Binary analysis when paired with runtime inspection can give us a good understanding of what trade-offs we make by using it. While ME has a history of serious vulnerabilities, they&rsquo;re nowhere near what <a href="https://web.archive.org/web/20210302072839/themerkle.com/what-is-the-intel-management-engine-backdoor/">borderline conspiracy theories</a> claim.<sup id="fnref:11"><a href="#fn:11" class="footnote-ref" role="doc-noteref">11</a></sup></p>
+<p>(Note: Intel is not alone here. Other chips typically have equivalents, e.g. AMD Secure Technology).</p>
+<h2 id="fuzzing">Fuzzing</h2>
+<p>Manual invocation of a program paired with a tracer like <code>strace</code> won&rsquo;t always exercise all code paths or find edge-cases. <a href="https://en.wikipedia.org/wiki/Fuzzing">Fuzzing helps bridge this gap</a>: it automates the process of causing a program to fail by generating random or malformed data to feed it. Researchers then study failures and failure-conditions to isolate a bug.</p>
+<p>Fuzzing doesn&rsquo;t necessarily depend on access to source code, as it is a black-box technique. Fuzzers like <a href="https://lcamtuf.coredump.cx/afl/">American Fuzzy Loop (AFL)</a> normally use <a href="#special-builds">special fuzz-friendly builds</a>, but <a href="https://aflplus.plus/docs/binaryonly_fuzzing/">other fuzzing setups</a> can work with just about any binaries. In fact, some types of fuzz tests (e.g. <a href="https://github.com/KissPeter/APIFuzzer/">fuzzing a web API</a>) hardly need any implementation details.</p>
+<p>Fuzzing frequently catches bugs that are only apparent by running a program, not by reading source code. Even so, the biggest beneficiaries of fuzzing are open source projects. <a href="https://github.com/curl/curl-fuzzer">cURL</a>, <a href="https://github.com/openssl/openssl/tree/master/fuzz">OpenSSL</a>, web browsers, text rendering libraries (HarfBuzz, FreeType) and toolchains (GCC, Clang, the official Go toolchain, etc.) are some notable examples.</p>
+<blockquote>
+<p>I&rsquo;ve said it before but let me say it again: fuzzing is really the top method to find problems in curl once we&rsquo;ve fixed all flaws that the static analyzers we use have pointed out. The primary fuzzing for curl is done by OSS-Fuzz, that tirelessly keeps hammering on the most recent curl code.</p>
+</blockquote>
+<ul>
+<li><a href="https://daniel.haxx.se/">Daniel Stenberg</a> | <a href="https://daniel.haxx.se/blog/2020/09/23/a-google-grant-for-libcurl-work/">A Google grant for libcurl work</a></li>
+</ul>
+<p>If you want to get started with fuzzing, I recommend checking out <a href="https://github.com/google/AFL/blob/master/docs/QuickStartGuide.txt">the quick-start guide for American Fuzzy Loop</a>. Some languages like Go 1.18 also have fuzzing tools available right in the standard library.</p>
+<h3 id="example-cve-2022-0185">Example: CVE-2022-0185</h3>
+<p>A recent example of how fuzzing helps spot a vulnerability in an open-source project is <a href="https://www.openwall.com/lists/oss-security/2022/01/18/7">CVE-<!-- raw HTML omitted -->2022-0185</a>: a Linux 0-day found by the Crusaders of Rust a few weeks ago. It was discovered using the <a href="https://github.com/google/syzkaller">syzkaller</a> kernel fuzzer. The process was documented on Will&rsquo;s Root:</p>
+<p><a href="https://www.willsroot.io/2022/01/cve-2022-0185.html">CVE-2022-0185 - Winning a $31337 Bounty after Pwning Ubuntu and Escaping Google&rsquo;s KCTF Containers</a> by <a href="https://willsroot.io">willsroot</a></p>
+<p>I <em>highly</em> encourage giving it a read; it&rsquo;s the perfect example of fuzzing with sanitizers to find a vulnerability, reproducing the vulnerability (by writing a tiny C program), <em>then</em> diving into the source code to find and fix the cause, and finally reporting the issue (with a patch!). When source isn&rsquo;t available, the vendor would assume responsibility for the &ldquo;find and fix&rdquo; steps.</p>
+<p>The fact that some of the most-used pieces of FLOSS in existence have been the biggest beneficiaries of source-agnostic approaches to vulnerability analysis should be quite revealing. The source code to these projects has received attention from millions of eyes, yet they <em>still</em> invest in fuzzing infrastructure and vulnerability-hunters prefer analyzing artifacts over inspecting the source.</p>
+<h2 id="good-counter-arguments">Good counter-arguments</h2>
+<p>I readily concede to several points in favor of source availability from a security perspective:</p>
+<ul>
+<li>
+<p>Source code can make analysis <em>easier</em> by <em>supplementing</em> source-independent approaches. The lines between the steps I mentioned in the <a href="#how-security-fixes-work">four-step vulnerability-fixing process</a> are blurry.</p>
+</li>
+<li>
+<p>Patching vulnerabilities is important. Source availability makes it possible for the community, package maintainers, or reporters of a vulnerability to patch software. Package maintainers often blur the line between &ldquo;packager&rdquo; and &ldquo;contributor&rdquo; by helping projects migrate away from abandoned/insecure dependencies. One example that comes to mind is the Python 2 to Python 3 transition for projects like Calibre.<sup id="fnref:12"><a href="#fn:12" class="footnote-ref" role="doc-noteref">12</a></sup> Being able to fix issues independent of upstream support is an important mitigation against <a href="https://seirdy.one/posts/2021/01/27/whatsapp-and-the-domestication-of-users/">user domestication</a>.</p>
+</li>
+<li>
+<p>Some developers/vendors don&rsquo;t distribute binaries that make use of modern toolchain-level exploit mitigations (e.g. <!-- raw HTML omitted -->PIE<!-- raw HTML omitted -->, <!-- raw HTML omitted -->RELRO<!-- raw HTML omitted -->, stack canaries, automatic variable initialization, <a href="https://clang.llvm.org/docs/ControlFlowIntegrity.html"><!-- raw HTML omitted -->CFI<!-- raw HTML omitted --></a>, etc.<sup id="fnref:13"><a href="#fn:13" class="footnote-ref" role="doc-noteref">13</a></sup>). In these cases, building software yourself with these mitigations (or delegating it to a distro that enforces them) requires source code availability (or at least some sort of intermediate representation).</p>
+</li>
+<li>
+<p>Closed-source software may or may not have builds available that include sanitizers and debug symbols.</p>
+</li>
+<li>
+<p>Although fuzzing release binaries is possible, fuzzing is much easier to do when source code is available. Vendors of proprietary software seldom release special fuzz-friendly builds, and filtering out false-positives can be quite tedious without understanding high-level design.</p>
+</li>
+<li>
+<p>It is certainly possible to notice a vulnerability in source code. Excluding low-hanging fruit typically caught by static code analysis and peer review, it&rsquo;s not the main way most vulnerabilities are found nowadays (thanks to <a href="https://www.broken-by-design.fr/">X_CLI</a> for <a href="https://lemmy.ml/post/167321/comment/117774">reminding me about what source analysis does accomplish</a>.</p>
+</li>
+<li>
+<p>Software as a Service can be incredibly difficult to analyze, as we typically have little more than the ability to query a server. Servers don&rsquo;t send core dumps, server-side binaries, or trace logs for analysis. Furthermore, it&rsquo;s difficult to verify which software a server is running.<sup id="fnref:14"><a href="#fn:14" class="footnote-ref" role="doc-noteref">14</a></sup> For services that require trusting a server, access to the server-side software is important from both a security and a user-freedom perspective</p>
+</li>
+</ul>
+<p>Most of this post is written with the assumption that binaries are inspectable and traceable. Binary obfuscation and some forms of content protection/<!-- raw HTML omitted -->DRM<!-- raw HTML omitted --> violate this assumption and actually do make analysis more difficult.</p>
+<p>Beyond source code, transparency into the development helps assure users of compliance with good security practices. Viewing VCS history, patch reviews, linter configurations, etc. reveal the standards that code is being held up to, some of which can be related to bug-squashing and security.</p>
+<p><a href="https://matrix.to/#/@hypokeimenon:tchncs.de">Patience</a> on Matrix also had a great response, which I agree with and adapt below:</p>
+<p>Whether or not the source code is available for software does not change how insecure it is. However, there are good security-related incentives to publish source code.</p>
+<ul>
+<li>Doing so improves vulnerability patchability and future architectural improvement by lowering the barrier to contribution. The fixes that follow can be <em>shared and used by other projects</em> across the field, some of which can in turn be used by the vendor. This isn&rsquo;t a zero-sum game; a rising tide lifts all boats.</li>
+<li>It&rsquo;s generally good practice to assume an attacker has full knowledge of a system instead of relying on security through obscurity. Releasing code provides strong assurance that this assumption is being made. It&rsquo;s a way for vendors to put their money where their mouth is.</li>
+</ul>
+<p>Both Patience and <a href="https://drewdevault.com/">Drew Vault</a> argue that given the above points, a project whose goal is maximum security would release code. Strictly speaking, I agree. Good intentions don&rsquo;t imply good results, but they can <em>supplement</em> good results to provide some trust in a project&rsquo;s future.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>I&rsquo;ve gone over some examples of how analyzing a software&rsquo;s security properties need not depend on source code, and vulnerability discovery in both FLOSS and in proprietary software uses source-agnostic techniques. Dynamic and static black-box techniques are powerful tools that work well from user-space (Zoom) to kernel-space (Linux) to low-level components like Intel ME+AMT. Source code enables the vulnerability-fixing process but has limited utility for the evaluation/discovery process.</p>
+<p>Don&rsquo;t assume software is safer than proprietary alternatives just because its source is visible; come to a conclusion after analyzing both. There are lots of great reasons to switch from macOS or Windows to Linux (it&rsquo;s been my main OS for years), but <a href="https://madaidans-insecurities.github.io/linux.html">security is low on that list</a>.</p>
+<p>All other things being mostly equal, FLOSS is obviously <em>preferable</em> from a security perspective; I listed some reasons why in the counter-arguments section. Unfortunately, being helpful is not the same as being necessary. All I argue is that source unavailability does not imply insecurity, and source availability does not imply security. Analysis approaches that don&rsquo;t rely on source are typically the most powerful, and can be applied to both source-available and source-unavailable software. Plenty of proprietary software is more secure than FLOSS alternatives; few would argue that the sandboxing employed by Google Chrome or Microsoft Edge is more vulnerable than Pale Moon or most WebKitGTK-based browsers, for instance.</p>
+<p>Releasing source code is just one thing vendors can do to improve audits; other options include releasing test builds with debug symbols/sanitizers, publishing docs describing their architecture, and/or just keeping software small and simple. We should evaluate software security through <em>study</em> rather than source model. Support the right things for the right reasons, and help others make informed choices with accurate information. There are enough good reasons to support software freedom; we don&rsquo;t need to rely on bad ones.</p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Writing an alternative or re-implementation doesn&rsquo;t require access to the original&rsquo;s source code, as is evidenced by a plethora of clean-room re-implementations of existing software written to circumvent the need to comply with license terms.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>Ideally well-documented, non-obfuscated code.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>Or a JIT compiler, or a <a href="https://en.wikipedia.org/wiki/Analytical_Engine">bunch of clockwork</a>, or&hellip;&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:4">
+<p>For completeness, I should add that there is one source-based approach that can verify correctness: formal proofs. Functional programming languages that <a href="https://en.wikipedia.org/wiki/Dependent_type">support dependent types</a> can be provably correct at the source level. Assuming their self-hosted toolchains have similar guarantees, developers using these languages might have to worry less about bugs they couldn&rsquo;t find in the source code. This can alleviate concerns that their language runtimes can make it hard to reason about low-level behavior. Thanks to <a href="https://adrian.geek.nz/">Adrian Cochrane</a> for pointing this out.&#160;<a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:5">
+<p>For example: C, C++, Objective-C, Go, Fortran, and others can utilize sanitizers from Clang and/or GCC.&#160;<a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:6">
+<p>This is probably what people in <em>The Matrix</em> were using to see that iconic <a href="https://en.wikipedia.org/wiki/Matrix_digital_rain">digital rain</a>.&#160;<a href="#fnref:6" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:7">
+<p>This command only lists syscall names, but I did eventually follow the example of <a href="https://github.com/Whonix/sandbox-app-launcher">sandbox-app-launcher</a> by allowing certain syscalls (e.g. ioctl) only when invoked with certain parameters. Also, I used <a href="https://github.com/BurntSushi/ripgrep">ripgrep</a> because I&rsquo;m more familiar with <!-- raw HTML omitted -->PCRE<!-- raw HTML omitted -->-style capture groups.&#160;<a href="#fnref:7" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:8">
+<p>Decrypting these packets typically involves saving and using key logs, or using endpoints with <a href="https://blog.didierstevens.com/2020/12/14/decrypting-tls-streams-with-wireshark-part-1/">known pre-master secrets</a>.&#160;<a href="#fnref:8" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:9">
+<p>I invite any modders who miss these debug symbols to check out the FLOSS <a href="https://www.minetest.net/">Minetest</a>, perhaps with the <a href="https://content.minetest.net/packages/Wuzzy/mineclone2/">MineClone2</a> game.&#160;<a href="#fnref:9" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:10">
+<p>See page 127-130 of the Invisible Things Lab&rsquo;s <a href="https://invisiblethingslab.com/resources/misc09/Quest%20To%20The%20Core%20%28public%29.pdf">Quest to the Core slides</a>. Bear in mind that they often refer to AMT running atop ME.&#160;<a href="#fnref:10" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:11">
+<p>As an aside: your security isn&rsquo;t necessarily improved by &ldquo;disabling&rdquo; it, since it still runs during the initial boot sequence and does provide some hardening measures of its own (e.g., a <!-- raw HTML omitted -->TPM<!-- raw HTML omitted -->).&#160;<a href="#fnref:11" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:12">
+<p>In 2017, Calibre&rsquo;s author actually wanted to stay with Python 2 after its EOL date, and <a href="https://bugs.launchpad.net/calibre/+bug/1714107">maintain Python 2 himself</a>. Users and package maintainers were quite unhappy with this, as Python 2 would no longer be receiving security fixes after 2020. While official releases of Calibre use a bundled Python interpreter, distro packages typically use the system Python package; Calibre&rsquo;s popularity and insistence on using Python 2 made it a roadblock to getting rid of the Python 2 package in most distros. What eventually happened was that community members (especially <a href="https://github.com/eli-schwartz">Eli Schwartz</a> and <a href="https://flaviutamas.com/">Flaviu Tamas</a> submitted patches to migrate Calibre away from Python 2. Calibre migrated to Python 3 by <a href="https://calibre-ebook.com/new-in/fourteen">version 5.0</a>.&#160;<a href="#fnref:12" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:13">
+<p>Linux distributions&rsquo; CFI+<!-- raw HTML omitted -->ASLR<!-- raw HTML omitted --> implementations rely executables compiled with CFI+PIE support, and ideally with stack-smashing protectors and no-execute bits. These implementations are flawed (see <a href="https://web.archive.org/web/20211021222659/http://cybersecurity.upv.es/attacks/offset2lib/offset2lib-paper.pdf">On the Effectiveness of Full-ASLR on 64-bit Linux</a> and <a href="https://grsecurity.net/PaX-presentation.pdf">Brad Spengler&rsquo;s presentation comparing these with PaX&rsquo;s own implementation</a>).&#160;<a href="#fnref:13" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:14">
+<p>The <a href="https://signal.org/blog/private-contact-discovery/">best attempt I know of</a> leverages <a href="https://en.wikipedia.org/wiki/Trusted_execution_environment">Trusted Execution Environments</a>, but for limited functionality using an implementation that&rsquo;s <a href="https://en.wikipedia.org/wiki/Software_Guard_Extensions#Attacks">far from bulletproof</a>.&#160;<a href="#fnref:14" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>

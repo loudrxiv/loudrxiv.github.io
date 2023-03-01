@@ -1,0 +1,942 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Applications on A loudrxiv - A website for the academically-stunted</title>
+    <link>https://loudrxiv.github.io/tags/applications/</link>
+    <description>Recent content in Applications on A loudrxiv - A website for the academically-stunted</description>
+    <image>
+      <url>https://loudrxiv.github.io/waving_snail.png</url>
+      <link>https://loudrxiv.github.io/waving_snail.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright>
+    <lastBuildDate>Sat, 08 Oct 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://loudrxiv.github.io/tags/applications/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ProtonVPN IP Leakage on Linux and Workaround</title>
+      <link>https://loudrxiv.github.io/posts/linux/protonvpn-ip-leakage-on-linux-and-workaround/</link>
+      <pubDate>Sat, 08 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/protonvpn-ip-leakage-on-linux-and-workaround/</guid>
+      <description>Before We Start&amp;hellip;
+I sent Proton an email regarding this issue in late August 2022 and was told they are working on fixing it, though it will take some time as it requires some architectural changes in how the killswitch works.
+The Leak Ideally, when implementing a killswitch, a VPN client should drop all connections on non-VPN interfaces except when the connection is to the VPN provider&amp;rsquo;s servers. This is necessary to prevent accidental leaks, at least by unprivileged applications.</description>
+      <content:encoded><![CDATA[<p><strong>Before We Start</strong>&hellip;</p>
+<p>I sent Proton an email regarding this issue in late August 2022 and was told they are working on fixing it, though it will take some time as it requires some architectural changes in how the killswitch works.</p>
+<h2 id="the-leak">The Leak</h2>
+<p>Ideally, when implementing a killswitch, a VPN client should drop all connections on non-VPN interfaces except when the connection is to the VPN provider&rsquo;s servers. This is necessary to prevent accidental leaks, at least by unprivileged applications. Unfortunately, the ProtonVPN client does not currently do this.</p>
+<p>Effectively, any application that binds to the connected physical interface (as opposed to the VPN&rsquo;s virtual interface) on your Linux system will expose your actual IP address, regardless of the killswitch state. This is problematic, especially for certain applications like Torrent clients, as they tend to use whatever interfaces they can access (rather than just the default one) to connect to the internet.
+You can check this with <code>curl</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl --interface &lt;physical interface&gt; https://ipinfo.io
+</span></span></code></pre></div><p>This will return your actual IP address.</p>
+<h2 id="the-workaround">The Workaround</h2>
+<h3 id="qubes-os">Qubes OS</h3>
+<p>On Qubes OS, you generally should not have a problem if you use the ProtonVPN client in a ProxyVM. While the same issue still exists within the ProxyVM itself, it is unlikely to manifest as you should not be running any other applications in the same Qube anyways, and apps in an AppVM cannot bind to the public interface of the ProxyVM. I have not observed any leaks from an AppVM behind a ProtonVPN ProxyVM.</p>
+<h3 id="general-linux-distributions">General Linux Distributions</h3>
+<p>On a general Linux distribution, the workaround is to configure OpenVPN manually and setup a killswitch yourself.</p>
+<p>Since ProtonVPN does not support IPv6, you should disable it in your kernel settings:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;net.ipv6.conf.all.disable_ipv6=1
+</span></span></span><span class="line"><span class="cl"><span class="s1">net.ipv6.conf.default.disable_ipv6=1
+</span></span></span><span class="line"><span class="cl"><span class="s1">net.ipv6.conf.lo.disable_ipv6=1&#39;</span> <span class="p">|</span> sudo tee /etc/sysctl.d/10-disable-ipv6.conf
+</span></span><span class="line"><span class="cl">sudo sysctl -p
+</span></span></code></pre></div><p>Next, download your OpenVPN configuration files from <a href="https://account.protonvpn.com/">account.protonvpn.com</a>. In those configuration files, you should see a list of IP addresses and ports of ProtonVPN&rsquo;s servers.</p>
+<p>Finally, set up the VPN killswitch. The rules I posted here are based on <a href="https://airvpn.org/forums/topic/15061-firewalld-killswitch/">this discussion</a>.</p>
+<h4 id="firewalld">Firewalld</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter FORWARD <span class="m">0</span> -o tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter FORWARD <span class="m">0</span> -i tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv6 filter INPUT <span class="m">0</span> -j DROP
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">0</span> -i lo -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">1</span> -i tun+ -p tcp -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">1</span> -i tun+ -p udp -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">999</span> -j DROP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv6 filter OUTPUT <span class="m">0</span> -j DROP
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">0</span> -o lo -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">0</span> -o tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#You will need to add each of the IP address and port with the following command:</span>
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">1</span> -p udp -m udp --dport <span class="nv">$PORT</span> -d <span class="nv">$IP</span> -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">999</span> -j DROP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --reload
+</span></span></code></pre></div><h4 id="ufw">UFW</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ufw default deny incoming
+</span></span><span class="line"><span class="cl">sudo ufw default deny outgoing
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#You will need to add each of the IP address and port with the following command:</span>
+</span></span><span class="line"><span class="cl">sudo ufw allow out to <span class="nv">$IP</span> port <span class="nv">$PORT</span> proto udp
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo ufw allow out on tun0 from any to any
+</span></span></code></pre></div>]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Using Mullvad VPN on Qubes OS</title>
+      <link>https://loudrxiv.github.io/posts/qubes/using-mullvad-vpn-on-qubes-os/</link>
+      <pubDate>Sat, 03 Sep 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/qubes/using-mullvad-vpn-on-qubes-os/</guid>
+      <description>Mullvad is a fairly popular and generally trustworthy VPN provider. In this post, I will walk you through how to use the official Mullvad client in a ProxyVM on Qubes OS. This method is a lot more convenient than the official guide from Mullvad (which recommends that you manually load in OpenVPN or Wireguard profiles) and will let you seamlessly switch between different location and network setups just as you would on a normal Linux installation.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/mullvad-vpn-1.png" alt="Mullvad VPN"  />
+</p>
+<p>Mullvad is a fairly popular and generally trustworthy VPN provider. In this post, I will walk you through how to use the official Mullvad client in a ProxyVM on Qubes OS. This method is a lot more convenient than the <a href="https://mullvad.net/en/help/qubes-os-4-and-mullvad-vpn/">official guide</a> from Mullvad (which recommends that you manually load in OpenVPN or Wireguard profiles) and will let you seamlessly switch between different location and network setups just as you would on a normal Linux installation.</p>
+<h2 id="preparing-your-templatevm">Preparing your TemplateVM</h2>
+<p>I recommend that you make a new TemplateVM based on latest Fedora template and remove all unnecessary packages that you might not use. This way, you can minimize the attack surface while not having to deal with missing dependencies like on a minimal template. With that being said, if you do manage to get the minimal template to fully work with Mullvad, feel free to <a href="https://github.com/orgs/PrivSec-dev/discussions">open a discussion on GitHub</a> or <a href="https://tommytran.io/contact">contact me directly</a> and I will update the post accordingly.</p>
+<p>This is what I run on my template to trim it down:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo dnf remove firefox thunderbird totem gnome-remote-desktop gnome-calendar gnome-disk-utility gnome-calculator gnome-connections gnome-weather gnome-contacts gnome-clocks gnome-maps gnome-screenshot gnome-logs gnome-characters gnome-font-viewer gnome-color-manager simple-scan keepassxc cheese baobab yelp evince* httpd mozilla* cups rygel -y
+</span></span><span class="line"><span class="cl">sudo dnf autoremove -y
+</span></span></code></pre></div><p>Next, you need to create the bind directories for Mullvad&rsquo;s configurations:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir -p /etc/qubes-bind-dirs.d
+</span></span><span class="line"><span class="cl">sudo tee /etc/qubes-bind-dirs.d/50_user.conf <span class="s">&lt;&lt; EOF &gt; /dev/null
+</span></span></span><span class="line"><span class="cl"><span class="s">binds+=( &#39;/etc/mullvad-vpn&#39; )
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></div><h2 id="installing-the-mullvad-app">Installing the Mullvad App</h2>
+<p>Inside of the TemplateVM you have just created, do the following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo dnf install https://mullvad.net/media/app/MullvadVPN-2022.5_x86_64.rpm
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> mullvad-daemon
+</span></span></code></pre></div><p>Replace <code>https://mullvad.net/media/app/MullvadVPN-2022.5_x86_64.rpm</code> with whatever the latest URL for the Mullvad App is. I will try to update this post to give you the accurate command, but you should just take them from <a href="https://mullvad.net/en/download/linux/">their website</a>.</p>
+<p><img loading="lazy" src="/images/mullvad-vpn-2.png" alt="Mullvad VPN URL"  />
+</p>
+<p>Shutdown the TemplateVM:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo shutdown now
+</span></span></code></pre></div><h2 id="creating-the-proxyvm">Creating the ProxyVM</h2>
+<p>Create an AppVM based on the TemplateVM you have just created. Set <code>sys-firewall</code> (or whatever FirewallVM you have connected to your <code>sys-net</code>) as the net qube. If you do not have such FirewallVM, use <code>sys-net</code> as the net qube. Next, go to the advanced tab and tick the <code>provides network access to other qubes</code> box.</p>
+<p><img loading="lazy" src="/images/provides-network.png" alt="Provides Network"  />
+</p>
+<p>Edit <code>/rw/config/rc.local</code> to workaround <a href="https://github.com/mullvad/mullvadvpn-app/issues/3803">issue 3803</a>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;sleep 10 # Waiting a bit so that Mullvad can establish a connection
+</span></span></span><span class="line"><span class="cl"><span class="s2">/usr/lib/qubes/qubes-setup-dnat-to-ns&#34;</span> <span class="p">|</span> sudo tee -a /rw/config/rc.local
+</span></span></code></pre></div><p>Restart the ProxyVM. You can now use this ProxyVM as the net qube for other qubes!</p>
+<h2 id="notes">Notes</h2>
+<p>With this current setup, the ProxyVM you have just created will be responsible for handling Firewall rules for the qubes behind it. This is not ideal, as this is still a fairly large VM, and there is a risk that Mullvad or some other apps may interfere with its firewall handling.</p>
+<p>Instead, I highly recommend that you <a href="/posts/qubes/firewalling-with-mirageos-on-qubes-os/">create a minimal Mirage FirewallVM</a> and use it as a firewall <strong>behind</strong> the Mullvad ProxyVM. Other AppVMs then should use the Mirage Firewall as the net qube instead. This way, you can make sure that firewall rules are properly enforced.</p>
+<p><img loading="lazy" src="/images/mirageos.png" alt="MirageOS"  />
+</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Using Lokinet on Qubes OS</title>
+      <link>https://loudrxiv.github.io/posts/qubes/using-lokinet-on-qubes-os/</link>
+      <pubDate>Wed, 27 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/qubes/using-lokinet-on-qubes-os/</guid>
+      <description>Lokinet is an Internet overlay network utilizing onion routing to provide anonymity for its users, similar to Tor network. This post will provide a quick (and non exhaustive) list of its pros and cons from an end user perspective and go over how to set it up on Qubes OS.
+Advantages Provides anonymity by removing trust in a service provider (as opposed to a traditional VPN) Better versatility than Tor by supporting any IP based protocols (Tor only supports TCP) Generally faster speed than the Tor Network Disadvantages Only works well on Debian-based distributions.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/lokinet.png" alt="Lokinet"  />
+</p>
+<p><a href="https://lokinet.org">Lokinet</a> is an Internet overlay network utilizing onion routing to provide anonymity for its users, similar to Tor network. This post will provide a quick (and non exhaustive) list of its <a href="#advantages">pros</a> and <a href="#disadvantages">cons</a> from an end user perspective and go over how to set it up on Qubes OS.</p>
+<h2 id="advantages">Advantages</h2>
+<ul>
+<li>Provides anonymity by removing trust in a service provider (as opposed to a traditional VPN)</li>
+<li>Better versatility than Tor by supporting any IP based protocols (Tor only supports TCP)</li>
+<li>Generally faster speed than the Tor Network</li>
+</ul>
+<h2 id="disadvantages">Disadvantages</h2>
+<ul>
+<li>Only works well on Debian-based distributions. The client for Windows has DNS Leaks, and support for macOS, Android, and other Linux distributions is experimental. It should be noted that this is a problem with the official client, not the protocol itself.</li>
+<li>Does not have a killswitch which could lead to accidental leaks (as opposed to common commercial VPN clients which lock the connections to just the provider&rsquo;s servers).</li>
+<li>The official client requires a user to manually define an exit node, or to set certain IP ranges to be routed through certain exit nodes. While this makes it possible to setup some form of Steam Isolation, it is not as good as Tor&rsquo;s <code>isolateDestinationAddr</code> and <code>isolateDesitnationPort</code>. which automatically use a random exit node for every destination/port you visit.</li>
+<li>DNS does not work when used as a ProxyVM on Qubes OS</li>
+</ul>
+<h2 id="creating-the-templatevm">Creating the TemplateVM</h2>
+<p>As mentioned <a href="#disadvantages">above</a>, the Lokinet client only works well with Debian-based distributions. This means that our template will have to be one of the Debian-based ones, and I would highly recommend that you convert the official Debian template by the Qubes OS team into a KickSecure template to use as a base. KickSecure reduces the attack surface of Debian with a substantial set of hardening configurations, and a nice feature to go with an anonymity network like Lokinet is <a href="https://www.kicksecure.com/wiki/Boot_Clock_Randomization">Boot Clock Randomization</a> which helps defend against <a href="https://www.whonix.org/wiki/Time_Attacks">time-based denonymization attacks</a>. You will only need the <code>kicksecure-cli</code> meta package (<code>kicksecure-gui</code> is unnecessary), and experimental services like <code>proc-hidepid</code>, <code>hide-hardware-info</code> and <code>permission-hardening</code> work just fine with the Lokinet client. <a href="https://www.kicksecure.com/wiki/Hardened_Malloc">Hardened Malloc</a> and <a href="https://www.kicksecure.com/wiki/Linux_Kernel_Runtime_Guard_LKRG">LKRG</a> do not cause any problem with Lokinet, either.</p>
+<p>Since DNS with Lokinet does not work if it is installed inside of a ProxyVM, we will need to have Lokinet running inside the same AppVM as the applications you intend to run. This is less than ideal, as a compromised AppVM could reveal your IP address. Beyond that, accidental leaks can happen, too.</p>
+<p>A potential solution to this problem is to set up an unbound server or firewall script redirecting all DNS traffic to the ProxyVM to its Lokinet DNS server at <code>127.3.2.1:53</code>; however, I have been unable to get it working. Another solution is to simply override the DNS server inside the AppVM to a custom DNS server, but this will make you stand out out and break <code>.loki</code> DNS resolution. Websites like <a href="https://dnsleaktest.com">DNS leak test</a> can observe which DNS server you are actually using and potentially fingerprint you. For the same reason that you should not use custom DNS servers when connected to the Tor network, you really should not use a custom DNS server when connected to Lokinet.</p>
+<p>Start by importing the Oxen&rsquo;s PGP key:</p>
+<p><code>sudo curl --proxy http://127.0.0.1:8082 -so /etc/apt/trusted.gpg.d/oxen.gpg https://deb.oxen.io/pub.gpg</code></p>
+<p>Then, add Oxen&rsquo;s Debian repository:</p>
+<p><code>echo &quot;deb https://deb.oxen.io $(lsb_release -sc) main&quot; | sudo tee /etc/apt/sources.list.d/oxen.list</code></p>
+<p>Next, update the repositories:</p>
+<p><code>sudo apt update</code></p>
+<p>If updates for your packages are found, <strong>DO NOT</strong> attempt to upgrade them directly. Instead, use the Qubes Updater to update the TemplateVM.</p>
+<p>When you are done, install <code>lokinet-gui</code> and <code>resolvconf</code>:</p>
+<p><code>sudo apt install lokinet-gui resolvconf</code></p>
+<p>Note that you <strong>must</strong> install <code>resolveconf</code> to get DNS working.</p>
+<p>Next, edit <code>/var/lib/lokinet/lokinet.ini</code> and add the exit server you want to use:</p>
+<p><code>exit-node=exit.loki</code></p>
+<p>Note that I am using <code>exit.loki</code> here, as it is the one mentioned in the <a href="https://docs.oxen.io/products-built-on-oxen/lokinet/exit-nodes">Lokinet documentation</a>.
+There are some other exit servers listed on <a href="http://probably.loki/wiki/index.php?title=Exit_Nodes">probably.loki</a> as well, and for your convenience, I will just copy-paste them here:</p>
+<ul>
+<li><code>exit.loki</code> (USA, run by Jeff)</li>
+<li><code>exit2.loki</code> (USA, run by Jeff, same ip as exit.loki)</li>
+<li><code>xite.loki</code> (Iceland, run by Loutchi)</li>
+<li><code>peter.loki</code> (USA, run by peter)</li>
+<li><code>secret.loki</code> (Netherlands, run by Secret)</li>
+</ul>
+<p>Finally, enable the <code>lokinet</code> service:</p>
+<p><code>systemctl enable lokinet</code></p>
+<h2 id="creating-the-appvm">Creating the AppVM</h2>
+<p>Just create the AppVM as usual, and you would be good to go. There are a few things to keep in mind though:</p>
+<ul>
+<li>You should probably set networking to use <code>sys-firewall</code>. I have tested using my ProtonVPN ProxyVM for networking, and DNS was not working. Besides, it makes little sense to attempt such setup anyways, unless you are worried about accidental leaks or a compromised AppVM.</li>
+<li>You should give the AppVM the <code>network-manager</code> service so that Lokinet can set up networking properly and get DNS working.</li>
+</ul>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Slightly Improving Mailcow Security</title>
+      <link>https://loudrxiv.github.io/posts/linux/slightly-improving-mailcow-security/</link>
+      <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/slightly-improving-mailcow-security/</guid>
+      <description>Mailcow is a fairly popular self-hosted mail server. If you use it, there are a few ways you can improve its security by following these steps.
+Postfix Configuration Consider disabling weak ciphers and TLS versions below 1.2 in data/conf/postfix/extra.cf:
+tls_high_cipherlist = ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256 tls_preempt_cipherlist = yes smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1 smtp_tls_ciphers = high smtp_tls_mandatory_ciphers = high smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1 smtpd_tls_ciphers = high smtpd_tls_mandatory_ciphers = high NGINX Configuration These security configurations can be added/modified in data/conf/nginx/includes/site-defaults.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/mailcow.png" alt="Mailcow"  />
+</p>
+<p>Mailcow is a fairly popular self-hosted mail server. If you use it, there are a few ways you can improve its security by following these steps.</p>
+<h2 id="postfix-configuration">Postfix Configuration</h2>
+<p>Consider disabling weak ciphers and TLS versions below 1.2 in <code>data/conf/postfix/extra.cf</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">tls_high_cipherlist = ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256
+</span></span><span class="line"><span class="cl">tls_preempt_cipherlist = yes
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">smtp_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+</span></span><span class="line"><span class="cl">smtp_tls_ciphers = high
+</span></span><span class="line"><span class="cl">smtp_tls_mandatory_ciphers = high
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">smtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1
+</span></span><span class="line"><span class="cl">smtpd_tls_ciphers = high
+</span></span><span class="line"><span class="cl">smtpd_tls_mandatory_ciphers = high
+</span></span></code></pre></div><h2 id="nginx-configuration">NGINX Configuration</h2>
+<p>These security configurations can be added/modified in <code>data/conf/nginx/includes/site-defaults.conf</code>.</p>
+<h3 id="ssl-ciphers">SSL Ciphers</h3>
+<p>Consider only supporting ciphers matching that of TLSv1.3:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">ssl_ciphers &#34;ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256&#34;;
+</span></span></code></pre></div><h3 id="hsts">HSTS</h3>
+<p>Consider adding <code>includeSubDomains;</code> and <code>preload;</code> to the HSTS configuration if all of your services are using HTTPS:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Strict-Transport-Security &#34;max-age=63072000; includeSubDomains; preload&#34;;
+</span></span></code></pre></div><h3 id="x-xss-protection">X-XSS-Protection</h3>
+<p>We will setup Content Security, so this header is no longer needed. In fact, it may do <a href="https://github.com/helmetjs/helmet/issues/230">more harm than good</a>. Change the setting to <code>0</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header X-XSS-Protection &#34;0&#34;;
+</span></span></code></pre></div><h3 id="permission-policy">Permission Policy</h3>
+<p>Mailcow does not need any special permissions to operate, except for USB which is needed to access your FIDO2 keys if you use them.</p>
+<p>Add this header to deny other permissions:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Permissions-Policy &#34;accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), clipboard-read=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), screen-wake-lock=(), serial=(), usb=(), sync-xhr=(), xr-spatial-tracking=()&#34;;
+</span></span></code></pre></div><h3 id="content-security-policy">Content Security Policy</h3>
+<p>Use the following as your <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP#:~:text=Content%20Security%20Policy%20(CSP)%20is,site%20defacement%2C%20to%20malware%20distribution.">Content Security Policy</a>:</p>
+<h4 id="if-you-use-gravatar-with-sogo">If you use Gravatar with SOGo</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Content-Security-Policy &#34;default-src &#39;none&#39;; connect-src &#39;self&#39; https://api.github.com; font-src &#39;self&#39; https://fonts.gstatic.com; img-src &#39;self&#39; data:; script-src &#39;self&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39; https://fonts.googleapis.com; frame-ancestors &#39;none&#39;; block-all-mixed-content; base-uri &#39;none&#39;&#34;;
+</span></span></code></pre></div><h4 id="if-you-do-not-use-gravatar-with-sogo">If you do not use Gravatar with SOGo</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Content-Security-Policy &#34;default-src &#39;none&#39;; connect-src &#39;self&#39; https://api.github.com https://www.gravatar.com; font-src &#39;self&#39; https://fonts.gstatic.com; img-src &#39;self&#39; data: https://www.gravatar.com; script-src &#39;self&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39; https://fonts.googleapis.com; frame-ancestors &#39;none&#39;; block-all-mixed-content; base-uri &#39;none&#39;&#34;;
+</span></span></code></pre></div><h3 id="cross-origin-resource-opener-and-embedder-policies">Cross-Origin Resource, Opener, and Embedder Policies</h3>
+<p>Mailcow does not use any cross site scripts, or documents. Thus, you should set CORP and COOP headers to their strictest configuration:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Cross-Origin-Resource-Policy same-origin;
+</span></span><span class="line"><span class="cl">add_header Cross-Origin-Opener-Policy same-origin;
+</span></span></code></pre></div><p>If you do not use Gravatar with SOGo, you can also set COEP to require-corp since image embedding will not be used either:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">add_header Cross-Origin-Embedder-Policy require-corp;
+</span></span></code></pre></div>]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Docker and OCI Hardening</title>
+      <link>https://loudrxiv.github.io/posts/linux/docker-and-oci-hardening/</link>
+      <pubDate>Wed, 30 Mar 2022 21:23:12 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/docker-and-oci-hardening/</guid>
+      <description>Containers aren&amp;rsquo;t that new fancy thing anymore, but they were a big deal. And they still are. They are a concrete solution to the following problem:
+- Hey, your software doesn&amp;rsquo;t work&amp;hellip;
+- Sorry, it works on my computer! Can&amp;rsquo;t help you.
+Whether we like them or not, containers are here to stay. Their expressiveness and semantics allow for an abstraction of the OS dependencies that a software has, the latter being often dynamically linked against certain libraries.</description>
+      <content:encoded><![CDATA[<p>Containers aren&rsquo;t that new fancy thing anymore, but they were a big deal. And they still are. They are a concrete solution to the following problem:</p>
+<blockquote>
+<p>- Hey, your software doesn&rsquo;t work&hellip;</p>
+<p>- Sorry, it works on my computer! Can&rsquo;t help you.</p>
+</blockquote>
+<p>Whether we like them or not, containers are here to stay. Their expressiveness and semantics allow for an abstraction of the OS dependencies that a software has, the latter being often dynamically linked against certain libraries. The developer can therefore provide a known-good environment where it is expected that their software &ldquo;just works&rdquo;. That is particularly useful for development to eliminate environment-related issues, and that is often used in production as well.</p>
+<p>Containers are often perceived as a great tool for isolation, that is, they can provide an isolated workspace that won&rsquo;t pollute your host OS - all that without the overhead of virtual machines. Security-wise: containers, as we know them on Linux, are glorified namespaces at their core. Containers usually share the same kernel with the host, and <strong>namespaces</strong> is the kernel feature for separating kernel resources across containers (IDs, networks, filesystems, IPC, etc.). Containers also leverage the features of <strong>cgroups</strong> to separate system resources (CPU, memory, etc.), and security features such as seccomp to restrict syscalls, or MACs (AppArmor, SELinux).</p>
+<p>At first, it seems that containers may not provide the same isolation boundary as virtual machines. That&rsquo;s fine, they were not designed to. But they can&rsquo;t be simplified to a simple <code>chroot</code> either. We&rsquo;ll see that a &ldquo;container&rdquo; can mean a lot of things, and their definition may vary a lot depending on the implementation: as such, containers are mostly defined by their semantics.</p>
+<h2 id="docker-is-dead-long-live-docker-and-oci">Docker is dead, long live Docker&hellip; and OCI!</h2>
+<p>When people think of containers, a large group of them may think of Docker. While Docker played a big role in the popularity of containers a few years ago, it didn&rsquo;t introduce the technology: on Linux, LXC did (<em>Linux Containers</em>). In fact, Docker in its early days was a high-level wrapper for LXC which already combined the power of namespaces and cgroups. Docker then replaced LXC with <code>libcontainer</code> which does more or less the same, plus extra features.</p>
+<p>Then, what happened? <em>Open Container Initiative</em> (OCI). That is the current standard that defines the container ecosystem. That means that whether you&rsquo;re using Docker, Podman, or Kubernetes, you&rsquo;re in fact running OCI-compliant tools. That is a good thing, as it saves a lot of interoperability headaches.</p>
+<p><strong>Docker</strong> is no longer the monolithic platform it once was. <code>libcontainer</code> was absorbed by <code>runc</code>, the reference OCI runtime. The high-level components of Docker split into different parts related to the upstream Moby project (Docker is the &ldquo;assembled product&rdquo; of the &ldquo;Moby components&rdquo;). When we refer to Docker, we refer in fact at this powerful high-level API that manages OCI containers. By design, Docker is a daemon that communicates with <code>containerd</code>, a lower-level layer, which in turn communicates with the OCI runtime. That also means that you could very well skip Docker altogether and use <code>containerd</code> or even <code>runc</code> directly.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Docker client &lt;=&gt; Docker daemon &lt;=&gt; containerd &lt;=&gt; containerd-shim &lt;=&gt; runc
+</span></span></code></pre></div><p><strong>Podman</strong> is an alternative to Docker developed by RedHat, that also intends to be a drop-in replacement for Docker. It doesn&rsquo;t work with a daemon, and can work rootless by design (Docker has support for rootless too, but that is not without caveats). I would largely recommend Podman over Docker for someone who wants a simple tool to run containers and test code on their machine.</p>
+<p><strong>Kubernetes</strong> (also known as K8S) is the container platform made by Google. It is designed with scaling in mind, and is about running containers across a cluster whereas Docker focuses on packaging containers on a single node. Docker Swarm is the direct alternative to that, but it has never really took off due to the popularity of K8S.</p>
+<p>For the rest of this article, we will use Docker as the reference for our examples, along with the <a href="https://docs.docker.com/compose/compose-file/">Compose specification</a> format. Most of these examples can be adapted to other platforms without issues.</p>
+<h2 id="the-nightmare-of-dependencies">The nightmare of dependencies</h2>
+<p>Containers are made from images, and images are typically built from a Dockerfile. Images can be built and distributed through OCI registries: <a href="https://hub.docker.com/">Docker Hub</a>, <a href="https://cloud.google.com/container-registry">Google Container Registry</a>, <a href="https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry">GitHub Container Registry</a>, and so on. You can also set up your own private registry as well, but the reality is that people often pull images from these public registries.</p>
+<h3 id="images-immutability-and-versioning">Images, immutability and versioning</h3>
+<p>Images are what make containers, well, containers. Containers made from the same image should behave similarly on different machines. Images can have <strong>tags</strong>, which are useful for software versioning. The usage of generic tags such as <code>latest</code> is often discouraged because it defeats the purpose of the expected behavior of the container. Tags are not necessarily immutable by design, and they shouldn&rsquo;t be (more on that below). <strong>Digest</strong>, however, is the attribute of an immutable image, and is often generated with the SHA-256 algorithm.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">docker.io/library/golang:1.17.1@sha256:232a180dbcbcfa7250917507f3827d88a9ae89bb1cdd8fe3ac4db7b764ebb25
+</span></span><span class="line"><span class="cl">         ^          ^       ^                                   ^ 
+</span></span><span class="line"><span class="cl">         |          |       |                                   |
+</span></span><span class="line"><span class="cl">     Registry     Image    Tag                          Digest (immutable)
+</span></span></code></pre></div><p>Now onto why tags shouldn&rsquo;t be immutable: as written above, containers bring us an abstraction over the OS dependencies that are used by the packaged software. That is nice indeed, but this shouldn&rsquo;t lure us into believing that we can forget security updates. The fact is, <strong>there is still a whole OS to care about</strong>, and we can&rsquo;t just think of the container as a simple package tool for software.</p>
+<p>For these reasons, good practices were established:</p>
+<ul>
+<li>An image should be as minimal as possible (Alpine Linux, or scratch/distroless).</li>
+<li>An image, with a given tag, should be regularly built, without cache to ensure all layers are freshly built.</li>
+<li>An image should be rebuilt when the images it&rsquo;s based on are updated.</li>
+</ul>
+<h3 id="a-minimal-base-system">A minimal base system</h3>
+<p><a href="https://alpinelinux.org/">Alpine Linux</a> is often the choice for official images for the first reason. This is not a typical Linux distribution as it uses musl as its C library, but it works quite well. Actually, I&rsquo;m quite fond of Alpine Linux and <code>apk</code> (its package manager). If a supervision suite is needed, I&rsquo;d look into <code>s6</code>. If you need a glibc distribution, Debian provides slim variants for lightweight base images. We can do even better than using Alpine by using <strong>distroless images</strong>, allowing us to have state-of-the-art application containers.</p>
+<p>&ldquo;Distroless&rdquo; is a fancy name referring to an image with a minimal set of dependencies, from none (for fully static binaries) to some common libraries (typically the C library). Google maintains <a href="https://github.com/GoogleContainerTools/distroless">distroless images</a> you can use as a base for your own images. If you were wondering, the difference with <code>scratch</code> (empty starting point) is that distroless images contain common dependencies that &ldquo;almost-statically compiled&rdquo; binaries may need, such as <code>ca-certificates</code>.</p>
+<p>However, distroless images are not suited for every application. In my experience though, distroless is an excellent option with pure Go binaries. Going with minimal images drastically reduces the available attack surface in the container. For example, here&rsquo;s a <a href="https://docs.docker.com/develop/develop-images/multistage-build/">multi-stage Dockerfile</a> resulting in a minimal non-root image for a simple Go project:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-Dockerfile" data-lang="Dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> golang:alpine as build</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /app</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> . .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> <span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span> go mod -o /my_app cmd/my_app<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> gcr.io/distroless/static</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>build /my_app /<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">USER</span><span class="s"> nobody</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">ENTRYPOINT</span> <span class="p">[</span><span class="s2">&#34;/my_app&#34;</span><span class="p">]</span><span class="err">
+</span></span></span></code></pre></div><p>The main drawback of using minimal images is the lack of tools that help with debugging, which also constitute the very attack surface we&rsquo;re trying to get rid of. The trade-off is probably not worth the hassle for development-focused containers, and if you&rsquo;re running such images in production, you have to be confident enough to operate with them. Note that the <code>gcr.io/distroless</code> images have a <code>:debug</code> tag to help in that regard.</p>
+<h3 id="keeping-images-up-to-date">Keeping images up-to-date</h3>
+<p>The two other points are highly problematic, because most software vendors just publish an image on release, and forget about it. You should take it up to them if you&rsquo;re running images that are versioned but not regularly updated. I&rsquo;d say running scheduled builds <strong>once a week</strong> is the bare minimum to make sure dependencies stay up-to-date. Alpine Linux is a better choice than most other &ldquo;stable&rdquo; distributions because it usually has more recent packages.</p>
+<p>Stable distributions often rely on backporting security fixes from CVEs, which is known to be a flawed approach to security since CVEs aren&rsquo;t always assigned or even taken care of. Alpine has more recent packages, and it has versioning, so it&rsquo;s once again a particularly good choice as long as <code>musl</code> doesn&rsquo;t cause issues.</p>
+<h3 id="is-it-really-a-security-nightmare">Is it really a security nightmare?</h3>
+<p>When people say Docker is a security nightmare because of that, that&rsquo;s a fair point. On a traditional system, you could upgrade your whole system with a single command or two. With Docker, you&rsquo;ll have to recreate several containers&hellip; if the images were kept up-to-date in the first place. Recreating itself is not a big deal actually: hot upgrades of binaries and libraries often require the services that use them to restart, otherwise they could still use an old (and vulnerable) version of them in memory. But yeah, the fact is most people are running outdated containers, and more often than not, they don&rsquo;t have the choice if they rely on third-party images.</p>
+<p><a href="https://github.com/aquasecurity/trivy">Trivy</a> is an excellent tool to scan images for a subset of <strong>known vulnerabilities</strong> an image might have. You should play with it and see for yourself how outdated many publicly available images are.</p>
+<h3 id="supply-chain-attacks">Supply-chain attacks</h3>
+<p>As with any code downloaded from a software vendor, OCI images are not exempt from supply-chain attacks. The good practice is quite simple: rely on official images, and ideally build and maintain your own images. One should definitely not automatically trust random third-party images they can find on Docker Hub. Half of these images, if not more, contain vulnerabilities, and I bet a good portion of them contains malwares <a href="https://www.trendmicro.com/vinfo/fr/security/news/virtualization-and-cloud/malicious-docker-hub-container-images-cryptocurrency-mining">such as miners</a> or worse.</p>
+<p>As an image maintainer, you can sign your images to improve the authenticity assurance. Most official images make use of <a href="https://docs.docker.com/engine/security/trust/">Docker Content Trust</a>, which works with a OCI registry attached to a <a href="https://github.com/notaryproject/notary">Notary server</a>. With the Docker toolset, setting the environment variable <code>DOCKER_CONTENT_TRUST=1</code> enforces signature verification (a signature is only good if it&rsquo;s checked in the first place). The SigStore initiative is developing <a href="https://github.com/sigstore/cosign">cosign</a>, an alternative that doesn&rsquo;t require a Notary server because it works with features already provided by the registry such as tags. Kubernetes users may be interested in <a href="https://github.com/sse-secure-systems/connaisseur">Connaisseur</a> to ensure all signatures have been validated.</p>
+<h2 id="leave-my-root-alone">Leave my root alone!</h2>
+<h3 id="attack-surface">Attack surface</h3>
+<p>Traditionally, Docker runs as a daemon owned by root. That also means that root in the container is actually the root on the host and may be a few commands away from compromising the host. More generally, the attacker has to exploit the available attack surface to escape the container. There is a huge attack surface, actually: the Linux kernel. <a href="https://grsecurity.net/huawei_hksp_introduces_trivially_exploitable_vulnerability">Someone wise once said</a>:</p>
+<blockquote>
+<p>The kernel can effectively be thought of as the largest, most vulnerable setuid root binary on the system.</p>
+</blockquote>
+<p>That applies particularly to traditional containers which weren&rsquo;t designed to provide a robust level of isolation. A recent example was <a href="https://unit42.paloaltonetworks.com/cve-2022-0492-cgroups/">CVE-2022-0492</a>: the attacker could abuse root in the container to exploit cgroups v1, and compromise the host. Of course defense-in-depth measures would have prevented that, and we&rsquo;ll mention them. But fundamentally, container escapes are possible by design.</p>
+<p>Breaking out via the OCI runtime <code>runc</code> is also possible, although <a href="https://unit42.paloaltonetworks.com/breaking-docker-via-runc-explaining-cve-2019-5736/">CVE-2019-5736</a> was a particularly nasty bug. The attacker had to gain access to root in the container first in order to access <code>/proc/[runc-pid]/exe</code>, which indicates them where to overwrite the <code>runc</code> binary.</p>
+<p>Good practices have been therefore established:</p>
+<ul>
+<li>Avoid using root in the container, plain and simple.</li>
+<li>Keep the host kernel, Docker and the OCI runtime updated.</li>
+<li>Consider the usage of user namespaces.</li>
+</ul>
+<p>By the way, it goes without saying that any user who has access to the Docker daemon should be considered as privileged as root. Mounting the Docker socket (<code>/var/run/docker.sock</code>) in a container makes it highly privileged, and so it should be avoided. The socket should only be owned by root, and if that doesn&rsquo;t work with your environment, use Docker rootless or Podman.</p>
+<h3 id="avoiding-root">Avoiding root</h3>
+<p>root can be avoided in different ways in the final container:</p>
+<ul>
+<li>Image creation time: setting the <code>USER</code> instruction in the Dockerfile.</li>
+<li>Container creation time: via the tools available (<code>user:</code> in the Compose file).</li>
+<li>Container runtime: degrading privileges with entrypoints scripts (<code>gosu UID:GID</code>).</li>
+</ul>
+<p>Well-made images with security in mind will have a <code>USER</code> instruction. In my experience, most people will run images blindly, so it&rsquo;s good harm reduction. Setting the user manually works in some images that aren&rsquo;t designed without root in mind, and it&rsquo;s also great to mitigate some <em>scenarii</em> where the image is controlled by an attacker. You also won&rsquo;t have surprises when mounting volumes, so I highly recommend setting the user explicitly and make sure volume permissions are correct once.</p>
+<p>Some images allow users to define their own user with UID/GID environment variables, with an entrypoint script that runs as root and takes care of the volume permissions before dropping privileges. While technically fine, it is still attack surface, and it requires the <code>SETUID</code>/<code>SETGID</code> capabilities to be available in the container.</p>
+<h3 id="user-namespaces-sandbox-or-paradox">User namespaces: sandbox or paradox?</h3>
+<p>As mentioned just above, <a href="https://www.man7.org/linux/man-pages/man7/user_namespaces.7.html">user namespaces</a> are a solution to ensure root in the container is not root on the host. Docker supports user namespaces, for instance you could set the default mapping in <code>/etc/docker/daemon.json</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    &#34;userns-remap&#34;: &#34;default&#34;
+</span></span></code></pre></div><p><code>whoami &amp;&amp; sleep 60</code> in the container will return root, but <code>ps -fC sleep</code> on the host will show us the PID of another user. That is nice, but it has limitations and therefore shouldn&rsquo;t be considered as a real sandbox. In fact, the paradox is that <a href="https://lists.archlinux.org/pipermail/arch-general/2017-February/043066.html">user namespaces are attack surface</a> (and vulnerabilities are still being found <a href="https://www.openwall.com/lists/oss-security/2022/01/29/1">years later</a>), and it&rsquo;s common wisdom to restrict them to privileged users (<code>kernel.unprivileged_userns_clone=0</code>). That is fine for Docker with its traditional root daemon, but Podman expects you to let unprivileged users interact with user namespaces (so essentially privileged code).</p>
+<p>Enabling <code>userns-remap</code> in Docker shouldn&rsquo;t be a substitute for running unprivileged application containers (where applicable). User namespaces are mostly useful if you intend to run full-fledged OS containers which need root in order to function, but that is out of the scope of the container technologies mentioned in this article; for them, I&rsquo;d argue exposing such a vulnerable attack surface from the host kernel for dubious sandboxing benefits isn&rsquo;t an interesting trade-off to make.</p>
+<h3 id="the-no_new_privs-bit">The no_new_privs bit</h3>
+<p>After ensuring root isn&rsquo;t used in your containers, you should look into setting the <code>no_new_privs</code> bit. <a href="https://docs.kernel.org/userspace-api/no_new_privs.html">This Linux feature</a> restricts syscalls such as <code>execve()</code> from granting privileges, which is what you want to restrict in-container privilege escalation. This flag can be set for a given container in a Compose file:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    security_opt:
+</span></span><span class="line"><span class="cl">        - no-new-privileges: true
+</span></span></code></pre></div><p>Gaining privileges in the container will be much harder that way.</p>
+<h3 id="capabilities">Capabilities</h3>
+<p>Furthermore, we should mention capabilities: root powers are divided into distinct units by the Linux kernel, called capabilities. Each granted capability also grants privilege and therefore access to a significant amount of attack surface. Security researcher Brad Spengler enumerates <a href="https://forums.grsecurity.net/viewtopic.php?f=7&amp;t=2522#p10271">19 important capabilities</a>. Docker <strong>restricts certain capabilities by default</strong>, but <a href="https://github.com/moby/moby/blob/1308a3a99faa13ff279dcb4eb5ad23aee3ab5cdb/oci/caps/defaults.go">some of the most important ones</a> are still available to a container by default.</p>
+<p>You should consider the following rule of thumb:</p>
+<ul>
+<li>Drop all capabilities by default.</li>
+<li>Allow only the ones you really need to.</li>
+</ul>
+<p>If you already run your containers unprivileged without root, your container will very likely work fine with all capabilities dropped. That can be done in a Compose file:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    cap_drop:
+</span></span><span class="line"><span class="cl">        - ALL
+</span></span><span class="line"><span class="cl">    #cap_add:
+</span></span><span class="line"><span class="cl">    #  - CHOWN
+</span></span><span class="line"><span class="cl">    #  - DAC_READ_SEARCH
+</span></span><span class="line"><span class="cl">    #  - SETUID
+</span></span><span class="line"><span class="cl">    #  - SETGID
+</span></span></code></pre></div><p>Never use the <code>--privileged</code> option unless you really need to: a privileged container is given access to almost all capabilities, kernel features and devices.</p>
+<h2 id="other-security-features">Other security features</h2>
+<p>MACs and seccomp are robust tools that may vastly improve container security.</p>
+<h3 id="mandatory-access-control">Mandatory Access Control</h3>
+<p>MAC stand for Mandatory Access Control: traditionally a Linux Security Module that will enforce a policy to restrict the userspace. Examples are <strong>AppArmor</strong> and <strong>SELinux</strong>: the former being more easy-to-use, the later being more fine-grained. Both are strong tools that can help&hellip; Yet, their sole presence does not mean they&rsquo;re really effective. A robust policy starts from a <em>deny all</em> policy, and only allows the necessary resources to be accessed.</p>
+<h3 id="seccomp">seccomp</h3>
+<p>seccomp (short for secure computing mode) on the other hand is a much simpler and complementary tool, and there is no reason not to use it. What it does is restricting a process to a set of system calls, thus drastically reducing the attack surface available.</p>
+<p>Docker provides default profiles for <a href="https://github.com/moby/moby/tree/85eaf23bf46b12827273ab2ff523c753117dbdc7/profiles/apparmor">AppArmor</a> and <a href="https://github.com/moby/moby/blob/85eaf23bf46b12827273ab2ff523c753117dbdc7/profiles/seccomp/default.json">seccomp</a>, and they&rsquo;re enabled by default for newly created containers unless the <code>unconfined</code> option is explicitly passed. Note: Kubernetes doesn&rsquo;t enable the default seccomp profile by default, so you should probably <a href="https://kubernetes.io/docs/tutorials/security/seccomp/#enable-the-use-of-runtimedefault-as-the-default-seccomp-profile-for-all-workloads">try it</a>.</p>
+<p>These profiles are a great start, but you should do much more if you take security seriously, because they were made to not break compatibility with a large range of images. The default seccomp profile only disables <a href="https://docs.docker.com/engine/security/seccomp/#significant-syscalls-blocked-by-the-default-profile">around 44 syscalls</a>, which are mostly not very common and/or obsoleted. Of course, the best profile you can get is supposed to be written for a given program. It also doesn&rsquo;t make sense to insist on the permissiveness of the default profiles, and <a href="https://blog.jessfraz.com/post/containers-security-and-echo-chambers/">a lof of work has gone</a> into hardening containers.</p>
+<h3 id="cgroups">cgroups</h3>
+<p>Use cgroups to restrict access to hardware and system resources. You likely don&rsquo;t want a guest container to monopolize the host resources. You also don&rsquo;t want to be vulnerable to stupid fork bomb attacks. In a Compose file, consider setting these limits:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    mem_limit: 4g
+</span></span><span class="line"><span class="cl">    cpus: 4
+</span></span><span class="line"><span class="cl">    pids_limit: 256
+</span></span></code></pre></div><p>More runtime options can be found in <a href="https://docs.docker.com/config/containers/resource_constraints/">the official documentation</a>. All of them should have a <a href="https://github.com/compose-spec/compose-spec/blob/master/spec.md">Compose spec</a> equivalent.</p>
+<p>The <code>--cgroup-parent</code> option should be avoided as it uses the host cgroup and not the one configured from Docker (or else), which is the default.</p>
+<h3 id="read-only-filesystem">Read-only filesystem</h3>
+<p>It is good practice to treat the image as some refer to as the &ldquo;golden image&rdquo;.</p>
+<p>In other words, you&rsquo;ll run containers in <em>read-only</em> mode, with an immutable filesystem inherited from the image. Only the mounted volumes will be read/write accessible, and those should ideally be mounted with the <code>noexec</code>, <code>nosuid</code> and <code>nodev</code> options for extra security. If read/write access isn&rsquo;t needed, mount these volumes as read-only too.</p>
+<p>However, the image may not be perfect and still require read/write access to some parts of the filesystem, likely directories such as <code>/tmp</code>, <code>/run</code> or <code>/var</code>. You can make a <strong>tmpfs</strong> for those (a temporary filesystem in the container attributed memory), because they&rsquo;re not persistent data anyway.</p>
+<p>In a Compose file, that would look like the following settings:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">    read_only: true
+</span></span><span class="line"><span class="cl">    tmpfs:
+</span></span><span class="line"><span class="cl">        - /tmp:size=10M,mode=0770,uid=1000,gid=1000,noexec,nosuid,nodev
+</span></span></code></pre></div><p>That is quite verbose indeed, but that&rsquo;s to show you the different options for a tmpfs mount. You want to restrict them in size and permissions ideally.</p>
+<h3 id="network-isolation">Network isolation</h3>
+<p>By default, all Docker containers will use the default network bridge. They will see and be able to communicate with each other. Each container should have its own user-defined bridge network, and each connection between containers should have an internal network. If you intend to run a reverse proxy in front of several containers, you should make a dedicated network for each container you want to expose to the reverse proxy.</p>
+<p>The <code>--network host</code> option also shouldn&rsquo;t be used for obvious reasons since the container would share the same network as the host, providing no isolation at all.</p>
+<h2 id="alternative-runtimes-gvisor">Alternative runtimes (gVisor)</h2>
+<p><code>runc</code> is the reference OCI runtime, but that means other runtimes can exist as well as long as they&rsquo;re compliant with the OCI standard. These runtimes can be interchanged quite seamlessly. There&rsquo;s a few alternatives, such as <a href="https://github.com/containers/crun">crun</a> or <a href="https://github.com/containers/youki">youki</a>, respectively implemented in C and Rust (<code>runc</code> is a Go implementation). However, there is one particular runtime that does a lot more for security: <code>runsc</code>, provided by the <a href="https://gvisor.dev/">gVisor project</a> by the folks at Google.</p>
+<p><strong>Containers are not a sandbox</strong>, and while we can improve their security, they will fundamentally share a common attack surface with the host. Virtual machines are a solution to that problem, but you might prefer container semantics and ecosystem. gVisor can be perceived as an attempt to get the &ldquo;best of both worlds&rdquo;: containers that are easy to manage while providing a native isolation boundary. gVisor did just that by implementing two things:</p>
+<ul>
+<li><strong>Sentry</strong>: an application kernel in Go, a language known to be memory-safe. It implements the Linux logic in userspace such as various system calls.</li>
+<li><strong>Gofer</strong>: a host process which communicates with Sentry and the host filesystem, since Sentry is restricted in that aspect.</li>
+</ul>
+<p>A platform like ptrace or KVM is used to intercept system calls and redirect them from the application to Sentry, which is running in the userspace. This has some costs: there is a higher per-syscall overhead, and compatibility is reduced since not all syscalls are implemented. On top of that, gVisor employs security mechanisms we&rsquo;ve glanced over above, such as a <a href="https://github.com/google/gvisor/blob/86ad7d5b5838da1b539e976886d04b93c939ca3d/runsc/boot/filter/config.go">very restrictive seccomp profile</a> between Sentry and the host kernel, the <a href="https://github.com/google/gvisor/blob/6ef268409620c57197b9d573e23be8cb05dbf381/pkg/sentry/kernel/task_identity.go#L464">no_new_privs bit</a>, and isolated namespaces from the host.</p>
+<p>The security model of gVisor is comparable to what you would expect from a virtual machine. It is also very easy to <a href="https://gvisor.dev/docs/user_guide/install/">install and use</a>. The path to runsc along with its different configuration flags (<code>runsc flags</code>) should be added to <code>/etc/docker/daemon.json</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl">    <span class="s2">&#34;runtimes&#34;</span><span class="err">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;runsc-ptrace&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/usr/local/bin/runsc&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;runtimeArgs&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;--platform=ptrace&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;runsc-kvm&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/usr/local/bin/runsc&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;runtimeArgs&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;--platform=kvm&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></div><p><code>runsc</code> needs to start with root to set up some mitigations, including the use of its own network stack separated from the host. The sandbox itself drops privileges to nobody as soon as possible. You can still use <code>runsc</code> rootless if you want (which should be needed for Podman):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">./runsc --rootless do uname -a
+</span></span><span class="line"><span class="cl">*** Warning: sandbox network isn&#39;t supported with --rootless, switching to host ***
+</span></span><span class="line"><span class="cl">Linux 4.4.0 #1 SMP Sun Jan 10 15:06:54 PST 2016 x86_64 GNU/Linux
+</span></span></code></pre></div><p>Linux 4.4.0 is shown because that is the version of the Linux API that Sentry tries to mimic. As you&rsquo;ve probably guessed, you&rsquo;re not really using Linux 4.4.0, but the application kernel that behaves like it. By the way, gVisor is of course compatible with cgroups.</p>
+<h2 id="conclusion-whats-a-container-after-all">Conclusion: what&rsquo;s a container after all?</h2>
+<p>Like I wrote above, a container is mostly defined by its semantics and ecosystem. Containers shouldn&rsquo;t be solely defined by the OCI reference runtime implementation, as we&rsquo;ve seen with gVisor that provides an entirely different security model.</p>
+<p>Still not convinced? What if I told you a container can leverage the same technologies as a virtual machine? That is exactly what <a href="https://katacontainers.io/">Kata Containers</a> does by using a VMM like QEMU-lite to provide containers that are in fact lightweight virtual machines, with their traditional resources and security model, compatibility with container semantics and toolset, and an optimized overhead. While not in the OCI ecosystem, Amazon achieves quite the same with <a href="https://firecracker-microvm.github.io/">Firecracker</a>.</p>
+<p>If you&rsquo;re running untrusted workloads, I highly suggest you consider gVisor instead of a traditional container runtime. Your definition of &ldquo;untrusted&rdquo; may vary: for me, almost everything should be considered untrusted. That is how modern security works, and how mobile operating systems work. It&rsquo;s quite simple, security should be simple, and gVisor simply offers native security.</p>
+<p>Containers are a popular, yet strange world. They revolutionized the way we make and deploy software, but one should not loose the sight of what they really are and aren&rsquo;t. This hardening guide is non-exhaustive, but I hope it can make you aware of some aspects you&rsquo;ve never thought of.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Banking Applications Compatibility with GrapheneOS</title>
+      <link>https://loudrxiv.github.io/posts/android/banking-applications-compatibility-with-grapheneos/</link>
+      <pubDate>Wed, 26 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/banking-applications-compatibility-with-grapheneos/</guid>
+      <description>A maintained compatibility list of working international banking apps that are tested, submitted, reviewed and published below.
+View list | Submit report | Update report
+Introduction This is a crowd-sourced project dataset for GrapheneOS&amp;rsquo;s users that are on currently supported devices.
+First time visitors here should read the official usage guide on banking apps for detailed information explaining how banking apps work on GrapheneOS.
+Important: SafetyNet is being replaced by Play Integrity API and may cause your banking app to suddenly stop working after an update.</description>
+      <content:encoded><![CDATA[<p>A maintained <em>compatibility</em> list of <em>working</em> international <strong>banking apps</strong> that are tested, submitted, reviewed and published below.</p>
+<p><strong><a href="#international-banking-apps">View list</a> | <a href="#submit-a-new-app-report">Submit report</a> | <a href="#update-status-of-app-report">Update report</a></strong></p>
+<h2 id="introduction">Introduction</h2>
+<p>This is a crowd-sourced project dataset for <a href="https://grapheneos.org">GrapheneOS</a>&rsquo;s users that are on currently <a href="https://grapheneos.org/faq#supported-devices">supported devices</a>.</p>
+<p>First time visitors here should read the official usage guide on <a href="https://grapheneos.org/usage#banking-apps">banking apps</a> for detailed information explaining how banking apps work on GrapheneOS.</p>
+<p><strong>Important</strong>: <a href="https://akc3n.page/posts/banking-app-issues/#safetynet-replaced-by-play-integrity-api">SafetyNet is being replaced by Play Integrity API</a> and may cause your banking app to suddenly stop working after an update.</p>
+<blockquote>
+<p><em><strong>If your newly installed banking app aborts at first launch or suddenly stops working after your app updates, then you should try one of these <a href="https://akc3n.page/posts/banking-app-issues/#possible-solutions">possible solutions to resolve the compatibiity issue</a>.</strong></em></p>
+</blockquote>
+<hr>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<h2 id="international-banking-apps">International banking apps</h2>
+<h3 id="australia">Australia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.anz.android.gomoney">ANZ Australia</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/157">Report</a></li>
+<li><a href="#">Affinity Credit Union</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/204">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fusion.banking">Bank Australia App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/55">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bendigobank.mobile">Bendigo Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/88">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.commbank.netbank">CommBank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/75">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.mebank.banking">ME Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/203">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.nab.mobile">NAB Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/76">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.bank86400">ubank – Daily Money App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/156">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=au.com.up.money">Up Money</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/102">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.westpac.bank">Westpac</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/77">Report</a></li>
+</ul>
+<h3 id="austria">Austria</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.bankaustria.android.olb">Bank Austria Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/15">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=at.rsg.pfp">Mein ELBA-App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/62">Report</a></li>
+</ul>
+<h3 id="belgium">Belgium</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=be.belfius.directmobile.android">Belfius Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/110">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ing.banking">ING Belgium</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/45">Report</a></li>
+</ul>
+<h3 id="brazil">Brazil</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=br.com.gabba.Caixa">Caixa</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/89">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.nu.production">Nubank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/92">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.santander.app">Santander Brasil</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/151">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.santandermovelempresarial.app">Santander Empresas</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/153">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=br.com.santander.way">Santander Way: App de cartões</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/152">Report</a></li>
+</ul>
+<h3 id="canada">Canada</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=ca.affinitycu.mobile">Affinity Credit Union</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/71">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.coastcapitalsavings.dcu">Coast Capital Savings</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/175">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bmo.mobile">BMO Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/19">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.eqbank.eqbank">EQ Bank Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/103">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ca.koho">KOHO Financial</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/104">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?hl=en&amp;id=com.rbc.mobile.android">RBC Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/32">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.questrade.questmobile">QuestMobile: Invest &amp; Trade</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/115">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.questrade.my">Questrade</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/114">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.scotiabank.banking">Scotiabank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/176">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.pcfinancial.mobile">Simplii Financial</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/17">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ca.tangerine.clients.banking.app">Tangerine Mobile App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/16">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.td">TD Canada</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/199">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.wealthsimple">Wealthsimple</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/116">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.wealthsimple.trade">Wealthsimple Invest</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/117">Report</a></li>
+</ul>
+<h3 id="czech-republic">Czech Republic</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=cz.airbank.android">AirBank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/31">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=cz.creditas.richee">CREDITAS Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/78">Report</a></li>
+</ul>
+<h3 id="denmark">Denmark</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.danskebank.mobilebank3.dk">Mobilbank DK – Danske Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/5">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=dk.danskebank.mobilepay">MobilePay</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/7">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=dk.e_nettet.mobilekey.everyone">NemID nøgleapp</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/10">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=dk.nordea.mobilebank">Nordea Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/118">Report</a></li>
+</ul>
+<h3 id="finland">Finland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=fi.spankki">S-mobiili</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/43">Report</a></li>
+</ul>
+<h3 id="france">France</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.boursorama.android.clients">Boursorama Banque</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/147">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.arkea.android.application.cmb">Crédit Mutuel de Bretagne</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/150">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fortuneo.android">Fortuneo</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/208">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bnpp.hellobank">Hello bank!</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/163">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fullsix.android.labanquepostale.accountaccess">La Banque Postale</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/14">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=fr.creditagricole.androidapp">Ma Banque</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/73">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=net.bnpparibas.mescomptes">Mes Comptes BNP Paribas</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/165">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=fr.lcl.android.customerarea">Mes Comptes - LCL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/196">Report</a></li>
+</ul>
+<h3 id="germany">Germany</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=de.direkt1822.banking">1822direkt Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/167">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.commerzbanking.mobil">Commerzbank Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/22">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.db.pwcc.dbmobile">Deutsche Bank Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/38">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.android.wlwallet">Digitales Bezahlen</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/160">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.dkbcodefactory.banking">DKB</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/106">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.xcom.flatexde">flatex next</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/59">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.ingdiba.bankingapp">ING Banking to go</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/48">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.kontist">Kontist</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/23">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.number26.android&amp;hl=en_US&amp;gl=US">N26 — The Mobile Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/21">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.getpenta.app">Penta — Business Banking App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/24">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.psd.banking.app">PSD Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/159">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.santander.presentation">Santander Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/119">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.securego.wl">SecureGo plus</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/161">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.starfinanz.smob.android.sfinanzstatus">Sparkasse</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/44">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=one.tomorrow.app">Tomorrow Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/20">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.banking.vr">Volksbanken Raiffeisenbanken</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/36">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=de.fiduciagad.android.vrwallet">Volksbanken Raiffeisenbanken — Companion App</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/35">Report</a></li>
+</ul>
+<h3 id="ghana">Ghana</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.breezeghana.ui">SC Mobile Ghana</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/174">Report</a></li>
+</ul>
+<h3 id="hungary">Hungary</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=hr.asseco.android.jimba.mUCI.hu">UniCredit mBanking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/87">Report</a></li>
+</ul>
+<h3 id="india">India</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.axis.mobile">Axis Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/139">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=in.org.npci.upiapp">BHIM</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/135">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.infrasofttech.CentralBank">Cent Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/142">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.snapwork.hdfc">HDFC Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/138">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.msf.kbank.mobile">Kotak - 811 &amp; Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/137">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.phonepe.app">PhonePe</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/134">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=net.one97.paytm">Paytm</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/140">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.infrasoft.uboi">Union Bank of India - nxt</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/141">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.sbi.lotusintouch">YONO SBI</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/79">Report</a></li>
+</ul>
+<h3 id="ireland">Ireland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=aib.ibank.android">AIB Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/202">Report</a></li>
+</ul>
+<h3 id="italy">Italy</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=posteitaliane.posteapp.appbpol">BancoPosta</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/181">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=it.bnl.apps.banking">BNL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/144">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fineco.it">Fineco</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/131">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.latuabancaperandroid">Intesa Sanpaolo Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/197">Report</a></li>
+</ul>
+<h3 id="kazakhstan">Kazakhstan</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=kz.kaspi.mobile">Kaspi.kz</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/149">Report</a></li>
+</ul>
+<h3 id="luxembourg">Luxembourg</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=lu.bcee.snetmobile">S-Net Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/211">Report</a></li>
+</ul>
+<h3 id="lithuania">Lithuania</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.revolut.revolut">Revolut</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/90">Report</a></li>
+</ul>
+<h3 id="netherlands">Netherlands</h3>
+<!-- raw HTML omitted -->
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.abnamro.nl.mobile.payments">ABN AMRO</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/108">Report</a></li>
+<li><a href="https://play.google.com/store/search?q=asn%20bank&amp;c=apps&amp;hl=nl&amp;gl=US">ASN Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/105">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=nl.rabomobiel">Rabobank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/47">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.triodos.bankingnl">Triodos Bankieren NL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/133">Report</a></li>
+</ul>
+<h3 id="norway">Norway</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.banknorwegian">Bank Norwegian</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/95">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.dnb.spare">DNB Spare</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/98">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.sparebank1.mobilbank">Engangskode SpareBank 1</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/100">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.kronmobilapp">Kron</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/97">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.nordnet">Nordnet</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/99">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.evry.mobile.android.smartbankmobile.obos">Obos Mobilbank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/192">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.skandiabanken">Sbanken</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/96">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.evry.android.cardcompanion.ngtv">Trumf Visa</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/101">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=no.dnb.vipps">Vipps</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/74">Report</a></li>
+</ul>
+<h3 id="poland">Poland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=wit.android.bcpBankingApp.millenniumPL">Bank Millenium</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/171">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.pkobp.iko">IKO</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/25">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.alior.mobile.exchange.prd">Kantor Walutowy Alior Banku</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/172">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.mbank">mBank PL</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/136">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=pl.ing.mojeing">Moje ING mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/169">Report</a></li>
+</ul>
+<h3 id="portugal">Portugal</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=pt.cgd.caixadirectaempresas">Caixadirecta Empresas</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/120">Report</a></li>
+</ul>
+<h3 id="romania">Romania</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=ro.btrl.pay">BT Pay — Banca Transilvania</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/83">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ro.bcr.georgego">George Romania</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/179">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ro.raiffeisen.smartmobile">Raiffeisen Smart Mobile PI</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/86">Report</a></li>
+</ul>
+<h3 id="russia">Russia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.idamob.tinkoff.android">Tinkoff</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/198">Report</a></li>
+</ul>
+<h3 id="serbia">Serbia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=rs.Raiffeisen.mobile">Moja mBanka Raiffeisen</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/70">Report</a></li>
+</ul>
+<h3 id="singapore">Singapore</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.dbs.sg.iwealth">DBS digibank - wealth</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/183">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ocbc.mobile">OCBC Digital</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/146">Report</a></li>
+</ul>
+<h3 id="slovenia">Slovenia</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=si.delavskahranilnica.dhdenarnik">DH Denarnik</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/178">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.hrc.eb.mobile.android.hibismobiledh">DH Mobilni</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/177">Report</a></li>
+</ul>
+<h3 id="spain">Spain</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=es.evobanco.bancamovil">Evo Banco</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/112">Report</a></li>
+</ul>
+<h3 id="sweden">Sweden</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=se.avanzabank.androidapplikation">Avanza</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/11">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.bankid.bus">BankID säkerhetsapp</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/8">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.kivra.Kivra">Kivra</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/193">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.lf.mobile.android">Länsförsäkringar</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/91">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.danskebank.mobilebank3.se">Mobilbank SE — Danske Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/4">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.nordea.mobilebank">Nordea Mobile — Sverige</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/9">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.swedbank.mobil">Swedbank private</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/12">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=se.bankgirot.swish">Swish payments</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/6">Report</a></li>
+</ul>
+<h3 id="switzerland">Switzerland</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.bcn.android.mbanking">BCN Mobile banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/145">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.csg.cs.dnmb">Credit Suisse</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/72">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.neonbanking.app">neon - your account app</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/207">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ch.raiffeisen.android">Raiffeisen E-Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/26">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ch.zkb.digipass">ZKB Access</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/94">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=ch.zkb.slv.mobile.client.android">ZKB Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/93">Report</a></li>
+</ul>
+<h3 id="taiwan">Taiwan</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.cathaybk.mymobibank.android">Cathay United Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/29">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.mitake.android.epost">Chunghwa Post</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/27">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.chinatrust.mobilebank">CTBC Bank Home Bank</a> -<a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/30">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.esunbank">E.Sun Bank</a> -<a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/162">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=tw.com.taishinbank.mobile">Taishin International Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/28">Report</a></li>
+</ul>
+<h3 id="thailand">Thailand</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.scb.phone">SCB Easy</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/195">Report</a></li>
+</ul>
+<h3 id="ukraine">Ukraine</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=ua.privatbank.ap24">Privat24</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/124">Report</a></li>
+</ul>
+<h3 id="united-arab-emirates">United Arab Emirates</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.adcb.bank">ADCB</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/123">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fab.personalbanking">FAB Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/180">Report</a></li>
+</ul>
+<h3 id="united-kingdom">United Kingdom</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=com.americanexpress.android.acctsvcs.uk">Amex United Kingdom</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/40">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.barclays.bca">Barclaycard</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/42">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.chase.intl">Chase UK</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/69">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.cooperativebank.bank">Co-operative Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/205">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.firstdirect.bankingonthego">First Direct</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/128">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=uk.co.hsbc.hsbcukmobilebanking">HSBC UK Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/33">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.grppl.android.shell.CMBlloydsTSB73">Lloyds Bank Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/53">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=co.uk.getmondo">Monzo Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/58">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=co.uk.getmondo">Metro Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/209">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.revolut.revolut">Revolut</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/90">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=uk.co.santander.santanderUK">Santander UK</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/210">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.starlingbank.android">Starling Bank - Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/39">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.tescobank.mobile">Tesco Bank</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/129">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.tideplatform.banking">Tide - Business Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/206">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.triodos.bankinguk">Triodos Bank UK</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/132">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=uk.co.tsb.newmobilebank">TSB Internet Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/143">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.virginmoney.uk.mobile.android">Virgin Money Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/54">Report</a></li>
+</ul>
+<h3 id="united-states">United States</h3>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=org.alliant.mobile">Alliant Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/85">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ally.MobileBanking">Ally: Banking &amp; Investing</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/113">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.afcu.mobilebanking">America First Mobile Banking</a> - <a href="https://play.google.com/store/apps/details?id=com.afcu.mobilebanking">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.americanexpress.android.acctsvcs.us">American Express</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/125">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.becu.androidapp">BECU</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/60">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.konylabs.capitalone">Capital One Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/107">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.chase.sig.android">Chase Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/13">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.onedebit.chime">Chime Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/46">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.citizensbank.androidapp">Citizens Bank Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/66">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ifs.banking.fiid1454">CommunityAmerica Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/154">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.projectfinance.android.dcu">DCU Digital Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/67">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.discoverfinancial.mobile">Discover Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/64">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.fidelity.android">Fidelity Investments</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/65">Repor</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.clairmail.fth">Fifth Third Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/41">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.mfoundry.mb.android.mb_lx7">First Merchants Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/158">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.q2e.universityofiowacommunitycreditunion5086.mobile.production">Greenstate CU Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/122">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.growfinancialfcu.growfinancialfcu">Grow Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/68">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.gtefinancial.mobile">GTE Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/81">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.a84102934.wallet.cardcontrol">GTE Cards (GTE Financial - Debit/Credit card management)</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/82">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.mainstreetcu.grip">Mainstreet Credit Union</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/111">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=org.schoolsfirstfcu.mobile.banking.isam">SchoolsFirst FCU Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/126">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.schwab.mobile">Schwab Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/61">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ifs.mobilebanking.fiid9094">Service CU Mobile Banking</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/166">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.ifs.banking.fiid1373">Texan CU Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/56">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.usaa.mobile.android.usaa">USAA Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/80">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.usbank.mobilebanking">U.S. Bank Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/84">Report</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=com.wf.wellsfargomobile">Wells Fargo Mobile</a> - <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/63">Report</a></li>
+</ul>
+<hr>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>This section covers how to submit or update a banking app report.</p>
+<h3 id="submit-a-new-app-report">Submit a new app report</h3>
+<p>There are several methods for GrapheneOS users to contribute their banking app report:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Method</th>
+<th style="text-align:left">Description</th>
+<th style="text-align:center">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>GitHub</strong></td>
+<td style="text-align:left">Fill out form on <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues">issue-tracker</a> using your GitHub account</td>
+<td style="text-align:center"><a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues/new?assignees=&amp;labels=&amp;template=app_report.yml"><code>SUBMIT REPORT</code></a></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Non-GitHub</strong></td>
+<td style="text-align:left">View gist → Raw → Save template markdown file to fill out.</td>
+<td style="text-align:center"><a href="https://gist.github.com/akc3n/e845078ddbbb28ada0dd055c51ec45af"><code>Gist</code></a></td>
+</tr>
+<tr>
+<td style="text-align:left">Curl</td>
+<td style="text-align:left">Terminal → <code>curl -O</code> → paste copied url (gist form <code>.md</code> template) ⟶</td>
+<td style="text-align:center"><a href="https://gist.githubusercontent.com/akc3n/e845078ddbbb28ada0dd055c51ec45af/raw/5fdacb267aad5fa95ebf576cdcbd319f80bf9d12/banking-app-report-issue-form.md"><code>Copy link address</code></a></td>
+</tr>
+<tr>
+<td style="text-align:left">Google Form</td>
+<td style="text-align:left">N/A at the moment</td>
+<td style="text-align:center">N/A</td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="https://github.com/ohmyform/ohmyform">OhMyForm</a></td>
+<td style="text-align:left">N/A at the moment, need to test</td>
+<td style="text-align:center">N/A</td>
+</tr>
+</tbody>
+</table>
+<p>Alternatively, curl and pipe the output directly into vi/vim/neovim for editing:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl https://gist.githubusercontent.com/akc3n/e845078ddbbb28ada0dd055c51ec45af/raw/5fdacb267aad5fa95ebf576cdcbd319f80bf9d12/banking-app-report-issue-form.md<span class="se">\?</span>T <span class="p">|</span> nvim -
+</span></span></code></pre></div><h3 id="update-status-of-app-report">Update status of app report</h3>
+<p>Please do not open a new issue to update the status of a banking app report!</p>
+<p>Use the <a href="https://github.com/PrivSec-dev/banking-apps-compat-report/issues">issue tracker to search</a> for the banking app name listed above in the <a href="#international-banking-apps">International banking apps</a> section and add a comment to that report.</p>
+<p>If you are a non-github user and have tried every combination suggested for <a href="https://akc3n.page/banking-issues">possible solutions</a> without being unable to resolving your specific banking app compatibiliity issue, then <a href="https://privsec.dev/about#akc3n">contact me</a> afterwards please.</p>
+<hr>
+<h2 id="note">Note</h2>
+<p>GrapheneOS has a <a href="https://grapheneos.org/articles/attestation-compatibility-guide">detailed guide</a> for app developers on how to support GrapheneOS with the hardware attestation API. Direct use of the hardware attestation API provides much higher assurance than using SafetyNet so these apps have nothing to lose by using a more meaningful API and supporting a more secure OS.</p>
+<blockquote>
+<p>GrapheneOS users are strongly encouraged to share this documentation with app developers enforcing only being able to use the stock OS. Send an email to the developers and leave a review of the app with a link to this information. Share it with other users and create pressure to support GrapheneOS rather than locking users into the stock OS without a valid security reason. GrapheneOS not only upholds the app security model but substantially reinforces it, so it cannot be justified with reasoning based on security, anti-fraud, etc.</p>
+</blockquote>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>F-Droid Security Issues</title>
+      <link>https://loudrxiv.github.io/posts/android/f-droid-security-issues/</link>
+      <pubDate>Sun, 02 Jan 2022 21:28:31 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/android/f-droid-security-issues/</guid>
+      <description>F-Droid is a popular alternative app repository for Android, especially known for its main repository dedicated to free and open-source software. F-Droid is often recommended among security and privacy enthusiasts, but how does it stack up against Play Store in practice? This write-up will attempt to emphasize major security issues with F-Droid that you should consider.
+Before we start, a few things to keep in mind:
+The main goal of this write-up was to inform users so they can make responsible choices, not to trash someone else&amp;rsquo;s work.</description>
+      <content:encoded><![CDATA[<p>F-Droid is a popular alternative app repository for Android, especially known for its main repository dedicated to free and open-source software. F-Droid is often recommended among security and privacy enthusiasts, but how does it stack up against Play Store in practice? This write-up will attempt to emphasize major security issues with F-Droid that you should consider.</p>
+<p>Before we start, a few things to keep in mind:</p>
+<ul>
+<li>The main goal of this write-up was to inform users so they can make responsible choices, not to trash someone else&rsquo;s work. I have respect for any work done in the name of good intentions. Likewise, please don&rsquo;t misinterpret the intentions of this article.</li>
+<li>You have your own reasons for using open-source or free/libre/whatever software which won&rsquo;t be discussed here. A development model shouldn&rsquo;t be an excuse for bad practices and shouldn&rsquo;t lure you into believing that it can provide strong guarantees it cannot.</li>
+<li>A lot of information in this article is sourced from official and trusted sources, but you&rsquo;re welcome to do your own research.</li>
+<li>These analyses do not account for threat models and personal preferences. As the author of this article, I&rsquo;m only interested in facts and not ideologies.</li>
+</ul>
+<p><em>This is not an in-depth security review, nor is it exhaustive.</em></p>
+<h2 id="1-the-trusted-party-problem">1. The trusted party problem</h2>
+<p>To understand why this is a problem, you&rsquo;ll have to understand a bit about F-Droid&rsquo;s architecture, the things it does very differently from other app repositories, and the <a href="https://arxiv.org/pdf/1904.05572.pdf">Android platform security model</a> (some of the issues listed in this article are somewhat out of the scope of the OS security model, but the majority is).</p>
+<p>Unlike other repositories, F-Droid signs all the apps in the main repository with <strong>its own signing keys</strong> (unique per app) at the exception of the very few <a href="https://f-droid.org/en/docs/Reproducible_Builds/">reproducible builds</a>. A signature is a mathematical scheme that guarantees the authenticity of the applications you download. Upon the installation of an app, Android pins the signature across the entire OS (including user profiles): that&rsquo;s what we call a <em>trust-on-first-use</em> model since all subsequent updates of the app must have the corresponding signature to be installed.</p>
+<p>Normally, the developer is supposed to sign their own app prior to its upload on a distribution channel, whether that is a website or a traditional repository (or both). You don&rsquo;t have to trust the source (usually recommended by the developer) except for the first installation: future updates will have their authenticity cryptographically guaranteed. The issue with F-Droid is that all apps are signed by the same party (F-Droid) which is also not the developer. You&rsquo;re now adding another party you&rsquo;ll have to trust since <strong>you still have to trust the developer</strong> anyway, which isn&rsquo;t ideal: <strong>the fewer parties, the better</strong>.</p>
+<p>On the other hand, Play Store now manages the app signing keys too, as <a href="https://developer.android.com/studio/publish/app-signing#app-signing-google-play">Play App Signing</a> is required for app bundles which are required for new apps since August 2021. These signing keys can be uploaded or automatically generated, and are securely stored by <a href="https://services.google.com/fh/files/misc/security_whitepapers_march2018.pdf">Google Cloud Key Management Service</a>. It should be noted that the developer still has to sign the app with <strong>an upload key</strong> so that Google can verify its authenticity before signing it with the app signing key. For apps created before August 2021 that may have <a href="https://developer.android.com/studio/publish/app-signing#opt-out">not opted in Play App Signing</a> yet, the developer still manages the private key and is responsible for its security, as a compromised private key can allow a third party to sign and distribute malicious code.</p>
+<p>F-Droid requires that the source code of the app is exempt from any proprietary library or ad service, according to their <a href="https://f-droid.org/en/docs/Inclusion_Policy/">inclusion policy</a>. Usually, that means that some developers will have to maintain a slightly different version of their codebase that should comply with F-Droid&rsquo;s requirements. Besides, their &ldquo;quality control&rdquo; offers <strong>close to no guarantees</strong> as having access to the source code doesn&rsquo;t mean it can be easily proofread. Saying Play Store is filled with malicious apps is beyond the point: the <strong>false sense of security</strong> is a real issue. Users should not think of the F-Droid main repository as free of malicious apps, yet unfortunately many are inclined to believe this.</p>
+<blockquote>
+<p>But&hellip; can&rsquo;t I just trust F-Droid and be done with it?</p>
+</blockquote>
+<p><a href="https://forum.f-droid.org/t/is-it-as-safe-as-it-is-from-fdroid-official-repo/15956/12">You don&rsquo;t have to take my word for it</a>: they openly admit themselves it&rsquo;s a <a href="https://forum.f-droid.org/t/is-it-as-safe-as-it-is-from-fdroid-official-repo/15956/2">very basic process</a> relying on badness enumeration (this doesn&rsquo;t work by the way) which consists in a few scripts scanning the code for proprietary blobs and known trackers. You are therefore not exempted from trusting upstream developers and it goes for any repository.</p>
+<p><em>A tempting idea would be to compare F-Droid to the desktop Linux model where users trust their distribution maintainers out-of-the-box (this can be sane if you&rsquo;re already trusting the OS anyway), but the desktop platform is intrinsically chaotic and heterogeneous for better and for worse. It really shouldn&rsquo;t be compared to the Android platform in any way.</em></p>
+<p>While we&rsquo;ve seen that F-Droid controls the signing servers (much like Play App Signing), F-Droid also fully controls the build servers that run the disposable VMs used for building apps. And from June to November of 2022, their guest VM image <a href="https://gitlab.com/groups/fdroid/-/milestones/5#tab-issues">officially ran an end-of-life release of Debian LTS</a>. It is also worth noting that Debian LTS seperate project from Debian which attempts to extend the lifetime of releases that are deemed end-of-life by the Debian project and <a href="https://wiki.debian.org/LTS">does not get handled by the Debian Security team</a>. The version they were using (Debian Stretch) was actually discontinued <a href="https://wiki.debian.org/DebianStretch">2 years prior</a>. Undoubtedly, this raises questions about their whole infrastructure security.</p>
+<blockquote>
+<p>How can you be sure that the app repository can be held to account for the code it delivers?</p>
+</blockquote>
+<p>F-Droid&rsquo;s answer, interesting yet largely unused, is <a href="https://f-droid.org/en/docs/Reproducible_Builds/">build reproducibility</a>. While deterministic builds are a neat idea in theory, it requires the developer to make their toolchain match with what F-Droid provides. It&rsquo;s additional work on both ends sometimes resulting in <a href="https://code.briarproject.org/briar/briar/-/issues/1612">apps severely lagging behind in updates</a>, so reproducible builds are not as common as we would have wanted. It should be noted that reproducible builds in the main repository can be exclusively developer-signed.</p>
+<p>Google&rsquo;s approach is <a href="https://developer.android.com/guide/app-bundle/code-transparency">code transparency for app bundles</a>, which is a simple idea addressing some of the concerns with Play App Signing. A JSON Web Token (JWT) signed by a key private to the developer is included in the app bundle before its upload to Play Store. This token contains a list of DEX files and native <code>.so</code> libraries and their hashes, allowing end-users to verify that the running code was built and signed by the app developer. Code transparency has known limitations, however: not all resources can be verified, and this verification can only be done manually since it&rsquo;s not part of the Android platform itself (so requiring a code transparency file cannot be enforced by the OS right now). Despite its incompleteness, code transparency is still helpful, easy to implement, and thus something we should see more often as time goes by.</p>
+<blockquote>
+<p>What about other app repositories such as Amazon?</p>
+</blockquote>
+<p><a href="https://developer.amazon.com/docs/app-submission/understanding-submission.html#code_wrapper">To my current knowledge</a>, the Amazon Appstore has always been wrapping APKs with their own code (including their own trackers), and this means they were effectively resigning submitted APKs.</p>
+<p>If you understood correctly the information above, Google can&rsquo;t do this for apps that haven&rsquo;t opted in Play App Signing. As for apps concerned by Play App Signing, while Google could technically introduce their own code like Amazon, they wouldn&rsquo;t do that without telling about it since this will be easily noticeable by the developer and more globally researchers. They have other means on the Android app development platform to do so. Believing they won&rsquo;t do that based on this principle is not a strong guarantee, however: hence the above paragraph about code transparency for app bundles.</p>
+<p>Huawei AppGallery seems to have a <a href="https://developer.huawei.com/consumer/en/doc/distribution/app/20210812">similar approach</a> to Google, where submitted apps could be developer-signed, but newer apps will be resigned by Huawei.</p>
+<h2 id="2-slow-and-irregular-updates">2. Slow and irregular updates</h2>
+<p>Since you&rsquo;re adding one more party to the mix, that party is now responsible for delivering proper builds of the app: it&rsquo;s a common thing among traditional Linux distributions and their packaging system. They have to catch up with <em>upstream</em> on a regular basis, but very few do it well (Arch Linux comes to my mind). Others, like Debian, prefer making extensive <em>downstream</em> changes and delivering security fixes for a subset of vulnerabilities assigned to a CVE (yeah, it&rsquo;s as bad as it sounds, but that&rsquo;s another topic).</p>
+<p>Not only does F-Droid require specific changes for the app to comply with its inclusion policy, which often leads to more maintenance work, it also has a rather strange way of triggering new builds. Part of its build process seems to be <a href="https://f-droid.org/en/docs/FAQ_-_App_Developers/">automated</a>, which is the least you could expect. Now here&rsquo;s the thing: app signing keys are on an <strong>air-gapped server</strong> (meaning it&rsquo;s disconnected from any network, at least that&rsquo;s what they claim: see <a href="https://f-droid.org/docs/Building_a_Signing_Server/">their recommendations</a> for reference), which forces an irregular update cycle where a human has to manually trigger the signing process. It is far from an ideal situation, and you may argue it&rsquo;s the least to be expected since by entrusting all the signing keys to one party, you could also introduce a single point of failure. Should their system be compromised (whether from the inside or the outside), this could lead to serious security issues affecting plenty of users.</p>
+<p><em>This is one of the main reasons why Signal refused to support the inclusion of a third-party build in the F-Droid official repository. While <a href="https://github.com/signalapp/Signal-Android/issues/127">this GitHub issue</a> is quite old, many points still hold true today.</em></p>
+<p>Considering all this, and the fact that their build process is often broken using outdated tools, you have to expect <strong>far slower updates</strong> compared to a traditional distribution system. Slow updates mean that you will be exposed to security vulnerabilities more often than you should&rsquo;ve been. It would be unwise to have a full browser updated through the F-Droid official repository, for instance. F-Droid third-party repositories somewhat mitigate the issue of slow updates since they can be managed directly by the developer. It isn&rsquo;t ideal either as you will see below.</p>
+<h2 id="3-low-target-api-level-sdk-for-client--apps">3. Low target API level (SDK) for client &amp; apps</h2>
+<p>SDK stands for <em>Software Development Kit</em> and is the collection of software to build apps for a given platform. On Android, a higher SDK level means you&rsquo;ll be able to make use of modern API levels of which each iteration brings <strong>security and privacy improvements</strong>. For instance, API level 31 makes use of all these improvements on Android 12.</p>
+<p>As you may already know, Android has a strong sandboxing model where each application is sandboxed. You could say that an app compiled with the highest API level benefits from all the latest improvements brought to the app sandbox; as opposed to outdated apps compiled with older API levels, which have a <strong>weaker sandbox</strong>.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl"># b/35917228 - /proc/misc access
+</span></span><span class="line"><span class="cl"># This will go away in a future Android release
+</span></span><span class="line"><span class="cl">allow untrusted_app_25 proc_misc:file r_file_perms;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"># Access to /proc/tty/drivers, to allow apps to determine if they
+</span></span><span class="line"><span class="cl"># are running in an emulated environment.
+</span></span><span class="line"><span class="cl"># b/33214085 b/33814662 b/33791054 b/33211769
+</span></span><span class="line"><span class="cl"># https://github.com/strazzere/anti-emulator/blob/master/AntiEmulator/src/diff/strazzere/anti/emulator/FindEmulator.java
+</span></span><span class="line"><span class="cl"># This will go away in a future Android release
+</span></span><span class="line"><span class="cl">allow untrusted_app_25 proc_tty_drivers:file r_file_perms;
+</span></span></code></pre></div><p>This is a mere sample of the <a href="https://android.googlesource.com/platform/system/sepolicy/+/refs/tags/android-12.0.0_r21/private">SELinux exceptions</a> that have to be made on older API levels so that you can understand why it matters.</p>
+<p>It turns out the official F-Droid client doesn&rsquo;t care much about this since it lags behind quite a bit, <strong><a href="https://gitlab.com/fdroid/fdroidclient/-/blob/2a8b16683a2dbee16d624a58e7dd3ea1da772fbd/app/build.gradle#L33">targeting the API level 25</a></strong> (Android 7.1) of which some SELinux exceptions were shown above. As a workaround, some users recommended third-party clients such as <a href="https://f-droid.org/en/packages/nya.kitsunyan.foxydroid/">Foxy Droid</a> or <a href="https://f-droid.org/en/packages/com.aurora.adroid/">Aurora Droid</a>. While these clients might be technically better, they&rsquo;re poorly maintained for some, and they also introduce yet another party to the mix. <a href="https://github.com/Iamlooker/Droid-ify">Droid-ify</a> (recently rebranded to Neo-Store) seems to be a better option than the official client in most aspects.</p>
+<p>Furthermore, F-Droid <strong>doesn&rsquo;t enforce a minimum target SDK</strong> for the official repository. Play Store <a href="https://developer.android.com/google/play/requirements/target-sdk">does that quite aggressively</a> for new apps and app updates:</p>
+<ul>
+<li>Since August 2021, Play Store requires new apps to target at least API level 30.</li>
+<li>Since November 2021, existing apps must at least target API level 30 for updates to be submitted.</li>
+</ul>
+<p>While it may seem bothersome, it&rsquo;s a necessity to keep the <strong>app ecosystem modern and healthy</strong>. Here, F-Droid sends the wrong message to developers (and even users) because they should care about it, and this is why many of us think it may be even harmful to the FOSS ecosystem. Backward compatibility is often the enemy of security, and while there&rsquo;s a middle-ground for convenience and obsolescence, it shouldn&rsquo;t be exaggerated. As a result of this philosophy, the main repository of F-Droid is filled with obsolete apps from another era, just for these apps to be able to run on the more than ten years old Android 4.0 Ice Cream Sandwich. Let&rsquo;s not make the same mistake as the desktop platforms: instead, complain to your vendors for selling devices with no decent OS/firmware support.</p>
+<p>There is little practical reason for developers not to increase the target SDK version (<code>targetSdkVersion</code>) along with each Android release. This attribute matches the version of the platform an app is targeting, and allows access to modern improvements, rules and features on a modern OS. The app can still ensure backwards compatibility in such a way that it can run on older platforms: the <code>minSdkVersion</code> attribute informs the system about the minimum API level required for the application to run. Setting it too low isn&rsquo;t practical though, because this requires having a lot of fallback code (most of it is handled by common libraries) and separate code paths.</p>
+<p>At the time of writing:</p>
+<ul>
+<li>Android 9 is the oldest Android version that is <a href="https://endoflife.date/android">getting security updates</a>.</li>
+<li><a href="https://developer.android.com/about/dashboards">~80% of the Android devices</a> used in the world are <strong>at least</strong> running 8.0 Oreo.</li>
+</ul>
+<p><em>Overall statistics do not reflect real-world usage of a given app (people using old devices are not necessarily using your app). If anything, it should be viewed as an underestimation.</em></p>
+<h2 id="4-general-lack-of-good-practices">4. General lack of good practices</h2>
+<p>The F-Droid client allows multiple repositories to coexist within the same app. Many of the issues highlighted above were focused on the main official repository which most of the F-Droid users will use anyway. However, having <strong>other repositories in a single app also violates the security model of Android</strong> which was not designed for this at all. The OS expects you to trust <strong>an app repository as a single source</strong> of apps, yet F-Droid isn&rsquo;t that by design as it mixes several repositories in one single app. This is important because the OS management APIs and features (such as <a href="https://developer.android.com/reference/android/os/UserManager">UserManager</a> which can be used to prevent a user from installing third-party apps) are not meant for this and see F-Droid as a single source, so you&rsquo;re trusting the app client to not mess up far more than you should, especially when the <strong>privileged extension</strong> comes into the picture.</p>
+<p>There is indeed a serious security issue with the OS first-party source feature being misused, as the privileged extension makes use of the <code>INSTALL_PACKAGES</code> <a href="https://developer.android.com/reference/android/Manifest.permission#INSTALL_PACKAGES">API</a> in an insecure manner (i.e. not implementing it with the appropriate security checks). The privileged extension accepts any request from F-Droid, which again suffers from various bugs and security issues and allows user-defined repositories by design. A lot can go wrong, and bypassing security checks for powerful APIs should definitely not be taken lightly.</p>
+<p>On that note, it is also worth noting the repository metadata format isn&rsquo;t properly signed by lacking whole-file signing and key rotation. <a href="https://f-droid.org/2021/02/05/apis-for-all-the-things.html#the-repo-index">Their index v1</a> format <a href="https://gitlab.com/fdroid/fdroidserver/-/blob/3182b77d180b2313f4fdb101af96c035380abfd7/fdroidserver/signindex.py">uses JAR signing</a> with <code>jarsigner</code>, which has serious security flaws. It seems that <a href="https://gitlab.com/fdroid/fdroidserver/-/commit/3182b77d180b2313f4fdb101af96c035380abfd7">work is in progress on a v2 format</a> with support for <code>apksigner</code>, although the final implementation remains to be seen. This just seems to be an over-engineered and flawed approach since better suited tools such as <code>signify</code> could be used to sign the metadata JSON.</p>
+<p>As a matter of fact, the <a href="https://developer.android.com/reference/android/Manifest.permission#UPDATE_PACKAGES_WITHOUT_USER_ACTION">new unattended update API</a> added in API level 31 (Android 12) that allows seamless app updates for app repositories without <a href="https://f-droid.org/en/packages/org.fdroid.fdroid.privileged/">privileged access</a> to the system (such an approach is not compatible with the security model) won&rsquo;t work with F-Droid &ldquo;as is&rdquo;. It should be mentioned that the aforementioned third-party client <a href="https://github.com/Iamlooker/Droid-ify/issues/20">Neo-Store</a> supports this API, although the underlying issues about the F-Droid infrastructure largely remain. Indeed, this secure API allowing for unprivileged unattended updates not only requires for the app repository client to target API level 31, but the apps to be updated also have to at least target API level 29.</p>
+<p>Their client also lacks <strong>TLS certificate pinning</strong>, unlike Play Store which improves security for all connections to Google (they generally use a limited set of root CAs including <a href="https://pki.goog/">their own</a>). Certificate pinning is a way for apps to increase the security of their connection to services <a href="https://developer.android.com/training/articles/security-config#CertificatePinning">by providing a set of public key hashes</a> of known-good certificates for these services instead of trusting pre-installed CAs. This can avoid some cases where an interception (<em>man-in-the-middle</em> attack) could be possible and lead to various security issues considering you&rsquo;re trusting the app to deliver you other apps.</p>
+<p>It is an important security feature that is also straightforward to implement using the <a href="https://developer.android.com/training/articles/security-config">declarative network security configuration</a> available since Android 7.0 (API level 24). See how GrapheneOS pins both root and CA certificates in their <a href="https://github.com/GrapheneOS/Apps">app repository client</a>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- res/xml/network_security_config.xml --&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;network-security-config&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;base-config</span> <span class="na">cleartextTrafficPermitted=</span><span class="s">&#34;false&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;domain-config&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;domain</span> <span class="na">includeSubdomains=</span><span class="s">&#34;true&#34;</span><span class="nt">&gt;</span>apps.grapheneos.org<span class="nt">&lt;/domain&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;pin-set&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- ISRG Root X1 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- ISRG Root X2 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- Let&#39;s Encrypt R3 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="c">&lt;!-- Let&#39;s Encrypt E1 --&gt;</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&lt;pin</span> <span class="na">digest=</span><span class="s">&#34;SHA-256&#34;</span><span class="nt">&gt;</span>J2/oqMTsdhFWW/n85tys6b4yDBtb6idZayIEBx7QTxA=<span class="nt">&lt;/pin&gt;</span>
+</span></span><span class="line"><span class="cl">            ...
+</span></span><span class="line"><span class="cl">        <span class="nt">&lt;/pin-set&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/domain-config&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/network-security-config&gt;</span>
+</span></span></code></pre></div><p>To be fair, they&rsquo;ve thought several times about adding certificate pinning to their client <a href="https://gitlab.com/fdroid/fdroidclient/-/issues/105">at least for the default repositories</a>. <a href="https://gitlab.com/fdroid/fdroidclient/-/blob/1.14-alpha4/app/src/main/java/org/fdroid/fdroid/FDroidCertPins.java">Relics of preliminary work</a> can even be found in their current codebase, but it&rsquo;s unfortunate that they haven&rsquo;t been able to find <a href="https://github.com/f-droid/fdroidclient/commit/7f78b46664981b9b73cadbfdda6391f6fe939c77">any working implementation</a> so far. Given the overly complex nature of F-Droid, that&rsquo;s largely understandable.</p>
+<p>F-Droid also has a problem regarding the adoption of <strong><a href="https://source.android.com/security/apksigning">new signature schemes</a></strong> as they <a href="https://forum.f-droid.org/t/why-f-droid-is-still-using-apk-signature-scheme-v1/10602">held out on the v1 signature scheme</a> (which was <a href="https://www.xda-developers.com/janus-vulnerability-android-apps/">horrible</a> and deprecated since 2017) until they were forced by Android 11 requirements to support the newer v2/v3 schemes (v2 was introduced in Android 7.0). Quite frankly, this is straight-up bad, and <strong>signing APKs with GPG</strong> is no better considering <a href="https://latacora.micro.blog/2019/07/16/the-pgp-problem.html">how bad PGP and its reference implementation GPG are</a> (even Debian <a href="https://wiki.debian.org/Teams/Apt/Spec/AptSign">is trying to move away from it</a>). Ideally, F-Droid should fully move on to newer signature schemes, and should completely phase out the legacy signature schemes which are still being used for some apps and metadata.</p>
+<h2 id="5-confusing-ux">5. Confusing UX</h2>
+<p>It is worth mentioning that their website has (for some reason) always been hosting an <a href="https://forum.f-droid.org/t/why-does-the-f-droid-website-nearly-always-host-an-outdated-f-droid-apk/6234">outdated APK of F-Droid</a>, and this is still the case today, leading to many users wondering why they can&rsquo;t install F-Droid on their secondary user profile (due to the downgrade prevention enforced by Android). &ldquo;Stability&rdquo; seems to be the main reason mentioned on their part, which doesn&rsquo;t make sense: either your version isn&rsquo;t ready to be published in a stable channel, or it is and new users should be able to access it easily.</p>
+<p>F-Droid should enforce the approach of prefixing the package name of their alternate builds with <code>org.f-droid</code> for instance (or add a <code>.fdroid</code> suffix as some already have). Building and signing while <strong>reusing the package name</strong> (<a href="https://developer.android.com/studio/build/configure-app-module">application ID</a>) is bad practice as it causes <strong>signature verification errors</strong> when some users try to update/install these apps from other sources, even directly from the developer. That is again due to the security model of Android which enforces a signature check when installing app updates (or installing them again in a secondary user profile). Note that this is going to be an issue with Play App Signing as well, and developers are encouraged to follow this approach should they intend to distribute their apps through different distribution channels.</p>
+<p>This results in a confusing user experience where it&rsquo;s hard to keep track of who signs each app, and from which repository the app should be downloaded or updated.</p>
+<h2 id="6-misleading-permissions-approach">6. Misleading permissions approach</h2>
+<p>F-Droid shows a list of the <a href="https://developer.android.com/reference/android/Manifest.permission">low-level permissions</a> for each app: these low-level permissions are usually grouped in the standard high-level permissions (Location, Microphone, Camera, etc.) and special toggles (nearby Wi-Fi networks, Bluetooth devices, etc.) that are explicitly based on a type of sensitive data. While showing a list of low-level permissions could be useful information for a developer, it&rsquo;s often a <strong>misleading</strong> and inaccurate approach for the end-user. Since Android 6, apps have to <a href="https://developer.android.com/guide/topics/permissions/overview#runtime">request the standard permissions at runtime</a> and do not get them simply by being installed, so showing all the &ldquo;under the hood&rdquo; permissions without proper context is not useful and makes the permission model unnecessarily confusing.</p>
+<p>F-Droid claims that these low-level permissions are relevant because they support Android 5.1+, meaning they support very outdated versions of Android where apps could have <a href="https://source.android.com/devices/tech/config/runtime_perms">install-time permissions</a>. Anyway, if a technical user wants to see all the manifest permissions for some reason, then they can access the app manifest pretty easily (in fact, exposing the raw manifest would be less misleading). But this is already beyond the scope of this article because anyone who cares about privacy and security wouldn&rsquo;t run a 8 years old version of Android that has not received security updates for years.</p>
+<p>A <a href="https://gitlab.com/fdroid/fdroid-website/-/merge_requests/834">discussion about this</a> took place on F-Droid&rsquo;s GitLab repository. In short, F-Droid downplayed the issue with their misleading permission labels, and their lead developer proceeded to call the Android permission model a &ldquo;dumpster fire&rdquo; and claim that the operating system cannot sandbox untrusted apps while still remaining useful.</p>
+<p><em>To clear up confusion: even apps targeting an API level below 23 (Android 5.1 or older) do not have permissions granted at install time on modern Android, which instead displays a legacy permission grant dialog. Whether or not permissions are granted at install time does not just depend on the app&rsquo;s <code>targetSdkVersion</code>. And even if this were the case, the OS package installer on modern Android would&rsquo;ve been designed to show the requested permissions for those legacy apps.</em></p>
+<p>For example, the low-level permission <code>RECEIVE_BOOT_COMPLETED</code> is referred to in F-Droid as the <em>run at startup</em> description, when in fact this permission is not needed to start at boot and just refers to a specific time broadcasted by the system once it finishes booting, and is not about background usage (though power usage may be a valid concern). To be fair, these short summaries used to be provided by the Android documentation years ago, but the permission model has drastically evolved since then and most of them aren&rsquo;t accurate anymore.</p>
+<blockquote>
+<p><em>Allows the app to have itself started as soon as the system has finished booting. This can make it take longer to start the phone and allow the app to slow down the overall phone by always running.</em></p>
+</blockquote>
+<p>In modern Android, the background restriction toggle is what really provides the ability for apps to run in the background. Some low-level permissions don&rsquo;t even have a security/privacy impact and shouldn&rsquo;t be misinterpreted as having one. Anyhow, you can be sure that each dangerous low-level permission has a <strong>high-level representation</strong> that is <strong>disabled by default</strong> and needs to be <strong>granted dynamically</strong> to the app (by a toggle or explicit user consent in general).</p>
+<p>Another example to illustrate the shortcomings of this approach would be the <code>QUERY_ALL_PACKAGES</code> low-level permission, which is referred to as the <em>query all packages</em> permission that &ldquo;allows an app to see all installed packages&rdquo;. While this is somewhat correct, this can also be misleading: apps do not need <code>QUERY_ALL_PACKAGES</code> to list other apps within the same user profile. Even without this permission, some apps are visible automatically (visibility is restricted by default <a href="https://developer.android.com/training/package-visibility">since Android 11</a>). If an app needs more visibility, it will declare a <code>&lt;queries&gt;</code> element in its manifest file: in other words, <code>QUERY_ALL_PACKAGES</code> is only one way to achieve visibility. Again, this goes to show low-level manifest permissions are not intended to be interpreted as high-level permissions the user should fully comprehend.</p>
+<p>Play Store for instance conveys the permissions in a way less misleading way: the main low-level permissions are first grouped in their high-level user-facing toggles, and the rest is shown under &ldquo;Other&rdquo;. This permission list can only be accessed by taping &ldquo;About this app&rdquo; then &ldquo;App permissions - See more&rdquo; at the bottom of the page. Play Store will tell the app may request access to the following permissions: this kind of wording is more important than it seems. <em>Update: since July 2022, Play Store doesn&rsquo;t offer a way to display low-level permissions anymore.</em></p>
+<p>Moreover, <a href="https://support.google.com/googleplay/android-developer/answer/9888170">Play Store restricts the use of highly invasive permissions</a> such as <code>MANAGE_EXTERNAL_STORAGE</code> which allows apps to opt out of scoped storage if they can&rsquo;t work with <a href="https://developer.android.com/guide/topics/providers/document-provider">more privacy friendly approaches</a> (like a file explorer). Apps that can&rsquo;t justify their use of this permission (which again has to be granted dynamically) may be removed from Play Store. This is where an app repository can actually be useful in their review process to protect end-users from installing poorly made apps that might compromise their privacy. Not that it matters much if these apps target very old API levels that are inclined to require invasive permissions in the first place&hellip;</p>
+<h2 id="conclusion-what-should-you-do">Conclusion: what should you do?</h2>
+<p>So far, you have been presented with referenced facts that are easily verifiable. In the next part, I&rsquo;ll allow myself to express my own thoughts and opinions. You&rsquo;re free to disagree with them, but don&rsquo;t let that overshadow the rest.</p>
+<p>While some improvements could easily be made, I don&rsquo;t think F-Droid is in an ideal situation to solve all of these issues because some of them are <strong>inherent flaws</strong> in their architecture. I&rsquo;d also argue that their core philosophy is not aligned with some security principles expressed in this article. In any case, I can only wish for them to improve since they&rsquo;re one of the most popular alternatives to commercial app repositories, and are therefore trusted by a large userbase.</p>
+<p>F-Droid is often seen as the only way to get and support open-source apps: that is not the case. Sure, F-Droid could help you in finding FOSS apps that you wouldn&rsquo;t otherwise have known existed. Many developers also publish their FOSS apps on the <strong>Play Store</strong> or their website directly. Most of the time, releases are available on <strong>GitHub</strong>, which is great since each GitHub releases page has an Atom feed. If downloading APKs from regular websites, you can use <code>apksigner</code> to validate the authenticity by comparing the certificate fingerprint against the fingerprint from another source (it wouldn&rsquo;t matter otherwise).</p>
+<p>This is how you may proceed to get the app certificate:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">apksigner verify --print-certs --verbose myCoolApp.apk
+</span></span></code></pre></div><p>Also, as written above: the OS pins the app signature (for all profiles) upon installation, and enforces signature check for app updates. In practice, this means the source doesn&rsquo;t matter as much after the initial installation.</p>
+<p>For most people, I&rsquo;d recommend just <strong>sticking with Play Store</strong>. Play Store isn&rsquo;t quite flawless, but emphasises the adoption of modern security standards which in turn encourages better privacy practices; as strange as it may sound, Google is not always doing bad things in that regard.</p>
+<p><em>Note: this article obviously can&rsquo;t address all the flaws related to Play Store itself. Again, the main topic of this article is about F-Droid and should not be seen as an exhaustive comparison between different app repositories.</em></p>
+<blockquote>
+<p>Should I really care?</p>
+</blockquote>
+<p><strong>It&rsquo;s up to your threat model</strong>, and of course your personal preferences. Most likely, your phone won&rsquo;t turn into a nuclear weapon if you install F-Droid on it - and this is far from the point that this article is trying to make. Still, I believe the information presented will be valuable for anyone who values a <strong>practical approach to privacy</strong> (rather than an ideological one). Such an approach is partially described below.</p>
+<blockquote>
+<p>But there is more malware in Play Store! How can you say that it&rsquo;s more secure?</p>
+</blockquote>
+<p>As explained above, it doesn&rsquo;t matter as you shouldn&rsquo;t really rely on any quality control to be the sole guarantee that a software is free of malicious or exploitable code. Play Store and even the Apple App Store may have a considerable amount of malware because a full reverse-engineering of any uploaded app isn&rsquo;t feasible realistically. However, they fulfill their role quite well, and that is all that is expected of them.</p>
+<blockquote>
+<p>With Play App Signing being effectively enforced for new apps, isn&rsquo;t Play Store as &ldquo;flawed&rdquo; as F-Droid?</p>
+</blockquote>
+<p>I&rsquo;ve seen this comment repeatedly, and it would be dismissing all the other points made in this article. Also, I strongly suggest that you carefully read the sections related to Play App Signing, and preferably the official documentation on this matter. It&rsquo;s not a black and white question and there are many more nuances to it.</p>
+<blockquote>
+<p>Aren&rsquo;t open-source apps more secure? Doesn&rsquo;t it make F-Droid safer?</p>
+</blockquote>
+<p>You can still find and get your open-source apps elsewhere. And no, open-source apps <a href="https://seirdy.one/2022/02/02/floss-security.html">aren&rsquo;t necessarily more private or secure</a>. Instead, you should rely on the strong security and privacy guarantees provided by a modern operating system with <strong>a robust sandboxing/permission model</strong>, namely modern Android, GrapheneOS and iOS. Pay close attention to the permissions you grant, and avoid legacy apps as they could require invasive permissions to run.</p>
+<p>When it comes to <em>trackers</em> (this really comes up a lot), you shouldn&rsquo;t believe in the flawed idea that you can enumerate all of them. The <em>enumerating badness</em> approach is <a href="https://www.ranum.com/security/computer_security/editorials/dumb/">known to be flawed in the security field</a>, and the same applies to privacy. You shouldn&rsquo;t believe that a random script can detect every single line of code that can be used for data exfiltration. Data exfiltration can be properly prevented in the first place by the permission model, which again <strong>denies access to sensitive data by default</strong>: this is a simple, yet rigorous and effective approach.</p>
+<p>No app should be unnecessarily entrusted with any kind of permission. It is only if you deem it necessary that you should allow access to a type of data, and this access should be as fine-grained as possible. That&rsquo;s the way the Android platform works (regular apps run in the explicit <code>untrusted_app</code> domain) and continues evolving. Contrary to some popular beliefs, usability and most productivity tasks can still be achieved in a secure and private way.</p>
+<blockquote>
+<p>Isn&rsquo;t Google evil? Isn&rsquo;t Play Store spyware?</p>
+</blockquote>
+<p>Some people tend to exaggerate the importance of Google in their threat model, at the cost of pragmatism and security/privacy good practices. Play Store isn&rsquo;t spyware and can run unprivileged like it does on GrapheneOS (including with unattended updates support). On the vast majority of devices though, Google Play is a privileged app and a core part of the OS that provides low-level system modules. In that case, the trust issues involved with Play App Signing could be considered less important since Google Play is already trusted as a privileged component.</p>
+<p><strong>Play Store evidently has some privacy issues</strong> given it&rsquo;s a proprietary service which requires an account (this cannot be circumvented), and Google services have a history of nagging users to enable privacy-invasive features. Again, some of these privacy issues can be mitigated by setting up the <a href="https://grapheneos.org/usage#sandboxed-google-play">Play services compatibility layer from GrapheneOS</a> which runs Play services and Play Store in the regular app sandbox (the <code>untrusted_app</code> domain). <a href="https://protonaosp.org/features#privacy-and-security">ProtonAOSP also shares that feature</a>. This solution could very well be ported to other Android-based operating systems. If you want to go further, consider using a properly configured account with the least amount of personally indentifiable information possible (note that the phone number requirement appears to be region-dependent).</p>
+<p>If you don&rsquo;t have Play services installed, you can use a third-party Play Store client called <strong><a href="https://auroraoss.com/">Aurora Store</a></strong>. Aurora Store has some issues of its own, and some of them overlap in fact with F-Droid. Aurora Store somehow still requires <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/blob/26f5d4fd558263a89baee4c3cbe1d220913da104/app/src/main/AndroidManifest.xml#L28-32">the legacy storage permission</a>, has yet to <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/issues/697">implement certificate pinning</a>, has been known to sometimes retrieve wrong versions of apps, and <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/issues/722">distributed account tokens</a> over <a href="https://gitlab.com/AuroraOSS/AuroraStore/-/issues/734">cleartext HTTP</a> until fairly recently; not that it matters much since tokens were designed to be shared between users, which is already concerning. I&rsquo;d recommend against using the shared &ldquo;anonymous&rdquo; accounts feature: you should make your own throwaway account with minimal information.</p>
+<h3 id="looking-to-the-future">Looking to the future</h3>
+<p><strong><a href="https://accrescent.app/">Accrescent</a></strong> is an up-and-coming app repository which strives to tackle the issues discussed here <a href="https://accrescent.app/features">and more</a>. Hopefully Accrescent or a project like it can flourish as a secure and open ecosystem for app delivery.</p>
+<p>It&rsquo;s also worth keeping an eye on the great work <strong>GrapheneOS</strong> does on <a href="https://github.com/GrapheneOS/Apps">their future app repository</a>. It will serve as a simple, secure, modern app repository, albeit only for a curated list of high-quality apps, some of which will have their own builds (for instance, Signal still uses their <a href="https://github.com/signalapp/Signal-Android/issues/9362">original 1024-bits RSA key</a> that has never been rotated since then).</p>
+<hr>
+<h2 id="meta">Meta</h2>
+<p>This article aims to be <strong>purely technical</strong>. It is not an attack on F-Droid or their mission &mdash; it is meant as an informative piece for end users and a springboard for improvement of the F-Droid project.</p>
+<p>In spite of this, the release of this article has unfortunately triggered a mostly negative response from the F-Droid team and some of their community, who seem to take a dismissive stance toward this article rather than bringing relevant counterpoints. Some of these individuals go as far as engaging in harassment campaigns against projects and security researchers that do not share their views; hopefully they realize that such unethical behavior undermines their own project and reputation. Creating a rift between developers and security researchers is not in anyone&rsquo;s best interest.</p>
+<p>Some individuals have also falsely associated this article with GrapheneOS. <em>This article is an entirely independent work and unrelated to the GrapheneOS project. It was not written by a GrapheneOS developer and does not claim to represent the GrapheneOS project&rsquo;s official stance.</em> Either way, dismissing the article on the basis of association instead of addressing the actual technical content is silly and not helpful to anyone.</p>
+]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>

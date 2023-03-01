@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Qubes OS on A loudrxiv - A website for the academically-stunted</title>
+    <link>https://loudrxiv.github.io/tags/qubes-os/</link>
+    <description>Recent content in Qubes OS on A loudrxiv - A website for the academically-stunted</description>
+    <image>
+      <url>https://loudrxiv.github.io/waving_snail.png</url>
+      <link>https://loudrxiv.github.io/waving_snail.png</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <copyright>[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)</copyright>
+    <lastBuildDate>Sat, 08 Oct 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://loudrxiv.github.io/tags/qubes-os/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ProtonVPN IP Leakage on Linux and Workaround</title>
+      <link>https://loudrxiv.github.io/posts/linux/protonvpn-ip-leakage-on-linux-and-workaround/</link>
+      <pubDate>Sat, 08 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/linux/protonvpn-ip-leakage-on-linux-and-workaround/</guid>
+      <description>Before We Start&amp;hellip;
+I sent Proton an email regarding this issue in late August 2022 and was told they are working on fixing it, though it will take some time as it requires some architectural changes in how the killswitch works.
+The Leak Ideally, when implementing a killswitch, a VPN client should drop all connections on non-VPN interfaces except when the connection is to the VPN provider&amp;rsquo;s servers. This is necessary to prevent accidental leaks, at least by unprivileged applications.</description>
+      <content:encoded><![CDATA[<p><strong>Before We Start</strong>&hellip;</p>
+<p>I sent Proton an email regarding this issue in late August 2022 and was told they are working on fixing it, though it will take some time as it requires some architectural changes in how the killswitch works.</p>
+<h2 id="the-leak">The Leak</h2>
+<p>Ideally, when implementing a killswitch, a VPN client should drop all connections on non-VPN interfaces except when the connection is to the VPN provider&rsquo;s servers. This is necessary to prevent accidental leaks, at least by unprivileged applications. Unfortunately, the ProtonVPN client does not currently do this.</p>
+<p>Effectively, any application that binds to the connected physical interface (as opposed to the VPN&rsquo;s virtual interface) on your Linux system will expose your actual IP address, regardless of the killswitch state. This is problematic, especially for certain applications like Torrent clients, as they tend to use whatever interfaces they can access (rather than just the default one) to connect to the internet.
+You can check this with <code>curl</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">curl --interface &lt;physical interface&gt; https://ipinfo.io
+</span></span></code></pre></div><p>This will return your actual IP address.</p>
+<h2 id="the-workaround">The Workaround</h2>
+<h3 id="qubes-os">Qubes OS</h3>
+<p>On Qubes OS, you generally should not have a problem if you use the ProtonVPN client in a ProxyVM. While the same issue still exists within the ProxyVM itself, it is unlikely to manifest as you should not be running any other applications in the same Qube anyways, and apps in an AppVM cannot bind to the public interface of the ProxyVM. I have not observed any leaks from an AppVM behind a ProtonVPN ProxyVM.</p>
+<h3 id="general-linux-distributions">General Linux Distributions</h3>
+<p>On a general Linux distribution, the workaround is to configure OpenVPN manually and setup a killswitch yourself.</p>
+<p>Since ProtonVPN does not support IPv6, you should disable it in your kernel settings:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;net.ipv6.conf.all.disable_ipv6=1
+</span></span></span><span class="line"><span class="cl"><span class="s1">net.ipv6.conf.default.disable_ipv6=1
+</span></span></span><span class="line"><span class="cl"><span class="s1">net.ipv6.conf.lo.disable_ipv6=1&#39;</span> <span class="p">|</span> sudo tee /etc/sysctl.d/10-disable-ipv6.conf
+</span></span><span class="line"><span class="cl">sudo sysctl -p
+</span></span></code></pre></div><p>Next, download your OpenVPN configuration files from <a href="https://account.protonvpn.com/">account.protonvpn.com</a>. In those configuration files, you should see a list of IP addresses and ports of ProtonVPN&rsquo;s servers.</p>
+<p>Finally, set up the VPN killswitch. The rules I posted here are based on <a href="https://airvpn.org/forums/topic/15061-firewalld-killswitch/">this discussion</a>.</p>
+<h4 id="firewalld">Firewalld</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter FORWARD <span class="m">0</span> -o tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter FORWARD <span class="m">0</span> -i tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv6 filter INPUT <span class="m">0</span> -j DROP
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">0</span> -i lo -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">1</span> -i tun+ -p tcp -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">1</span> -i tun+ -p udp -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT <span class="m">999</span> -j DROP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv6 filter OUTPUT <span class="m">0</span> -j DROP
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">0</span> -o lo -j ACCEPT
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">0</span> -o tun+ -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#You will need to add each of the IP address and port with the following command:</span>
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">1</span> -p udp -m udp --dport <span class="nv">$PORT</span> -d <span class="nv">$IP</span> -j ACCEPT
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT <span class="m">999</span> -j DROP
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --reload
+</span></span></code></pre></div><h4 id="ufw">UFW</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ufw default deny incoming
+</span></span><span class="line"><span class="cl">sudo ufw default deny outgoing
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">#You will need to add each of the IP address and port with the following command:</span>
+</span></span><span class="line"><span class="cl">sudo ufw allow out to <span class="nv">$IP</span> port <span class="nv">$PORT</span> proto udp
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo ufw allow out on tun0 from any to any
+</span></span></code></pre></div>]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Using Mullvad VPN on Qubes OS</title>
+      <link>https://loudrxiv.github.io/posts/qubes/using-mullvad-vpn-on-qubes-os/</link>
+      <pubDate>Sat, 03 Sep 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/qubes/using-mullvad-vpn-on-qubes-os/</guid>
+      <description>Mullvad is a fairly popular and generally trustworthy VPN provider. In this post, I will walk you through how to use the official Mullvad client in a ProxyVM on Qubes OS. This method is a lot more convenient than the official guide from Mullvad (which recommends that you manually load in OpenVPN or Wireguard profiles) and will let you seamlessly switch between different location and network setups just as you would on a normal Linux installation.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/mullvad-vpn-1.png" alt="Mullvad VPN"  />
+</p>
+<p>Mullvad is a fairly popular and generally trustworthy VPN provider. In this post, I will walk you through how to use the official Mullvad client in a ProxyVM on Qubes OS. This method is a lot more convenient than the <a href="https://mullvad.net/en/help/qubes-os-4-and-mullvad-vpn/">official guide</a> from Mullvad (which recommends that you manually load in OpenVPN or Wireguard profiles) and will let you seamlessly switch between different location and network setups just as you would on a normal Linux installation.</p>
+<h2 id="preparing-your-templatevm">Preparing your TemplateVM</h2>
+<p>I recommend that you make a new TemplateVM based on latest Fedora template and remove all unnecessary packages that you might not use. This way, you can minimize the attack surface while not having to deal with missing dependencies like on a minimal template. With that being said, if you do manage to get the minimal template to fully work with Mullvad, feel free to <a href="https://github.com/orgs/PrivSec-dev/discussions">open a discussion on GitHub</a> or <a href="https://tommytran.io/contact">contact me directly</a> and I will update the post accordingly.</p>
+<p>This is what I run on my template to trim it down:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo dnf remove firefox thunderbird totem gnome-remote-desktop gnome-calendar gnome-disk-utility gnome-calculator gnome-connections gnome-weather gnome-contacts gnome-clocks gnome-maps gnome-screenshot gnome-logs gnome-characters gnome-font-viewer gnome-color-manager simple-scan keepassxc cheese baobab yelp evince* httpd mozilla* cups rygel -y
+</span></span><span class="line"><span class="cl">sudo dnf autoremove -y
+</span></span></code></pre></div><p>Next, you need to create the bind directories for Mullvad&rsquo;s configurations:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir -p /etc/qubes-bind-dirs.d
+</span></span><span class="line"><span class="cl">sudo tee /etc/qubes-bind-dirs.d/50_user.conf <span class="s">&lt;&lt; EOF &gt; /dev/null
+</span></span></span><span class="line"><span class="cl"><span class="s">binds+=( &#39;/etc/mullvad-vpn&#39; )
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span></code></pre></div><h2 id="installing-the-mullvad-app">Installing the Mullvad App</h2>
+<p>Inside of the TemplateVM you have just created, do the following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo dnf install https://mullvad.net/media/app/MullvadVPN-2022.5_x86_64.rpm
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> mullvad-daemon
+</span></span></code></pre></div><p>Replace <code>https://mullvad.net/media/app/MullvadVPN-2022.5_x86_64.rpm</code> with whatever the latest URL for the Mullvad App is. I will try to update this post to give you the accurate command, but you should just take them from <a href="https://mullvad.net/en/download/linux/">their website</a>.</p>
+<p><img loading="lazy" src="/images/mullvad-vpn-2.png" alt="Mullvad VPN URL"  />
+</p>
+<p>Shutdown the TemplateVM:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo shutdown now
+</span></span></code></pre></div><h2 id="creating-the-proxyvm">Creating the ProxyVM</h2>
+<p>Create an AppVM based on the TemplateVM you have just created. Set <code>sys-firewall</code> (or whatever FirewallVM you have connected to your <code>sys-net</code>) as the net qube. If you do not have such FirewallVM, use <code>sys-net</code> as the net qube. Next, go to the advanced tab and tick the <code>provides network access to other qubes</code> box.</p>
+<p><img loading="lazy" src="/images/provides-network.png" alt="Provides Network"  />
+</p>
+<p>Edit <code>/rw/config/rc.local</code> to workaround <a href="https://github.com/mullvad/mullvadvpn-app/issues/3803">issue 3803</a>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;sleep 10 # Waiting a bit so that Mullvad can establish a connection
+</span></span></span><span class="line"><span class="cl"><span class="s2">/usr/lib/qubes/qubes-setup-dnat-to-ns&#34;</span> <span class="p">|</span> sudo tee -a /rw/config/rc.local
+</span></span></code></pre></div><p>Restart the ProxyVM. You can now use this ProxyVM as the net qube for other qubes!</p>
+<h2 id="notes">Notes</h2>
+<p>With this current setup, the ProxyVM you have just created will be responsible for handling Firewall rules for the qubes behind it. This is not ideal, as this is still a fairly large VM, and there is a risk that Mullvad or some other apps may interfere with its firewall handling.</p>
+<p>Instead, I highly recommend that you <a href="/posts/qubes/firewalling-with-mirageos-on-qubes-os/">create a minimal Mirage FirewallVM</a> and use it as a firewall <strong>behind</strong> the Mullvad ProxyVM. Other AppVMs then should use the Mirage Firewall as the net qube instead. This way, you can make sure that firewall rules are properly enforced.</p>
+<p><img loading="lazy" src="/images/mirageos.png" alt="MirageOS"  />
+</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Firewalling with MirageOS on Qubes OS</title>
+      <link>https://loudrxiv.github.io/posts/qubes/firewalling-with-mirageos-on-qubes-os/</link>
+      <pubDate>Fri, 26 Aug 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/qubes/firewalling-with-mirageos-on-qubes-os/</guid>
+      <description>MirageOS is a library operating system with which you can create a unikernel for the sole purpose of acting as Qubes OS&amp;rsquo;s firewall. In this post, I will walk you through how to set this up.
+Advantages Small attack surface. The unikernel only contains a minimal set of libraries to function, so it has a much smaller attack surface than a general purpose operating system like a Linux distribution or openBSD.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/mirageos.png" alt="MirageOS"  />
+</p>
+<p><a href="https://mirage.io/">MirageOS</a> is a library operating system with which you can create a unikernel for the sole purpose of acting as Qubes OS&rsquo;s firewall. In this post, I will walk you through how to set this up.</p>
+<h2 id="advantages">Advantages</h2>
+<ul>
+<li>Small attack surface. The unikernel only contains a minimal set of libraries to function, so it has a much smaller attack surface than a general purpose operating system like a Linux distribution or openBSD.</li>
+<li>Low resource consumption. You only need about 64MB of RAM for each instance of the Mirage Firewall.</li>
+<li>Fast startup time.</li>
+</ul>
+<h2 id="disadvantages">Disadvantages</h2>
+<ul>
+<li>No official package for Qubes OS. This means that you need to follow the development process on GitHub and download the new build whenever there is a release.</li>
+<li>Does not work well with the Windows PV network driver. With that being said, the Windows PV networking driver is pretty buggy on its own, and I don&rsquo;t recommend that you use it anyways.</li>
+</ul>
+<h2 id="installing-the-unikernel">Installing the unikernel</h2>
+<p>To deploy MirageOS, you need to copy the <code>vmlinuz</code> and <code>initramfs</code> files from their <a href="https://github.com/mirage/qubes-mirage-firewall/releases">releases page</a> to <code>/var/lib/qubes/vm-kernels/mirage-firewall</code> in <code>dom0</code>.</p>
+<h3 id="templatevm">TemplateVM</h3>
+<p>Create a TemplateVM:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qvm-create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">kernel</span><span class="o">=</span>mirage-firewall <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">kernelopts</span><span class="o">=</span><span class="s1">&#39;&#39;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">memory</span><span class="o">=</span><span class="m">64</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">maxmem</span><span class="o">=</span><span class="m">64</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">vcpus</span><span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">virt_mode</span><span class="o">=</span>pvh <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --label<span class="o">=</span>black <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --class TemplateVM <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  your_template_name
+</span></span></code></pre></div><p>Don&rsquo;t worry if the TemplateVM doesn&rsquo;t launch - we don&rsquo;t need it to.</p>
+<h3 id="disposable-template">Disposable Template</h3>
+<p>Next, create a disposable template based on the TemplateVM you have just created.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qvm-create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">template</span><span class="o">=</span>your_template_name <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">provides_network</span><span class="o">=</span>True <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">template_for_dispvms</span><span class="o">=</span>True <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --label<span class="o">=</span>orange <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --class AppVM <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  your_disposable_template_name
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">qvm-features your_disposable_template_name qubes-firewall <span class="m">1</span>
+</span></span><span class="line"><span class="cl">qvm-features your_disposable_template_name no-default-kernelopts <span class="m">1</span>
+</span></span></code></pre></div><p>Your disposable templates should now launch and shutdown properly.</p>
+<h3 id="disposable-firewallvms">Disposable FirewallVMs</h3>
+<p>You can now create disposable FirewallVMs based on your disposable template. I recommend replacing <code>sys-firewall</code> with a disposable Mirage firewall. If you use ProxyVMs like <code>sys-whonix</code>, I recommend that you add a disposable Mirage Firewall after the ProxyVM as well, and use it as the net qube for your AppVMs.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">qvm-create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">template</span><span class="o">=</span>your_disposable_template_name <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">provides_network</span><span class="o">=</span>True <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --property <span class="nv">netvm</span><span class="o">=</span>your_net_qube_name <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --label<span class="o">=</span>orange <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --class DispVM <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  your_firwall_name
+</span></span></code></pre></div>]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Using Split GPG and Split SSH on Qubes OS</title>
+      <link>https://loudrxiv.github.io/posts/qubes/using-split-gpg-and-split-ssh-on-qubes-os/</link>
+      <pubDate>Sat, 13 Aug 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/qubes/using-split-gpg-and-split-ssh-on-qubes-os/</guid>
+      <description>This post will go over setting up Split GPG, then setting up Split SSH with the same PGP keys. Effectively, we are emulating what you can do with a PGP smartcard on Qubes OS.
+Split GPG Follow the official Qubes OS documentation to set this up.
+Note that if you already have a PGP key with a passphrase, you can remove it by installing pinentry-gtk to vault&amp;rsquo;s TemplateVM, then do gpg2 --edit-key &amp;lt;key_id&amp;gt; and passwd to set an empty passphrase.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/split-gpg-ssh.png" alt="Split GPG &amp;amp; SSH"  />
+</p>
+<p>This post will go over setting up Split GPG, then setting up Split SSH with the same PGP keys. Effectively, we are emulating what you can do with a PGP smartcard on Qubes OS.</p>
+<h2 id="split-gpg">Split GPG</h2>
+<p>Follow the official Qubes OS <a href="https://www.qubes-os.org/doc/split-gpg/">documentation</a> to set this up.</p>
+<p>Note that if you already have a PGP key with a passphrase, you can remove it by installing <code>pinentry-gtk</code> to <code>vault</code>&rsquo;s TemplateVM, then do <code>gpg2 --edit-key &lt;key_id&gt;</code> and <code>passwd</code> to set an empty passphrase. The default non-graphical pinentry will just make an infinite loop and will not allow you to set an empty passphrase.</p>
+<h2 id="split-ssh">Split SSH</h2>
+<p>This part is based on the Qubes Community&rsquo;s <a href="https://github.com/Qubes-Community/Contents/blob/master/docs/configuration/split-ssh.md">guide</a>; however, I will deviate from it to use the PGP keys for SSH instead of generating a new key pair.</p>
+<h3 id="in-dom0">In <code>dom0</code></h3>
+<ul>
+<li>Create <code>/etc/qubes-rpc/policy/qubes.SshAgent</code> with <code>@anyvm @anyvm ask,default_target=vault</code> as the content. Since the keys ar not passphrase protected, you should <strong>not</strong> set the policy to allow.</li>
+</ul>
+<h3 id="in-vault-appvm">In <code>vault</code> AppVM</h3>
+<ul>
+<li>Add <code>enable-ssh-support</code> to the end of <code>~/.gnupg/gpg-agent.conf</code></li>
+<li>Get your keygrip with <code>gpg --with-keygrip -k</code></li>
+<li>Add your keygrip to the end of <code>~/.gnupg/sshcontrol</code></li>
+</ul>
+<p><img loading="lazy" src="/images/keygrip.png" alt="PGP Keygrip"  />
+</p>
+<h3 id="in-vaults-templatevm">In <code>vault</code>&rsquo;s TemplateVM</h3>
+<ul>
+<li>Create <code>/etc/qubes-rpc/qubes.SshAgent</code> with the following content:</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/sh
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="c1"># Qubes App Split SSH Script</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Activate GPG Agent and set the correct SSH socket</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">SSH_AUTH_SOCK</span><span class="o">=</span><span class="k">$(</span>gpgconf --list-dirs agent-ssh-socket<span class="k">)</span>
+</span></span><span class="line"><span class="cl">gpgconf --launch gpg-agent
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># safeguard - Qubes notification bubble for each ssh request</span>
+</span></span><span class="line"><span class="cl">notify-send <span class="s2">&#34;[</span><span class="k">$(</span>qubesdb-read /name<span class="k">)</span><span class="s2">] SSH agent access from: </span><span class="nv">$QREXEC_REMOTE_DOMAIN</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># SSH connection</span>
+</span></span><span class="line"><span class="cl">socat - <span class="s2">&#34;UNIX-CONNECT:</span><span class="nv">$SSH_AUTH_SOCK</span><span class="s2">&#34;</span>
+</span></span></code></pre></div><ul>
+<li>Make it executable with <code>sudo chmod +x /etc/qubes-rpc/qubes.SshAgent</code></li>
+<li>Turn off the templateVM. If the <code>vault</code> VM is running, turn it off, then start it to update the VM&rsquo;s configuration.</li>
+</ul>
+<h3 id="in-ssh-client-appvm">In <code>ssh-client</code> AppVM</h3>
+<ul>
+<li>Add the following to the end of <code>/rw/config/rc.local</code>:</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># SPLIT SSH CONFIGURATION &gt;&gt;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># replace &#34;vault&#34; with your AppVM name which stores the ssh private key(s)</span>
+</span></span><span class="line"><span class="cl"><span class="nv">SSH_VAULT_VM</span><span class="o">=</span><span class="s2">&#34;vault&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="o">[</span> <span class="s2">&#34;</span><span class="nv">$SSH_VAULT_VM</span><span class="s2">&#34;</span> !<span class="o">=</span> <span class="s2">&#34;&#34;</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+</span></span><span class="line"><span class="cl">  <span class="nb">export</span> <span class="nv">SSH_SOCK</span><span class="o">=</span><span class="s2">&#34;/home/user/.SSH_AGENT_</span><span class="nv">$SSH_VAULT_VM</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">  rm -f <span class="s2">&#34;</span><span class="nv">$SSH_SOCK</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">  sudo -u user /bin/sh -c <span class="s2">&#34;umask 177 &amp;&amp; exec socat &#39;UNIX-LISTEN:</span><span class="nv">$SSH_SOCK</span><span class="s2">,fork&#39; &#39;EXEC:qrexec-client-vm </span><span class="nv">$SSH_VAULT_VM</span><span class="s2"> qubes.SshAgent&#39;&#34;</span> <span class="p">&amp;</span>
+</span></span><span class="line"><span class="cl"><span class="k">fi</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># &lt;&lt;&lt; SPLIT SSH CONFIGURATION</span>
+</span></span></code></pre></div><ul>
+<li>Add the following to the end of <code>~/bash.rc</code>:</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># SPLIT SSH CONFIGURATION &gt;&gt;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># replace &#34;vault&#34; with your AppVM name which stores the ssh private key(s)</span>
+</span></span><span class="line"><span class="cl"><span class="nv">SSH_VAULT_VM</span><span class="o">=</span><span class="s2">&#34;vault&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="o">[</span> <span class="s2">&#34;</span><span class="nv">$SSH_VAULT_VM</span><span class="s2">&#34;</span> !<span class="o">=</span> <span class="s2">&#34;&#34;</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+</span></span><span class="line"><span class="cl">  <span class="nb">export</span> <span class="nv">SSH_AUTH_SOCK</span><span class="o">=</span><span class="s2">&#34;/home/user/.SSH_AGENT_</span><span class="nv">$SSH_VAULT_VM</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="k">fi</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># &lt;&lt;&lt; SPLIT SSH CONFIGURATION</span>
+</span></span></code></pre></div><ul>
+<li>Restart <code>ssh-client</code> and confirm if it&rsquo;s working with <code>ssh-add -L</code>.</li>
+</ul>
+<h3 id="limitations">Limitations</h3>
+<p>A malicious <code>ssh-client</code> AppVM can hold onto the ssh-agent connection for more than one use until it is shut down. While your private key is protected, a malicious actor with access to the AppVM can still abuse the ssh-agent to log into your servers.</p>
+]]></content:encoded>
+    </item>
+    
+    <item>
+      <title>Using Lokinet on Qubes OS</title>
+      <link>https://loudrxiv.github.io/posts/qubes/using-lokinet-on-qubes-os/</link>
+      <pubDate>Wed, 27 Jul 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/posts/qubes/using-lokinet-on-qubes-os/</guid>
+      <description>Lokinet is an Internet overlay network utilizing onion routing to provide anonymity for its users, similar to Tor network. This post will provide a quick (and non exhaustive) list of its pros and cons from an end user perspective and go over how to set it up on Qubes OS.
+Advantages Provides anonymity by removing trust in a service provider (as opposed to a traditional VPN) Better versatility than Tor by supporting any IP based protocols (Tor only supports TCP) Generally faster speed than the Tor Network Disadvantages Only works well on Debian-based distributions.</description>
+      <content:encoded><![CDATA[<p><img loading="lazy" src="/images/lokinet.png" alt="Lokinet"  />
+</p>
+<p><a href="https://lokinet.org">Lokinet</a> is an Internet overlay network utilizing onion routing to provide anonymity for its users, similar to Tor network. This post will provide a quick (and non exhaustive) list of its <a href="#advantages">pros</a> and <a href="#disadvantages">cons</a> from an end user perspective and go over how to set it up on Qubes OS.</p>
+<h2 id="advantages">Advantages</h2>
+<ul>
+<li>Provides anonymity by removing trust in a service provider (as opposed to a traditional VPN)</li>
+<li>Better versatility than Tor by supporting any IP based protocols (Tor only supports TCP)</li>
+<li>Generally faster speed than the Tor Network</li>
+</ul>
+<h2 id="disadvantages">Disadvantages</h2>
+<ul>
+<li>Only works well on Debian-based distributions. The client for Windows has DNS Leaks, and support for macOS, Android, and other Linux distributions is experimental. It should be noted that this is a problem with the official client, not the protocol itself.</li>
+<li>Does not have a killswitch which could lead to accidental leaks (as opposed to common commercial VPN clients which lock the connections to just the provider&rsquo;s servers).</li>
+<li>The official client requires a user to manually define an exit node, or to set certain IP ranges to be routed through certain exit nodes. While this makes it possible to setup some form of Steam Isolation, it is not as good as Tor&rsquo;s <code>isolateDestinationAddr</code> and <code>isolateDesitnationPort</code>. which automatically use a random exit node for every destination/port you visit.</li>
+<li>DNS does not work when used as a ProxyVM on Qubes OS</li>
+</ul>
+<h2 id="creating-the-templatevm">Creating the TemplateVM</h2>
+<p>As mentioned <a href="#disadvantages">above</a>, the Lokinet client only works well with Debian-based distributions. This means that our template will have to be one of the Debian-based ones, and I would highly recommend that you convert the official Debian template by the Qubes OS team into a KickSecure template to use as a base. KickSecure reduces the attack surface of Debian with a substantial set of hardening configurations, and a nice feature to go with an anonymity network like Lokinet is <a href="https://www.kicksecure.com/wiki/Boot_Clock_Randomization">Boot Clock Randomization</a> which helps defend against <a href="https://www.whonix.org/wiki/Time_Attacks">time-based denonymization attacks</a>. You will only need the <code>kicksecure-cli</code> meta package (<code>kicksecure-gui</code> is unnecessary), and experimental services like <code>proc-hidepid</code>, <code>hide-hardware-info</code> and <code>permission-hardening</code> work just fine with the Lokinet client. <a href="https://www.kicksecure.com/wiki/Hardened_Malloc">Hardened Malloc</a> and <a href="https://www.kicksecure.com/wiki/Linux_Kernel_Runtime_Guard_LKRG">LKRG</a> do not cause any problem with Lokinet, either.</p>
+<p>Since DNS with Lokinet does not work if it is installed inside of a ProxyVM, we will need to have Lokinet running inside the same AppVM as the applications you intend to run. This is less than ideal, as a compromised AppVM could reveal your IP address. Beyond that, accidental leaks can happen, too.</p>
+<p>A potential solution to this problem is to set up an unbound server or firewall script redirecting all DNS traffic to the ProxyVM to its Lokinet DNS server at <code>127.3.2.1:53</code>; however, I have been unable to get it working. Another solution is to simply override the DNS server inside the AppVM to a custom DNS server, but this will make you stand out out and break <code>.loki</code> DNS resolution. Websites like <a href="https://dnsleaktest.com">DNS leak test</a> can observe which DNS server you are actually using and potentially fingerprint you. For the same reason that you should not use custom DNS servers when connected to the Tor network, you really should not use a custom DNS server when connected to Lokinet.</p>
+<p>Start by importing the Oxen&rsquo;s PGP key:</p>
+<p><code>sudo curl --proxy http://127.0.0.1:8082 -so /etc/apt/trusted.gpg.d/oxen.gpg https://deb.oxen.io/pub.gpg</code></p>
+<p>Then, add Oxen&rsquo;s Debian repository:</p>
+<p><code>echo &quot;deb https://deb.oxen.io $(lsb_release -sc) main&quot; | sudo tee /etc/apt/sources.list.d/oxen.list</code></p>
+<p>Next, update the repositories:</p>
+<p><code>sudo apt update</code></p>
+<p>If updates for your packages are found, <strong>DO NOT</strong> attempt to upgrade them directly. Instead, use the Qubes Updater to update the TemplateVM.</p>
+<p>When you are done, install <code>lokinet-gui</code> and <code>resolvconf</code>:</p>
+<p><code>sudo apt install lokinet-gui resolvconf</code></p>
+<p>Note that you <strong>must</strong> install <code>resolveconf</code> to get DNS working.</p>
+<p>Next, edit <code>/var/lib/lokinet/lokinet.ini</code> and add the exit server you want to use:</p>
+<p><code>exit-node=exit.loki</code></p>
+<p>Note that I am using <code>exit.loki</code> here, as it is the one mentioned in the <a href="https://docs.oxen.io/products-built-on-oxen/lokinet/exit-nodes">Lokinet documentation</a>.
+There are some other exit servers listed on <a href="http://probably.loki/wiki/index.php?title=Exit_Nodes">probably.loki</a> as well, and for your convenience, I will just copy-paste them here:</p>
+<ul>
+<li><code>exit.loki</code> (USA, run by Jeff)</li>
+<li><code>exit2.loki</code> (USA, run by Jeff, same ip as exit.loki)</li>
+<li><code>xite.loki</code> (Iceland, run by Loutchi)</li>
+<li><code>peter.loki</code> (USA, run by peter)</li>
+<li><code>secret.loki</code> (Netherlands, run by Secret)</li>
+</ul>
+<p>Finally, enable the <code>lokinet</code> service:</p>
+<p><code>systemctl enable lokinet</code></p>
+<h2 id="creating-the-appvm">Creating the AppVM</h2>
+<p>Just create the AppVM as usual, and you would be good to go. There are a few things to keep in mind though:</p>
+<ul>
+<li>You should probably set networking to use <code>sys-firewall</code>. I have tested using my ProtonVPN ProxyVM for networking, and DNS was not working. Besides, it makes little sense to attempt such setup anyways, unless you are worried about accidental leaks or a compromised AppVM.</li>
+<li>You should give the AppVM the <code>network-manager</code> service so that Lokinet can set up networking properly and get DNS working.</li>
+</ul>
+]]></content:encoded>
+    </item>
+    
+  </channel>
+</rss>
