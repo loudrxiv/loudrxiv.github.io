@@ -1,5 +1,5 @@
-baseURL: "https://privsec.dev"
-title: PrivSec - A practical approach to Privacy and Security
+baseURL: "https://loudrxiv.github.io/"
+title: A loudrxiv - A website for the academically-stunted
 theme: WonderMod
 copyright: '[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)'
 enableRobotsTXT: true
@@ -11,13 +11,13 @@ minify:
 
 params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
-  author: PrivSec.dev Team
+  author: Mark Maher Makram Ebeid Attalla
   # author: ["Me", "You"] # multiple authors
-  description: A practical approach to Privacy and Security
-  keywords: [Privacy, Security]
+  description: A website for the academically-stunted
+  keywords: [Privacy, Ph.D., Animation, Political Theory, Film, Mental Health, Writing, History, Comedy, Public Speaking & Outreach, Music, Reading, Security]
   defaultTheme: dark # dark, light
   disableThemeToggle: false
-  images: ["/privsec.png"]
+  images: ["/waving_snail.png"]
   ShowReadingTime: true
   ShowPostNavLinks: true
   ShowBreadCrumbs: true
