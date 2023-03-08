@@ -35,37 +35,36 @@ params:
     favicon32x32: "/favicon-32x32.png"
     apple_touch_icon: "/apple-touch-icon.png"
     safari_pinned_tab: "/safari-pinned-tab.svg"
+    snail: "snail.gif"
 
   label:
-    text: "PrivSec"
-    icon: "/privsec.png"
+    text: "loudRxiv"
+    icon: "/snail.gif"
 
   # profile-mode
   profileMode:
     enabled: true # needs to be explicitly set
-    title: PrivSec.dev
-    subtitle: "A practical approach to Privacy and Security"
+    title: A loudRxiv
+    subtitle: "My online notebook to share with others..."
     buttons:
       - name: About
         url: about
-      - name: Code
-        url: code
-      - name: Privacy
-        url: privacy
-      - name: Donate
-        url: donate
+      - name: Interests
+        url: interests
+      - name: Research
+        url: research
 
   socialIcons:
+    - name: linkedin
+      url: "https://www.linkedin.com/in/markus-ebeid/"
     - name: github
-      url: "https://github.com/PrivSec-dev"
-    - name: gitea
-      url: "https://git.tommytran.io/privsec-dev"
-    - name: matrix
-      url: "https://matrix.to/#/#privsec:arcticfoxes.net"
-    - name: twitter
-      url: "https://twitter.com/privsec_dev"
+      url: "https://github.com/loudrxiv"
+    - name: letterboxd
+      url: "https://letterboxd.com/"
+    - name: goodreads
+      url: "https://www.goodreads.com/"
     - name: email
-      url: "mailto:contact@tommytran.io"
+      url: "mailto:mebeid1@umbc.edu"
     - name: rss
       url: /index.xml
 

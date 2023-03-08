@@ -1,41 +1,21 @@
 ---
-title: "About Us"
-date: 2022-07-16
+title: "Mark Maher Makram Ebeid Attalla"
+date: 2023-02-27T20:25:49-05:00
+draft: false
 ---
 
-PrivSec.dev is made by a group of enthusiastic individuals looking to provide practical privacy and security advice for the end user. We are security researchers, developers, system administrators... generally people with technical knowledge and work in the field.
+This website is made by a fundamentally lazy individual (see header) to provide a brief overview on my public life!
 
-We focus on in-depth system configuration, security analysis, and software/hardware recommendations. Our site is based on technical merits, not ideologies and politics.
+The focus is on: interests, research, and hobbies. 
 
-Also, to avoid any confusion, we are not affiliated, associated or in any way connected with the PrivSec Global Conference.
+This template was taken from my appreciation of the larger [Privsec.dev](https://privsec.dev/) website; though I am working to diverge from its origin little-by-little
 
 ---
 
-### Tommy
-Benevolent dictator for life @PrivSec.dev. System Administrator.
+### MMMEA (or M.M.E., for short)
+The guy who used HUGO and a git repo to make this site. I am currently a Graduate Student Research at the [Joint Carnegie Mellon-University of Pittsburgh Ph.D. Program](https://www.compbio.cmu.edu/) 
 
-**Website**: [tommytran.io](https://tommytran.io)\
-**Matrix**: [@tommy:arcticfoxes.net](https://matrix.to/#/@tommy:arcticfoxes.net)\
-**Email**: [contact@tommytran.io](mailto:contact@tommytran.io)
+I still use my [undergraduate](https://umbc.edu/) email (lmao), what can I say, they give me free storage space :owo:
 
-### Randomhydrosol
-PrivSec.dev Administrator. Security Researcher. Friendliest Indian tech support on the planet Earth.
-
-**Matrix**: [@randomhydrosol:arcticfoxes.net](https://matrix.to/#/@randomhydrosol:arcticfoxes.net)
-
-### Madaidan
-Security Researcher. Whonix developer. Uses Firefox, Telegram, and Linux against his own advice like a hypocrite.
-
-**Website**: [madaidans-insecurities.github.io](https://madaidans-insecurities.github.io)\
-**Matrix**: [@madaidan.:matrix.org](https://matrix.to/#/@madaidan.:matrix.org)
-
-### akc3n
-Just an ordinary human that loves to learn, solve puzzles, and eat food.
-
-**Website**: [akc3n.page](https://akc3n.page)
-
-### wj25czxj47bu6q
-A nerd who can't stop going down rabbit holes. Very much a perfectionist.
-
-**Website:** [Wandering Computerer](https://wanderingcomputerer.gitlab.io)\
-**Matrix:** [@wj25czxj47bu6q:arcticfoxes.net](https://matrix.to/#/@wj25czxj47bu6q:arcticfoxes.net)
+**Primary E-mail**: [mebeid1@umbc.edu](mailto:mebeid1@umbc.edu)
+**ORCID ID**:       [ORCID](https://orcid.org/0000-0002-9113-7082)
