@@ -4,6 +4,7 @@ theme: WonderMod
 copyright: '[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)'
 enableRobotsTXT: true
 enableGitInfo: true
+enableEmoji: true # added from forked repo in order to add emojis... (https://www.webfx.com/tools/emoji-cheat-sheet/)
 
 minify:
   disableXML: true
@@ -44,8 +45,8 @@ params:
   # profile-mode
   profileMode:
     enabled: true # needs to be explicitly set
-    title: A loudRxiv
-    subtitle: "My online notebook to share with others..."
+    title: A loud archive...
+    subtitle: "My front-facing online notebook; I can share this with others..."
     buttons:
       - name: About
         url: about
@@ -53,6 +54,8 @@ params:
         url: interests
       - name: Research
         url: research
+      - name: bioZone
+        url: "https://www.youtube.com/@bioZone101/about"
 
   socialIcons:
     - name: linkedin
@@ -60,9 +63,9 @@ params:
     - name: github
       url: "https://github.com/loudrxiv"
     - name: letterboxd
-      url: "https://letterboxd.com/"
+      url: local_letterboxd
     - name: goodreads
-      url: "https://www.goodreads.com/"
+      url: local_goodreads
     - name: email
       url: "mailto:mebeid1@umbc.edu"
     - name: rss
@@ -122,14 +125,6 @@ menu:
       name: Resources
       url: /resources
       weight: 40
-    - identifier: PGP
-      name: PGP
-      url: https://tommytran.io/tommy.asc
-      weight: 50
-    - identifier: S/MIME
-      name: S/MIME
-      url: https://tommytran.io/tommy.crt
-      weight: 60
 
 privacy:
   disqus:
