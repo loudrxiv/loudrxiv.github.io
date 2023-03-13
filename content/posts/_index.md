@@ -4,4 +4,4 @@ ShowReadingTime: false
 ShowWordCount: false
 ---
 
-Find the content you are looking for!
+My life segmented into chunks of consciousness

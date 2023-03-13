@@ -1,7 +1,16 @@
-baseURL: "https://loudrxiv.github.io"
-title: A loudrxiv - A website for the academically-stunted
+title: A website for the academically-stunted
 theme: WonderMod
 copyright: '[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)'
+
+archetypeDir: "archetypes"
+assetDir: "assests"
+contentDir: "content"
+dataDir: "data"
+themesDir: "themes"
+
+canonifyURLs: true
+baseURL: "https://loudrxiv.github.io"
+
 enableRobotsTXT: true
 enableGitInfo: true
 enableEmoji: true # added from forked repo in order to add emojis... (https://www.webfx.com/tools/emoji-cheat-sheet/)
@@ -13,12 +22,12 @@ minify:
 params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
   author: Mark Maher Makram Ebeid Attalla
-  # author: ["Me", "You"] # multiple authors
   description: A website for the academically-stunted
-  keywords: [Privacy, Ph.D., Animation, Political Theory, Film, Mental Health, Writing, History, Comedy, Public Speaking & Outreach, Music, Reading, Security]
+  keywords: [Privacy, Ph.D., Animation, Political Theory, Film, Mental Health, Writing,
+            History, Comedy, Public Speaking & Outreach, Music, Reading, Security]
   defaultTheme: dark # dark, light
   disableThemeToggle: false
-  images: ["/waving_snail.png"]
+  # images: ["/waving_snail.png"]
   ShowReadingTime: true
   ShowPostNavLinks: true
   ShowBreadCrumbs: true
@@ -31,18 +40,16 @@ params:
   assets:
     disableHLJS: true
     disableFingerprinting: false
-    favicon: "/favicon.ico"
-    favicon16x16: "/favicon-16x16.png"
-    favicon32x32: "/favicon-32x32.png"
+    favicon: "/loudrxiv_logo.ico"
+    favicon16x16: "/loudrxiv_logo_16-16.png"
+    favicon32x32: "/loudrxiv_logo_32-32.png"
     apple_touch_icon: "/apple-touch-icon.png"
     safari_pinned_tab: "/safari-pinned-tab.svg"
-    snail: "snail.gif"
 
   label:
     text: "loudRxiv"
     icon: "/snail.gif"
 
-  # profile-mode
   profileMode:
     enabled: true # needs to be explicitly set
     title: A loud archive...
