@@ -13,7 +13,9 @@ baseURL: "https://loudrxiv.github.io"
 
 enableRobotsTXT: true
 enableGitInfo: true
-enableEmoji: true # added from forked repo in order to add emojis... (https://www.webfx.com/tools/emoji-cheat-sheet/)
+
+# https://unicode.org/emoji/charts/full-emoji-list.html
+enableEmoji: true 
 
 minify:
   disableXML: true
