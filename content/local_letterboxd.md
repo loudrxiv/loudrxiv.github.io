@@ -17,6 +17,13 @@ draft: false
 10. [Uncut Gems](https://letterboxd.com/film/uncut-gems/)
 11. [Princess Mononoke](https://letterboxd.com/film/princess-mononoke/)
 12. [Bunny Drop](https://myanimelist.net/anime/10162/Usagi_Drop)
+13. [Mad God](https://letterboxd.com/film/mad-god/)
+14. [Barbarian](https://letterboxd.com/film/barbarian-2022/)
+15. [Three Thousand Years of Longing](https://letterboxd.com/film/three-thousand-years-of-longing/)
+16. [Return to Seoul](https://letterboxd.com/film/return-to-seoul/)
+17. [Aftersun](https://letterboxd.com/film/aftersun/)
+18. [RRR](https://letterboxd.com/film/rrr/)
+19. [Decision to Leave](https://letterboxd.com/film/decision-to-leave/)
 
 # What is on my 'watched'
 1. [:heart:,:heart:,:heart:,:heart:,:broken_heart:] [The Seventh Seal](https://letterboxd.com/film/the-seventh-seal/)
