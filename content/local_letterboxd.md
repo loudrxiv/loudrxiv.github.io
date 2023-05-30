@@ -24,6 +24,8 @@ draft: false
 17. [Aftersun](https://letterboxd.com/film/aftersun/)
 18. [RRR](https://letterboxd.com/film/rrr/)
 19. [Decision to Leave](https://letterboxd.com/film/decision-to-leave/)
+20. [The Wailing](https://letterboxd.com/film/the-wailing/)
+21. [Snowpiercer](https://letterboxd.com/film/snowpiercer/)
 
 # What is on my 'watched'
 1. [:heart:,:heart:,:heart:,:heart:,:broken_heart:] [The Seventh Seal](https://letterboxd.com/film/the-seventh-seal/)
