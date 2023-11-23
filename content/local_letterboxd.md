@@ -4,7 +4,7 @@ date: 2023-03-10T10:06
 draft: false
 ---
 
-# What is on my 'what to watch'
+# 'want to watch'
 1. [Wings of Desire](https://letterboxd.com/film/wings-of-desire/)
 2. [Stalker](https://letterboxd.com/film/stalker/)
 3. [The Wire](https://www.imdb.com/title/tt0306414/)
@@ -28,9 +28,12 @@ draft: false
 21. [Snowpiercer](https://letterboxd.com/film/snowpiercer/)
 22. [Ghost in the shell](https://letterboxd.com/film/ghost-in-the-shell/)
 
-# What is on my 'watched'
+# 'watching'
+
+# 'watched'
 1. [:heart:,:heart:,:heart:,:heart:,:broken_heart:] [The Seventh Seal](https://letterboxd.com/film/the-seventh-seal/)
 2. [:heart:,:heart:,:heart:,:heart:,:broken_heart:] [Hedgehod in the Fog](https://letterboxd.com/film/hedgehog-in-the-fog/)
 3. [:heart:,:heart:,:broken_heart:,:broken_heart:,:broken_heart:] [*Some* of Arrested Development](https://www.imdb.com/title/tt0367279/)
 4. [:heart:,:heart:,:heart:,:broken_heart:,:broken_heart:] [The Legend of Vox Machina](https://www.imdb.com/title/tt11247158/)
 5. [] [Good Boys](https://letterboxd.com/film/good-boys-2019/)
+6. [Adventure Tme: Fionna and Cake](https://en.wikipedia.org/wiki/Adventure_Time:_Fionna_and_Cake)

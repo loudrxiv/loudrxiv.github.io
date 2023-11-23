@@ -4,11 +4,7 @@ date: 2023-03-11T11:48
 draft: false
 ---
 
-# What I am 'currently reading'
-1. [Antifragile](https://www.goodreads.com/book/show/13530973-antifragile?from_search=true&from_srp=true&qid=yJqsOjI0Qr&rank=1)
-2. [Not Nice](https://www.goodreads.com/book/show/36505071-not-nice?from_search=true&from_srp=true&qid=7ZdusNtTth&rank=2)
-
-# What I 'want to read'
+# 'want to read'
 1.  [The Gifts of Imperfection](https://www.goodreads.com/book/show/7015403-the-gifts-of-imperfection?ref=nav_sb_ss_1_25) 
 2.  [You’re not Listening](https://www.goodreads.com/book/show/45892276-you-re-not-listening?from_search=true&from_srp=true&qid=AuBqtOqIzn&rank=1)
 3.  [Common Sense](https://www.goodreads.com/book/show/161744.Common_Sense?from_search=true&from_srp=true&qid=B9dXqXLiCp&rank=1)
@@ -30,6 +26,24 @@ draft: false
 20. [Navigating 'Ask' & 'Guess' Culture](https://medium.com/redhill-review/navigating-ask-and-guess-cultures-in-a-modern-world-30b167f8ab09)
 21. [A Story on Rami Malek](https://thesocietypages.org/holocaust-genocide/rami-malek-coptic-egyptian-arab-white/)
 22. [Endless Holocausts: Mass Death in the History of the United States Empire](https://www.goodreads.com/book/show/104134373-endless-holocausts)
+23. [Medicore](https://www.goodreads.com/en/book/show/53056522)
+24. [The Dispossessed](https://www.goodreads.com/book/show/13651.The_Dispossessed)
+25. [Attachement Styles](http://labs.psychology.illinois.edu/~rcfraley/attachment.htm)
+26. [The Drama of the Gifted Child](https://www.goodreads.com/book/show/4887.The_Drama_of_the_Gifted_Child)
+27. [Thou Shall Not Be Aware](https://www.goodreads.com/de/book/show/423910)
+28. [Dr. K's Guide to Mental Health](https://www.healthygamer.gg/about/guide)
+29. [Fly over state](https://www.goodreads.com/en/book/show/7397410)
+30. [The Drama of a gifted child](https://www.goodreads.com/book/show/4887.The_Drama_of_the_Gifted_Child)
+31. [Thou shall not be aware](https://www.goodreads.com/en/book/show/423910.Thou_Shalt_Not_Be_Aware_)
+32. [Codependent no more](https://www.goodreads.com/book/show/61865476-codependent-no-more)
+33. [Attached](https://www.goodreads.com/book/show/9547888-attached)
+34. [C-PTSD, from surviving to thriving](https://www.goodreads.com/en/book/show/20556323)
+35. [Reflections on gender and science](https://www.goodreads.com/en/book/show/1169918)
 
-# What I 'have read'
+# 'reading'
+1. [Antifragile](https://www.goodreads.com/book/show/13530973-antifragile?from_search=true&from_srp=true&qid=yJqsOjI0Qr&rank=1)
+2. [Not Nice](https://www.goodreads.com/book/show/36505071-not-nice?from_search=true&from_srp=true&qid=7ZdusNtTth&rank=2)
+3. [The Simple Path to Wealth: Your road map to financial independence and a rich, free life](https://www.goodreads.com/book/show/30646587-the-simple-path-to-wealth)
+
+# 'read'
 1. [:heart:,:heart:,:broken_heart:,:broken_heart:,:broken_heart:] [Mouse Heaven or Mouse Hell?](https://www.sciencehistory.org/distillations/mouse-heaven-or-mouse-hell#:~:text=Biologist%20John%20Calhoun's%20rodent%20experiments,consumed%20by%20fears%20of%20overpopulation.&text=John%20Calhoun%20crouching%20inside%20Universe,%2Dbehavior%20experiment%2C%20February%201970.&text=Officially%2C%20the%20colony%20was%20called,it%20was%20called%20mouse%20heaven)
