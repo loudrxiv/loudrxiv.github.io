@@ -115,19 +115,19 @@ markup:
 menu:
   main:
     - identifier: Categories
-      name: Categories
-      url: /content/posts/
+      name: categories
+      url: /posts/
       weight: 10
     - identifier: Tags
-      name: Tags
+      name: tags
       url: /tags/
       weight: 20
     - identifier: Search
-      name: Search
+      name: search
       url: /search/
       weight: 30
     - identifier: Resources
-      name: Resources
+      name: more info
       url: /resources
       weight: 40
 
