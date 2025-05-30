@@ -4,11 +4,9 @@ date: 2025-05-30T15:00:00-00:00
 draft: false
 ---
 
----
-☢️ UNDER CONSTRUCTION ☢️
----
+☢️ UNDER CONSTRUCTION
 
-My name is mark. I wanted to make this website in order to communicate some more nuanced things about myself. I am in mylate-20s and am currently in the midwest.
+my name is mark. I wanted to make this website in order to communicate some more nuanced things about myself. I am in my late-20s and am currently in the midwest.
 
 I have a series of interests and things I want to get into more:
 - politics
