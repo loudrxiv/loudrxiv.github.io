@@ -116,7 +116,7 @@ menu:
   main:
     - identifier: Categories
       name: Categories
-      url: /posts/
+      url: /content/posts/
       weight: 10
     - identifier: Tags
       name: Tags
