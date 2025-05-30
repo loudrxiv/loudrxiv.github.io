@@ -65,7 +65,7 @@ params:
   # https://adityatelange.github.io/hugo-PaperMod/posts/papermod/papermod-icons/
   socialIcons:
     - name: linkedin
-      url: "www.linkedin.com/in/markebeid"
+      url: "https://www.linkedin.com/in/markebeid/"
     - name: github
       url: "https://github.com/loudrxiv"
     - name: googlescholar
