@@ -62,12 +62,13 @@ params:
       - name: YouTube
         url: "https://www.youtube.com/@bioZone101/about"
 
+  # https://adityatelange.github.io/hugo-PaperMod/posts/papermod/papermod-icons/
   socialIcons:
     - name: linkedin
       url: "www.linkedin.com/in/markebeid"
     - name: github
       url: "https://github.com/loudrxiv"
-    - name: scholar
+    - name: googlescholar
       url: "https://scholar.google.com/citations?user=SKi3GSMAAAAJ&hl=en"
     - name: email
       url: "mailto:markebeid@pitt.edu"
@@ -122,9 +123,9 @@ menu:
       name: search
       url: /search/
       weight: 30
-    - identifier: Resources
+    - identifier: Info
       name: more info
-      url: /resources
+      url: /info
       weight: 40
 
 privacy:
