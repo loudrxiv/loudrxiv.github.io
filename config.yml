@@ -59,11 +59,7 @@ params:
     buttons:
       - name: About
         url: about
-      - name: Side projects
-        url: sides
-      - name: Main projects
-        url: main
-      - name: bioZone
+      - name: YouTube
         url: "https://www.youtube.com/@bioZone101/about"
 
   socialIcons:
@@ -115,7 +111,7 @@ markup:
 menu:
   main:
     - identifier: Categories
-      name: categories
+      name: pages
       url: /posts/
       weight: 10
     - identifier: Tags
