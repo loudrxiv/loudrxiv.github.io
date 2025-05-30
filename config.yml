@@ -1,4 +1,4 @@
-title: A website for the academically-stunted
+title: The entrance of the cave
 theme: WonderMod
 copyright: '[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)'
 
@@ -23,8 +23,8 @@ minify:
 
 params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
-  author: Mark Maher Makram Ebeid Attalla
-  description: A website for the academically-stunted
+  author: Mark Maher Ebeid
+  description: For the purpose of communicating nuanced information abouth myself.
   keywords: [Privacy, Ph.D., Animation, Political Theory, Film, Mental Health, Writing,
             History, Comedy, Public Speaking & Outreach, Music, Reading, Security]
   defaultTheme: dark # dark, light
@@ -45,8 +45,8 @@ params:
     favicon: "/loudrxiv_logo.ico"
     favicon16x16: "/loudrxiv_logo_16-16.png"
     favicon32x32: "/loudrxiv_logo_32-32.png"
-    apple_touch_icon: "/apple-touch-icon.png"
-    safari_pinned_tab: "/safari-pinned-tab.svg"
+    #apple_touch_icon: "/apple-touch-icon.png"
+    #safari_pinned_tab: "/safari-pinned-tab.svg"
 
   label:
     text: "loudRxiv"
@@ -55,30 +55,26 @@ params:
   profileMode:
     enabled: true # needs to be explicitly set
     title: A loud archive...
-    subtitle: "My front-facing online notebook; I can share this with others..."
+    subtitle: "My front-facing online notebook"
     buttons:
       - name: About
         url: about
-      - name: Interests
-        url: interests
-      - name: Research
-        url: research
+      - name: Side projects
+        url: sides
+      - name: Main projects
+        url: main
       - name: bioZone
         url: "https://www.youtube.com/@bioZone101/about"
 
   socialIcons:
     - name: linkedin
-      url: "https://www.linkedin.com/in/markus-ebeid/"
+      url: "www.linkedin.com/in/markebeid"
     - name: github
       url: "https://github.com/loudrxiv"
-    - name: letterboxd
-      url: local_letterboxd
-    - name: goodreads
-      url: local_goodreads
+    - name: google scholar
+      url: "https://scholar.google.com/citations?user=SKi3GSMAAAAJ&hl=en"
     - name: email
-      url: "mailto:mebeid1@umbc.edu"
-    - name: rss
-      url: /index.xml
+      url: "mailto:markebeid@pitt.edu"
 
   cover:
     hidden: false # hide everywhere but not in structured data
