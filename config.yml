@@ -82,8 +82,8 @@ params:
     hiddenInSingle: false # hide on single page
 
   editPost:
-    URL: "https://github.com/loudrxiv/loudrxiv.github.io/discussions"
-    Text: "I have something to say..." # edit text
+    URL: "https://github.com/loudrxiv/loudrxiv.github.io/blob/main/content/about.md"
+    Text: "let me see the source" # edit text
     appendFilePath: false # to append file path to Edit link
 
   # for search
