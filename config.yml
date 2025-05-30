@@ -84,7 +84,7 @@ params:
   editPost:
     URL: "https://github.com/loudrxiv/loudrxiv.github.io/discussions"
     Text: "I have something to say..." # edit text
-    appendFilePath: true # to append file path to Edit link
+    appendFilePath: false # to append file path to Edit link
 
   # for search
   # https://fusejs.io/api/options.html
