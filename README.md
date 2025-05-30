@@ -8,10 +8,6 @@ If you like the format of my website, I wish I could take credit, but I simply c
 
 I am working off the [WonderMod](https://github.com/Wonderfall/hugo-WonderMod) theme (of which was itself forked from the [PaperMod](https://github.com/adityatelange/hugo-PaperMod) theme), both of which are licsenced under MIT. Any of my modifications will either follow APACHE or also join that designation.
 
-## How did I host this?
-
-Obviously, this is hosted via GitHub, but I hate that, and want to *try* hosting it on [netlify](https://app.netlify.com/), we will see if that ever happens though...
-
 ## Local Working Environment
 
 If you are interested in forking this for local development, here are the instructions (also this if for me too lol):

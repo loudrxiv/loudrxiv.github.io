@@ -54,8 +54,8 @@ params:
 
   profileMode:
     enabled: true # needs to be explicitly set
-    title: A loud archive...
-    subtitle: "My front-facing online notebook"
+    title: the preprint server for myself
+    subtitle: "mark's online notebook about his life"
     buttons:
       - name: About
         url: about
@@ -71,7 +71,7 @@ params:
       url: "www.linkedin.com/in/markebeid"
     - name: github
       url: "https://github.com/loudrxiv"
-    - name: google scholar
+    - name: scholar
       url: "https://scholar.google.com/citations?user=SKi3GSMAAAAJ&hl=en"
     - name: email
       url: "mailto:markebeid@pitt.edu"
@@ -82,8 +82,8 @@ params:
     hiddenInSingle: false # hide on single page
 
   editPost:
-    URL: "https://github.com/PrivSec-dev/privsec.dev/blob/main/content"
-    Text: "Suggest Changes" # edit text
+    URL: "https://github.com/loudrxiv/loudrxiv.github.io/discussions"
+    Text: "I have something to say..." # edit text
     appendFilePath: true # to append file path to Edit link
 
   # for search
