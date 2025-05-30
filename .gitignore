@@ -1,3 +1,6 @@
+# Get rid of the public directory
+loudrxiv.github.io/public
+
 # Logs
 logs
 *.log

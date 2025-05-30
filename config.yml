@@ -111,7 +111,7 @@ markup:
 
 menu:
   main:
-    - identifier: Categories
+    - identifier: Pages
       name: pages
       url: /posts/
       weight: 10
