@@ -115,10 +115,10 @@ menu:
       name: pages
       url: /posts/
       weight: 10
-    - identifier: Tags
-      name: tags
-      url: /tags/
-      weight: 20
+    #- identifier: Tags
+    #  name: tags
+    #  url: /tags/
+    #  weight: 20
     - identifier: Search
       name: search
       url: /search/
