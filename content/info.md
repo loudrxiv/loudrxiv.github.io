@@ -1,5 +1,5 @@
 ---
-title: "Other things to checkout"
+title: "more things to look at"
 date: 2025-05-30
 draft: false
 ---

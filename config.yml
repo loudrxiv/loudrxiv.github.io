@@ -45,8 +45,8 @@ params:
     favicon: "/loudrxiv_logo.ico"
     favicon16x16: "/loudrxiv_logo_16-16.png"
     favicon32x32: "/loudrxiv_logo_32-32.png"
-    #apple_touch_icon: "/apple-touch-icon.png"
-    #safari_pinned_tab: "/safari-pinned-tab.svg"
+    apple_touch_icon: "/apple-touch-icon.png"
+    safari_pinned_tab: "/safari-pinned-tab.svg"
 
   label:
     text: "loudRxiv"
@@ -59,7 +59,7 @@ params:
     buttons:
       - name: About
         url: about
-      - name: YouTube
+      - name: bioZone
         url: "https://www.youtube.com/@bioZone101/about"
 
   # https://adityatelange.github.io/hugo-PaperMod/posts/papermod/papermod-icons/
@@ -81,9 +81,8 @@ params:
   editPost:
     URL: "https://github.com/loudrxiv/loudrxiv.github.io/blob/main/content/about.md"
     Text: "let me see the source" # edit text
-    appendFilePath: false # to append file path to Edit link
+    appendFilePath: true # to append file path to Edit link
 
-  # for search
   # https://fusejs.io/api/options.html
   fuseOpts:
     isCaseSensitive: false
@@ -115,10 +114,10 @@ menu:
       name: pages
       url: /posts/
       weight: 10
-    #- identifier: Tags
-    #  name: tags
-    #  url: /tags/
-    #  weight: 20
+    - identifier: Tags
+      name: tags
+      url: /tags/
+      weight: 20
     - identifier: Search
       name: search
       url: /search/
