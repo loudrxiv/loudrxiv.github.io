@@ -1,7 +1,7 @@
 ---
-title: Categories
+title: pages
 ShowReadingTime: false
 ShowWordCount: false
 ---
 
-My life segmented into chunks of consciousness
+different topics that i want to showcase
