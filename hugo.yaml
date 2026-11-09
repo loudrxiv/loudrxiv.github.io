@@ -1,33 +1,35 @@
+# Site configuration. Reference: https://gohugo.io/configuration/
+# Theme: PaperMod (git submodule in themes/PaperMod). CI pins the exact Hugo version.
+
+baseURL: "https://loudrxiv.github.io/"
 title: The entrance of the cave
-theme: WonderMod
-copyright: '[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)'
+theme: PaperMod
+locale: en-US
+copyright: "[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)"
 
-archetypeDir: "archetypes"
-assetDir: "assests"
-contentDir: "content"
-dataDir: "data"
-themesDir: "themes"
-
-canonifyURLs: true
-baseURL: "https://loudrxiv.github.io"
+# Fail with a clear message if the local Hugo is older than the theme supports.
+module:
+  hugoVersion:
+    extended: false
+    min: "0.158.0"
 
 enableRobotsTXT: true
-enableGitInfo: true
+enableGitInfo: true # last-modified dates; needs full git history (CI uses fetch-depth: 0)
 
 # https://unicode.org/emoji/charts/full-emoji-list.html
-enableEmoji: true 
+enableEmoji: true
 
 minify:
   disableXML: true
   minifyOutput: true
 
 params:
-  env: production # to enable google analytics, opengraph, twitter-cards and schema.
+  env: production # enables opengraph, twitter cards and schema.org output
   author: Mark Maher Ebeid
-  description: For the purpose of communicating nuanced information abouth myself.
+  description: For the purpose of communicating nuanced information about myself.
   keywords: [Privacy, Ph.D., Animation, Political Theory, Film, Mental Health, Writing,
             History, Comedy, Public Speaking & Outreach, Music, Reading, Security]
-  defaultTheme: dark # dark, light
+  defaultTheme: dark # auto, dark, light
   disableThemeToggle: false
   # images: ["/waving_snail.png"]
   ShowReadingTime: true
@@ -93,20 +95,20 @@ params:
     minMatchCharLength: 0
     keys: ["title", "summary"]
 
-#Enabling Search
+# Search needs the JSON index on the home page.
 outputs:
-    home:
-        - HTML
-        - RSS
-        - JSON # is necessary
+  home:
+    - HTML
+    - RSS
+    - JSON
 
-# Enable Chroma
+# Syntax highlighting via Chroma classes (the theme ships the stylesheet).
 markup:
-    highlight:
-        style: dracula
-        lineNos: false
-        noClasses: false
-        guessSyntax: true
+  highlight:
+    style: dracula
+    lineNos: false
+    noClasses: false
+    guessSyntax: true
 
 menu:
   main:
@@ -131,21 +133,11 @@ privacy:
   disqus:
     disable: true
   googleAnalytics:
-    anonymizeIP: true
     disable: true
     respectDoNotTrack: true
-    useSessionStorage: false
   instagram:
     disable: true
-    simple: false
-  twitter:
-    disable: false
-    enableDNT: true
-    simple: false
   vimeo:
-    disable: false
     enableDNT: true
-    simple: false
   youtube:
-    disable: false
     privacyEnhanced: true
