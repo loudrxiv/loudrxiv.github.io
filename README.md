@@ -1,27 +1,42 @@
-# In Regards to [My Website](https://loudrxiv.github.io)
+# [loudrxiv.github.io](https://loudrxiv.github.io)
 
-This was built on top of the [HUGO](https://gohugo.io/) framework; HUGO is the "world's fastest" framework for building websites and is used here for two main reasons: 
-	1. I don't know HMTL/CSS/Javascript (as of 2023-03-01) and I do NOT want to learn...
-	2. I (begrudgingly) know Markdown, and don't have time to do this in [Org](https://orgmode.org/) (I have already tried)
-	
-If you like the format of my website, I wish I could take credit, but I simply cannot; this was all forked from [this](https://privsec.dev/) website and corresponding [git](https://git.tommytran.io/privsec-dev) repo.
+Personal site, built with [Hugo](https://gohugo.io/) and the [PaperMod](https://github.com/adityatelange/hugo-PaperMod) theme, published with GitHub Pages.
 
-I am working off the [WonderMod](https://github.com/Wonderfall/hugo-WonderMod) theme (of which was itself forked from the [PaperMod](https://github.com/adityatelange/hugo-PaperMod) theme), both of which are licsenced under MIT. Any of my modifications will either follow APACHE or also join that designation.
+## Layout
 
-## Local Working Environment
+| Path | What it is |
+| :--- | :--- |
+| `hugo.yaml` | Site configuration |
+| `content/` | Pages and posts (Markdown) |
+| `static/` | Files copied as-is to the site root (favicons, logo) |
+| `themes/PaperMod/` | The theme, a git submodule pinned to one commit |
+| `.github/workflows/hugo.yaml` | Build and deploy; pins the Hugo version |
 
-If you are interested in forking this for local development, here are the instructions (also this if for me too lol):
+`public/` is build output. It is git-ignored; CI builds the site from source.
 
-* Install Git and Hugo.
+## Local development
 
-* Clone this repository (the submodule flag is for the WonderMod theme): 
+Install [Hugo](https://gohugo.io/installation/) 0.158.0 or newer (the extended edition is not required), then:
 
-```git clone --recurse-submodules https://github.com/loudrxiv/loudrxiv.github.io.git```
+```sh
+git clone --recurse-submodules https://github.com/loudrxiv/loudrxiv.github.io.git
+cd loudrxiv.github.io
+hugo serve            # http://localhost:1313, rebuilds on save
+hugo --gc --minify    # one-off production build into public/
+```
 
-* Run `hugo serve` to start the local development server at (defaults to ```http://localhost:1313```)
+If you cloned without `--recurse-submodules`, run `git submodule update --init`.
 
-* Run `git submodule update --merge` to update the WonderMod theme to the version specified in this repo.
+## Updating
 
-* Run `git submodule update --remote --merge` to update to the upstream master branch of WonderMod.
+- **Theme:** `git submodule update --remote themes/PaperMod`, check `hugo serve`, then commit the new submodule pointer.
+- **Hugo:** change `HUGO_VERSION` in `.github/workflows/hugo.yaml`. Keep it at or above `module.hugoVersion.min` in `hugo.yaml`.
 
-* Run `./external-blogs.sh` to pull the latest versions of certain posts from their canonical (external) sources.
+## Branches and deployment
+
+- `main` deploys to GitHub Pages through the Actions workflow. The repository's Pages source must be set to "GitHub Actions".
+- `dev` and pull requests into `main` run the build only, to check the site compiles. Nothing is published from them.
+
+## Credits and licences
+
+The site started as a fork of [privsec.dev](https://privsec.dev/) ([source](https://git.tommytran.io/privsec-dev)), whose content has since been removed. The theme descends from [WonderMod](https://github.com/Wonderfall/hugo-WonderMod), itself forked from [PaperMod](https://github.com/adityatelange/hugo-PaperMod); the site now uses PaperMod directly. PaperMod is MIT licensed. Any of my modifications will either follow Apache or also join that designation.
