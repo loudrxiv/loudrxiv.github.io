@@ -1,49 +1,43 @@
-# Site configuration. Reference: https://gohugo.io/configuration/
-# Theme: PaperMod (git submodule in themes/PaperMod). CI pins the exact Hugo version.
-
 baseURL: "https://loudrxiv.github.io/"
 title: The entrance of the cave
 theme: PaperMod
 locale: en-US
 copyright: "[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)"
+enableRobotsTXT: true
 
-# Fail with a clear message if the local Hugo is older than the theme supports.
 module:
   hugoVersion:
-    extended: false
     min: "0.158.0"
-
-enableRobotsTXT: true
-enableGitInfo: true # last-modified dates; needs full git history (CI uses fetch-depth: 0)
-
-# https://unicode.org/emoji/charts/full-emoji-list.html
-enableEmoji: true
 
 minify:
   disableXML: true
-  minifyOutput: true
+
+outputs:
+  home: [HTML, RSS, JSON] # JSON powers search
+
+menu:
+  main:
+    - {name: pages, url: /posts/, weight: 10}
+    - {name: tags, url: /tags/, weight: 20}
+    - {name: search, url: /search/, weight: 30}
+    - {name: more info, url: /info, weight: 40}
+
+privacy:
+  youtube:
+    privacyEnhanced: true
 
 params:
-  env: production # enables opengraph, twitter cards and schema.org output
+  env: production
   author: Mark Maher Ebeid
-  description: For the purpose of communicating nuanced information about myself.
-  keywords: [Privacy, Ph.D., Animation, Political Theory, Film, Mental Health, Writing,
-            History, Comedy, Public Speaking & Outreach, Music, Reading, Security]
-  defaultTheme: dark # auto, dark, light
-  disableThemeToggle: false
-  # images: ["/waving_snail.png"]
-  ShowReadingTime: true
-  ShowPostNavLinks: true
-  ShowBreadCrumbs: true
-  ShowWordCount: true
-  ShowToc: true
-  ShowRssButtonInSectionTermList: true
-  ShowFullTextinRSS: true
-  ShowCodeCopyButtons: true
+  description: Mark Ebeid, machine learning scientist. Causal machine learning and sequence-to-function models for biology.
+  keywords: [Machine Learning, Computational Biology, Causal Machine Learning, Causal Discovery,
+            Sequence-to-Function, Domain Adaptation, Genomics, Metabolomics, Science Communication]
+  defaultTheme: dark
+  hideMeta: true
+  ShowToc: false
 
   assets:
     disableHLJS: true
-    disableFingerprinting: false
     favicon: "/loudrxiv_logo.ico"
     favicon16x16: "/loudrxiv_logo_16-16.png"
     favicon32x32: "/loudrxiv_logo_32-32.png"
@@ -51,93 +45,19 @@ params:
     safari_pinned_tab: "/safari-pinned-tab.svg"
 
   label:
-    text: "loudRxiv"
-    icon: "/snail.gif"
+    text: loudRxiv
+    icon: /snail.gif
 
   profileMode:
-    enabled: true # needs to be explicitly set
+    enabled: true
     title: the preprint server for myself
     subtitle: "mark's online notebook about his life"
     buttons:
-      - name: About
-        url: about
-      - name: bioZone
-        url: "https://www.youtube.com/@bioZone101/about"
+      - {name: About, url: about}
+      - {name: Work, url: posts}
 
-  # https://adityatelange.github.io/hugo-PaperMod/posts/papermod/papermod-icons/
   socialIcons:
-    - name: linkedin
-      url: "https://www.linkedin.com/in/markebeid/"
-    - name: github
-      url: "https://github.com/loudrxiv"
-    - name: googlescholar
-      url: "https://scholar.google.com/citations?user=SKi3GSMAAAAJ&hl=en"
-    - name: email
-      url: "mailto:markebeid@pitt.edu"
-
-  cover:
-    hidden: false # hide everywhere but not in structured data
-    hiddenInList: true # hide on list pages and home
-    hiddenInSingle: false # hide on single page
-
-  editPost:
-    URL: "https://github.com/loudrxiv/loudrxiv.github.io/blob/main/content"
-    Text: "let me see the source" # edit text
-    appendFilePath: true # to append file path to Edit link
-
-  # https://fusejs.io/api/options.html
-  fuseOpts:
-    isCaseSensitive: false
-    shouldSort: true
-    location: 0
-    distance: 1000
-    threshold: 0.4
-    minMatchCharLength: 0
-    keys: ["title", "summary"]
-
-# Search needs the JSON index on the home page.
-outputs:
-  home:
-    - HTML
-    - RSS
-    - JSON
-
-# Syntax highlighting via Chroma classes (the theme ships the stylesheet).
-markup:
-  highlight:
-    style: dracula
-    lineNos: false
-    noClasses: false
-    guessSyntax: true
-
-menu:
-  main:
-    - identifier: Pages
-      name: pages
-      url: /posts/
-      weight: 10
-    - identifier: Tags
-      name: tags
-      url: /tags/
-      weight: 20
-    - identifier: Search
-      name: search
-      url: /search/
-      weight: 30
-    - identifier: Info
-      name: more info
-      url: /info
-      weight: 40
-
-privacy:
-  disqus:
-    disable: true
-  googleAnalytics:
-    disable: true
-    respectDoNotTrack: true
-  instagram:
-    disable: true
-  vimeo:
-    enableDNT: true
-  youtube:
-    privacyEnhanced: true
+    - {name: linkedin, url: "https://www.linkedin.com/in/markebeid/"}
+    - {name: github, url: "https://github.com/loudrxiv"}
+    - {name: googlescholar, url: "https://scholar.google.com/citations?user=SKi3GSMAAAAJ&hl=en"}
+    - {name: email, url: "mailto:markebeid@pitt.edu"}

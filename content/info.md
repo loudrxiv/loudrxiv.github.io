@@ -1,10 +1,6 @@
 ---
 title: "more things to look at"
-date: 2025-05-30
-draft: false
 ---
-
-I reference a lot of things that I don't like explicitly mention or link to. Even more information will be below!
 
 |NAME|DESCRIPTION|
 | :--- | :---    |
