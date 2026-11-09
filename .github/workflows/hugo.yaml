@@ -1,13 +1,16 @@
-# Sample workflow for building and deploying a Hugo site to GitHub Pages
-name: Deploy Hugo site to Pages
+# Builds the Hugo site and deploys it to GitHub Pages.
+#   - every push to main, plus manual runs: build, then deploy
+#   - pushes to dev and PRs into main: build only (checks that the site compiles; nothing is published)
+name: Build and deploy Hugo site
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches:
       - main
-
-  # Allows you to run this workflow manually from the Actions tab
+      - dev
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -16,56 +19,56 @@ permissions:
   pages: write
   id-token: write
 
-# Allow one concurrent deployment
+# One run per ref. A newer push cancels an older run on the same ref, except on main:
+# a production deploy is never cancelled part-way.
 concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# Default to bash
 defaults:
   run:
     shell: bash
 
 jobs:
-  # Build job
   build:
     runs-on: ubuntu-latest
     env:
-      HUGO_VERSION: 0.111.2
+      # Keep in sync with module.hugoVersion.min in hugo.yaml (PaperMod needs >= 0.158.0).
+      HUGO_VERSION: 0.169.0
     steps:
       - name: Install Hugo CLI
         run: |
-          wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
-          && sudo dpkg -i ${{ runner.temp }}/hugo.deb          
-      - name: Install Dart Sass Embedded
-        run: sudo snap install dart-sass-embedded
+          cd "$RUNNER_TEMP"
+          base="https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}"
+          deb="hugo_extended_${HUGO_VERSION}_linux-amd64.deb"
+          curl -fsSLO "${base}/${deb}"
+          curl -fsSLO "${base}/hugo_${HUGO_VERSION}_checksums.txt"
+          grep " ${deb}\$" "hugo_${HUGO_VERSION}_checksums.txt" | sha256sum --check
+          sudo dpkg -i "${deb}"
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
-          submodules: recursive
-          fetch-depth: 0
+          submodules: recursive # themes/PaperMod
+          fetch-depth: 0 # full history, for enableGitInfo
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v4
-      - name: Install Node.js dependencies
-        run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
+        uses: actions/configure-pages@v6
       - name: Build with Hugo
         env:
-          # For maximum backward compatibility with Hugo modules
           HUGO_ENVIRONMENT: production
           HUGO_ENV: production
         run: |
           hugo \
             --gc \
             --minify \
-            --baseURL "${{ steps.pages.outputs.base_url }}/"          
+            --baseURL "${{ steps.pages.outputs.base_url }}/"
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./public
 
-  # Deployment job
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -74,4 +77,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
