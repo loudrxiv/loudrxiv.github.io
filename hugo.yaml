@@ -17,7 +17,7 @@ outputs:
 
 menu:
   main:
-    - {name: pages, url: /posts/, weight: 10}
+    - {name: work, url: /work/, weight: 10}
     - {name: tags, url: /tags/, weight: 20}
     - {name: search, url: /search/, weight: 30}
     - {name: more info, url: /info, weight: 40}
@@ -55,7 +55,7 @@ params:
     subtitle: "mark's online notebook about his life"
     buttons:
       - {name: About, url: about}
-      - {name: Work, url: posts}
+      - {name: Work, url: work}
 
   socialIcons:
     - {name: linkedin, url: "https://www.linkedin.com/in/markebeid/"}

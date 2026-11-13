@@ -1,0 +1,4 @@
+---
+title: work
+aliases: [/posts/]
+---
