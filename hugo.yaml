@@ -34,6 +34,7 @@ params:
             Sequence-to-Function, Domain Adaptation, Genomics, Metabolomics, Science Communication]
   defaultTheme: dark
   disableThemeToggle: true # dark only
+  yard: true # animated yard backdrop; false removes it
   hideMeta: true
   ShowToc: false
 

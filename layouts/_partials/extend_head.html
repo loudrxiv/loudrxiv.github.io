@@ -1,0 +1,2 @@
+{{- /* The yard backdrop. params.yard: false removes it. */ -}}
+{{ if site.Params.yard }}{{ with resources.Get "js/world.js" | resources.Minify | fingerprint }}<script defer src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>{{ end }}{{ end }}
