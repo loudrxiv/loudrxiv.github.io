@@ -10,4 +10,10 @@ hugo serve   # Hugo 0.158 or newer
 `main` deploys. `dev` and pull requests only build.
 Update the theme with `git submodule update --remote themes/PaperMod`, and Hugo with `HUGO_VERSION` in `.github/workflows/hugo.yaml`.
 
-Started as a fork of [privsec.dev](https://privsec.dev/). The theme descends from [WonderMod](https://github.com/Wonderfall/hugo-WonderMod), a fork of PaperMod (MIT). Any of my modifications will either follow Apache or also join that designation.
+Started as a fork of [privsec.dev](https://privsec.dev/). The theme descends from [WonderMod](https://github.com/Wonderfall/hugo-WonderMod), a fork of PaperMod (MIT).
+
+## License
+
+- Code and config: [PolyForm Noncommercial 1.0.0](LICENSE). Free for noncommercial use, including universities and other research or educational organizations. Companies need to ask.
+- Writing in `content/`: [CC BY-NC-SA 4.0](LICENSE-CONTENT.md).
+- `themes/PaperMod` keeps its own MIT license.
