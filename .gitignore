@@ -3,6 +3,10 @@
 /resources/_gen/
 /.hugo_build.lock
 
+# Local drafts and notes (not for the public repo)
+/prototypes/
+.superpowers/
+
 # Secrets
 .env
 .env.*
