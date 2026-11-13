@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 (2026-11-13)
+- Dark theme only.
+- Noncommercial licenses: PolyForm Noncommercial 1.0.0 for code, CC BY-NC-SA 4.0 for writing.
+- `/posts/` is now `/work/`; old links redirect.
+- Dependabot for Actions and the theme submodule.
+- The iOS home-screen icon is now the lR logo.
+
 ## 1.1.0 (2026-11-09)
 - Pages for PhD, DAAE, scPrinter on cow mammary gland, and bioZone. Shorter About.
 - Home: Work button replaces bioZone. Professional description and keywords.
