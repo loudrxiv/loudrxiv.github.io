@@ -33,6 +33,7 @@ params:
   keywords: [Machine Learning, Computational Biology, Causal Machine Learning, Causal Discovery,
             Sequence-to-Function, Domain Adaptation, Genomics, Metabolomics, Science Communication]
   defaultTheme: dark
+  disableThemeToggle: true # dark only
   hideMeta: true
   ShowToc: false
 
