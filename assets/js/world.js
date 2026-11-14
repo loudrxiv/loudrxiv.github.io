@@ -231,7 +231,7 @@ function plan(d){
    else{f=at.f;seg(t+(s[1]||X),s[2],[at.p.length?at.p[at.p.length-1]:A.S[at.i]],s[3],[f]);m=s[4]}
    if(m){const e=g[g.length-1];m==='sw'||m==='st'?p[m].push([e.a,e.b]):m==='rp'?p.rp.push(e.b):p[m]=e.b}}
   if(Math.abs(t-b)<1e-6){g[g.length-1].b=b;t=b}};
- const home=[['g',A.door],['s',0,'in']],bench=[['g',A.bench],['s',0,'sit']],step=[['g',A.door],['s',0,'sit']];
+ const home=[['g',A.door],['s',0,'in']],bench=[['g',A.bench],['s',0,'sit']],brook=[['g',A.bank],['s',0,'sit']];
  const sweep=[['g',A.door],['m',A.S,'hold','b',A.bank,'sw',2100],['g',A.door,'b']],stream=[['g',A.bank],['s',2400,'kneel','s','st']];
  const water=[['g',A.door],['g',A.bank,'c'],['s',20,'kneel','c']];
  (A.cols||[]).concat(A.boxL,A.boxR).forEach((s,i,a)=>{water.push(['g',s,'c'],['s',75,'hold','w']);if(i%3===2&&i<a.length-1)water.push(['g',A.bank,'c'],['s',20,'kneel','c'])});water.push(['g',A.door,'c']);
@@ -239,10 +239,10 @@ function plan(d){
  const plant=[['g',A.door]];(A.cols||[]).forEach(s=>plant.push(['g',s,'f'],['s',300,'kneel','f','rp']));plant.push(['g',A.boxL,'f'],['s',300,'hold','f','rp'],['g',A.boxR,'f'],['s',300,'hold','f','rp'],['g',A.door]);
  const np=A.pots.length,[o,n]=[A.pots[(wk+np-1)%np],A.pots[wk%np]];
  const pot=[['g',o[0]],['s',6,o[0].k||'kneel',0,'pk'],['g',n[0],'p'],['s',6,n[0].k||'kneel','p','dp']].concat(stream);
- const W={z:home,u:home,i:home,M:[['g',A.lamp],['s',8,'reach',0,'off']].concat(swap?water:sweep,home),W:(swap?sweep:water).concat(step),t:tea,
+ const W={z:home,u:home,i:home,M:[['g',A.lamp],['s',8,'reach',0,'off']].concat(swap?water:sweep,home),W:(swap?sweep:water).concat(brook),t:tea,
   X:(p.R?plant:p.P?pot:stream).concat(bench),m:[['g',A.mail],['s',8,'hold'],['g',A.door,mail?'l':0],['s',0,'in']],
   r:[['g',A.bench,mail?'l':0]].concat(mail?[['s',900,'sit','l'],['g',A.door]]:[['g',A.door]],[['g',A.bench,'t'],['s',1800,'sit','t'],['s',0,'nap']]),
-  A:(p.R||p.P?stream:sweep).concat(bench),w:water.concat(step),E:[['g',A.lamp],['s',8,'reach',0,'on']].concat(tea)};
+  A:(p.R||p.P?stream:sweep).concat(bench),w:water.concat(brook),E:[['g',A.lamp],['s',8,'reach',0,'on']].concat(tea)};
  DAY.forEach(([,c],i)=>{w=i;run(W[c],win[i][1])});
  return p}
 // the marks he leaves, read from today's and yesterday's plans: when did his broom (or hands) last pass this spot?
