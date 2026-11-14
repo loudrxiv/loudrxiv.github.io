@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 (2026-11-13)
+- Text on the clouds is set in Bitter, a sturdy slab serif, at heavier weights and never under 16px. The logo, menu, buttons, titles and body share one type scale.
+- Bitter is self-hosted (SIL Open Font License), with no third-party font requests.
+
 ## 1.4.0 (2026-11-13)
 - The yard now fills every page, edge to edge, on phones too. The gray column and the phone strip are gone.
 - Each section (profile, post, work card, search, footer) sits on a light pixel-art cloud with dark text. The logo, menu links and buttons are small clouds.
