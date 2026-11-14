@@ -93,7 +93,7 @@ let L,W,H,k,dpr,ppa,st,fb,tufts,img,u32,art,actx;
 const cv=Object.assign(document.createElement('canvas'),{className:'w-canvas w-bd'}),ctx=cv.getContext('2d');
 cv.setAttribute('aria-hidden','true');document.body.prepend(cv);
 let t0=performance.now()/1000,n=0,raf=0,last=0,gustAt=0,gustPeak=0,nextGust=5;
-let props,dynTrees=[],bflies=[],leaves=[],puffs=[],flies=[],treeF=1,lant=0,nextLant=0,hero={x:0,dir:1,walk:false,f:0};
+let props,dynTrees=[],bflies=[],leaves=[],puffs=[],flies=[],treeF=1,lant=0,nextLant=0,hero={x:0,dir:1,walk:false,f:0},A={S:[]};
 
 // ---- layout + static layer ----
 function layout(){
@@ -132,15 +132,17 @@ function build(){
    for(let y=hy+44;y<wy;y++)stamp(g,[y%2?'1435414531':'1543145431'],hx+15,y);
    stamp(g,STEPS,hx+12,wy);
    for(let i=0;i<14;i++){const x=hx+2+(rnd()*36|0);if(x>hx+11&&x<hx+29)continue;put(g,x,hy+44,'d');put(g,x,hy+43+(rnd()<.5?1:0),'fij'[rnd()*3|0])}
-   let px=hx+19,pmin=px,pmax=px;for(let y=wy+13;y<yS;y+=2){px+=Math.round(Math.sin(y/9)*1.2);pmin=Math.min(pmin,px);pmax=Math.max(pmax,px);stamp(g,['1544541','1233321'],px-3+(y%4?1:0),y)}z.px=px;
+   let px=hx+19,pmin=px,pmax=px;const S=[[px,wy-2],[px,wy+12]];for(let y=wy+13;y<yS;y+=2){px+=Math.round(Math.sin(y/9)*1.2);pmin=Math.min(pmin,px);pmax=Math.max(pmax,px);S.push([px,y]);stamp(g,['1544541','1233321'],px-3+(y%4?1:0),y)}z.px=px;A={S};
+   for(const p of S)if(p[1]>wy+12&&p[1]<wy+30)p[0]=clamp(p[0],px-3,px+2); // from the steps' foot through the gate, clear of the lamp and the mailbox
    for(let x=z.x0;x<=z.x1-3;x+=4)if(Math.abs(x-px)>7)stamp(g,FENCE,x,wy+20);
    stamp(g,BUSH,z.x1-9,wy+3);stamp(g,BUSH,z.x1-8,wy+20); // the wall and the fence end behind a bush
    const zw=z.x1-z.x0+1;claim(z.x0,wy-3,zw,16);claim(z.x0,wy+19,zw,25);claim(hx-10,hy-22,60,wy-hy+20);claim(pmin-5,wy+13,pmax-pmin+12,yS-wy-13);
    {
     stamp(g,MAIL,px+4,wy+20);stamp(g,LAMP,px-9,wy+15);
-    const gw=Math.min(30,hx-2-(z.x0+2)),gy=wy+46;if(gw>=16&&gy+12<yS-2&&free(z.x0+2,gy,gw,12)){stamp(g,gardenRows(gw,12),z.x0+2,gy);claim(z.x0+2,gy,gw,12)}
-    const bx=pmax+9;if(bx+16<=z.x1&&free(bx,wy+46,16,10)){shadow(bx+8,wy+55,10,1.5);stamp(g,BENCH,bx,wy+46);claim(bx,wy+46,16,10)}
+    const gw=Math.min(30,hx-2-(z.x0+2)),gy=wy+46;if(gw>=16&&gy+12<yS-2&&free(z.x0+2,gy,gw,12)){stamp(g,gardenRows(gw,12),z.x0+2,gy);claim(z.x0+2,gy,gw,12);A.bed=[z.x0+2,gy,gw]}
+    const bx=pmax+9;if(bx+16<=z.x1&&free(bx,wy+46,16,10)){shadow(bx+8,wy+55,10,1.5);stamp(g,BENCH,bx,wy+46);claim(bx,wy+46,16,10);A.bn=[bx,wy+46]}
    }
+   spots(hx,wy,px);
   }
   if(z.tree){
    for(let y=ty+44;y<=ty+58;y++)for(let x=tx-2;x<=tx+44;x++){const ex=(x-tx-20)/24,ey=(y-ty-52)/6;if(ex*ex+ey*ey<1&&g[y])g[y][x]=DARK[g[y][x]]||g[y][x]}
@@ -175,6 +177,57 @@ function build(){
 const gust=t=>{const a=t-gustAt;return a<0?0:gustPeak*(a<1.5?a/1.5:Math.max(0,1-(a-1.5)/3))};
 const wind=(t,still)=>still?.2:.35+.25*Math.sin(2*Math.PI*t/11)+.15*Math.sin(2*Math.PI*t/4.3)+gust(t);
 function doGust(t){gustAt=t;gustPeak=.6+.4*drnd()}
+
+// ---- the man's day: a pure function of the local date and the wall-clock second ----
+// Windows [start minute, code]: z asleep, u up indoors, M lamp out then the first chore, W the second chore, t tea,
+// X the weekly slot, m mail then lunch indoors, r the midday rest, A the afternoon chore, w watering, E lamp on then tea, i evening indoors.
+const DAY=[[0,'z'],[380,'u'],[410,'M'],[465,'W'],[520,'t'],[550,'X'],[680,'m'],[750,'r'],[885,'A'],[975,'w'],[1065,'E'],[1200,'i'],[1350,'z']],SPEED=12;
+const ck={d:0,s:0,o:0,n:-1},man={x:0,y:0,k:'in',f:1,t:0,v:false,d:0,i:0};
+// local day number and wall-clock seconds; the zone offset is re-read once per second, so a DST change lands within a second
+function clock(ms){if(ms>=ck.n||ms<ck.n-1e3){ck.o=new Date(ms).getTimezoneOffset()*6e4;ck.n=ms-ms%1e3+1e3}const w=ms-ck.o;ck.d=Math.floor(w/864e5);ck.s=(w-ck.d*864e5)/1e3}
+// places he works: {i: where it leaves the spine (door, steps, path, bank), p: points off the spine, f: facing}. All legs lie in claimed ground.
+function spots(hx,wy,zx){const S=A.S,at=y=>{let i=0;while(i<S.length-1&&S[i][1]<y)i++;return i},sp=(y,x,f,k)=>{const i=at(y);return{i,p:x==null?[]:[[x,S[i][1]]],f,k}};
+ const j=at(wy+41),y41=S[j][1],T=(x,f)=>sp(wy-2,x,f);
+ Object.assign(A,{door:T(null,1),boxL:T(hx,1),boxR:T(hx+39,-1),lamp:sp(wy+31,zx-2,-1),mail:sp(wy+31,zx+1,1),bank:sp(L.yS,null,1),
+  pots:[[T(hx+21,1),hx+25,wy-7],[{i:j,p:[[zx-11,y41]],f:-1},zx-17,wy+34]]});
+ A.bench=A.door;if(A.bn){const[bx,by]=A.bn;A.bench=sp(by+9,bx+4,1);A.pots.push([sp(by+9,bx+6,1,'hold'),bx+11,by])}
+ A.bed&&(A.cols=[]);if(A.bed)for(let x=A.bed[0]+3;x<A.bed[0]+A.bed[2]-2;x+=4)A.cols.push({i:j,p:[[x+6,y41],[x+6,wy+44]],f:-1,x})}
+function route(a,b){const S=A.S,P=a.p.slice().reverse(),d=b.i>a.i?1:-1;for(let i=a.i;;i+=d){P.push(S[i]);if(i===b.i)break}return P.concat(b.p)}
+const plen=P=>{let n=0;for(let i=1;i<P.length;i++)n+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return n};
+function plan(d){
+ const r=mk(d*7919+1),swap=r()<.4,mail=r()<.6,wk=Math.floor((d+3)/7),wd=(d+3)%7,q=mk(wk*7907+3),R=q()*7|0,Pd=(R+1+(q()*6|0))%7;
+ const g=[],win=DAY.map(([m],i)=>[m*60,(DAY[i+1]?DAY[i+1][0]:1440)*60]),p={g,win,mail,R:wd===R,P:wd===Pd,wd,wk,sw:[],st:[],rp:[],pk:0,dp:0,on:0,off:0};
+ let t=0,at=A.door,f=1,w=0;
+ const seg=(b,k,P,tl,F)=>{if(b>t){const C=[0];for(let i=1;i<P.length;i++)C.push(C[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));g.push({a:t,b,w,k,P,C,F,t:tl});t=b}};
+ const fac=P=>{const F=[f];for(let i=1;i<P.length;i++){const dx=P[i][0]-P[i-1][0];F.push(Math.abs(dx)>Math.abs(P[i][1]-P[i-1][1])?Math.sign(dx):F[i-1])}f=F[F.length-1];return F};
+ // a window's steps: ['g',spot,tool] walk; ['s',secs,pose,tool,mark] stay; ['m',points,pose,tool,spot,mark,secs] slow move.
+ // secs 0 = take the rest of the window (each window has one such step, a rest or the last chore).
+ const run=(Ls,b)=>{let x=t,c=at,n=0;for(const s of Ls)if(s[0]==='g'){x+=plen(route(c,s[1]))/SPEED;c=s[1]}else{const d=s[0]==='m'?s[6]:s[1];d?x+=d:n++;if(s[0]==='m')c=s[4]}
+  const X=n?Math.max(0,(b-x)/n):0;
+  for(const s of Ls){let m;if(s[0]==='g'){const P=route(at,s[1]);seg(t+plen(P)/SPEED,'walk',P,s[2],fac(P));at=s[1]}
+   else if(s[0]==='m'){seg(t+(s[6]||X),s[2],s[1],s[3],s[1].map(()=>s[4].f));at=s[4];f=at.f;m=s[5]}
+   else{f=at.f;seg(t+(s[1]||X),s[2],[at.p.length?at.p[at.p.length-1]:A.S[at.i]],s[3],[f]);m=s[4]}
+   if(m){const e=g[g.length-1];m==='sw'||m==='st'?p[m].push([e.a,e.b]):m==='rp'?p.rp.push(e.b):p[m]=e.b}}
+  if(Math.abs(t-b)<1e-6){g[g.length-1].b=b;t=b}};
+ const home=[['g',A.door],['s',0,'in']],bench=[['g',A.bench],['s',0,'sit']],step=[['g',A.door],['s',0,'sit']];
+ const sweep=[['g',A.door],['m',A.S,'hold','b',A.bank,'sw',2100],['g',A.door,'b']],stream=[['g',A.bank],['s',2400,'kneel','s','st']];
+ const water=[['g',A.door],['g',A.bank,'c'],['s',20,'kneel','c']];
+ (A.cols||[]).concat(A.boxL,A.boxR).forEach((s,i,a)=>{water.push(['g',s,'c'],['s',75,'hold','w']);if(i%3===2&&i<a.length-1)water.push(['g',A.bank,'c'],['s',20,'kneel','c'])});water.push(['g',A.door,'c']);
+ const tea=[['g',A.door],['g',A.bench,'t'],['s',0,'sit','t']];
+ const plant=[['g',A.door]];(A.cols||[]).forEach(s=>plant.push(['g',s,'f'],['s',300,'kneel','f','rp']));plant.push(['g',A.boxL,'f'],['s',300,'hold','f','rp'],['g',A.boxR,'f'],['s',300,'hold','f','rp'],['g',A.door]);
+ const np=A.pots.length,[o,n]=[A.pots[(wk+np-1)%np],A.pots[wk%np]];
+ const pot=[['g',o[0]],['s',6,o[0].k||'kneel',0,'pk'],['g',n[0],'p'],['s',6,n[0].k||'kneel','p','dp']].concat(stream);
+ const W={z:home,u:home,i:home,M:[['g',A.lamp],['s',8,'reach',0,'off']].concat(swap?water:sweep,home),W:(swap?sweep:water).concat(step),t:tea,
+  X:(p.R?plant:p.P?pot:stream).concat(bench),m:[['g',A.mail],['s',8,'reach'],['g',A.door,mail?'l':0],['s',0,'in']],
+  r:[['g',A.bench,mail?'l':0]].concat(mail?[['s',900,'sit','l'],['g',A.door]]:[['g',A.door]],[['g',A.bench,'t'],['s',1800,'sit','t'],['s',0,'nap']]),
+  A:(p.R||p.P?stream:sweep).concat(bench),w:water.concat(step),E:[['g',A.lamp],['s',8,'reach',0,'on']].concat(tea)};
+ DAY.forEach(([,c],i)=>{w=i;run(W[c],win[i][1])});
+ return p}
+// where he is at second s of the plan's day: fills `man` (no allocation)
+function pose(p,s){const g=p.g;let i=man.i;if(!(i<g.length&&g[i].a<=s))i=0;while(i<g.length-1&&g[i].b<=s)i++;man.i=i;
+ const q=g[i],P=q.P,C=q.C,n=P.length-1;let k=0,x=P[0][0],y=P[0][1],dd=0;
+ if(n){dd=C[n]*clamp((s-q.a)/(q.b-q.a),0,1);while(k<n-1&&C[k+1]<dd)k++;const u=C[k+1]>C[k]?(dd-C[k])/(C[k+1]-C[k]):0;x=P[k][0]+(P[k+1][0]-P[k][0])*u;y=P[k][1]+(P[k+1][1]-P[k][1])*u}
+ man.x=x;man.y=y;man.d=dd;man.k=q.k;man.t=q.t;man.f=q.F[n?k+1:0];man.v=q.k!=='in'}
 
 // ---- drawing ----
 const blit=(sp,x,y,flip)=>{x|=0;y|=0;for(let j=0;j<sp.h;j++){const yy=y+j;if(yy<0||yy>=H)continue;for(let i=0;i<sp.w;i++){const v=sp.d[j*sp.w+(flip?sp.w-1-i:i)];if(!v)continue;const xx=x+i;if(xx<0||xx>=W)continue;fb[yy*W+xx]=v}}};
