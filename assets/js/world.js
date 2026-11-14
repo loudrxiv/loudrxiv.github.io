@@ -158,7 +158,7 @@ function build(){
     const gw=Math.min(30,hx-2-(z.x0+2)),gy=wy+46;if(gw>=16&&gy+12<yS-2&&free(z.x0+2,gy,gw,12)){stamp(g,gardenRows(gw,12),z.x0+2,gy);claim(z.x0+2,gy,gw,12);A.bed=[z.x0+2,gy,gw]}
     const bx=pmax+9;if(bx+16<=z.x1&&free(bx,wy+46,16,10)){shadow(bx+8,wy+55,10,1.5);stamp(g,BENCH,bx,wy+46);claim(bx,wy+46,16,10);A.bn=[bx,wy+46]}
    }
-   spots(hx,wy,px);
+   spots(hx,wy,px,g);
   }
   if(z.tree){
    for(let y=ty+44;y<=ty+58;y++)for(let x=tx-2;x<=tx+44;x++){const ex=(x-tx-20)/24,ey=(y-ty-52)/6;if(ex*ex+ey*ey<1&&g[y])g[y][x]=DARK[g[y][x]]||g[y][x]}
@@ -202,17 +202,18 @@ const ck={d:0,s:0,o:0,n:-1},man={x:0,y:0,k:'in',f:1,t:0,v:false,d:0,i:0};
 // local day number and wall-clock seconds; the zone offset is re-read once per second, so a DST change lands within a second
 function clock(ms){if(ms>=ck.n||ms<ck.n-1e3){ck.o=new Date(ms).getTimezoneOffset()*6e4;ck.n=ms-ms%1e3+1e3}const w=ms-ck.o;ck.d=Math.floor(w/864e5);ck.s=(w-ck.d*864e5)/1e3}
 // places he works: {i: where it leaves the spine (door, steps, path, bank), p: points off the spine, f: facing}. All legs lie in claimed ground.
-function spots(hx,wy,zx){const S=A.S,at=y=>{let i=0;while(i<S.length-1&&S[i][1]<y)i++;return i},sp=(y,x,f,k)=>{const i=at(y);return{i,p:x==null?[]:[[x,S[i][1]]],f,k}};
+function spots(hx,wy,zx,g){const S=A.S,at=y=>{let i=0;while(i<S.length-1&&S[i][1]<y)i++;return i},sp=(y,x,f,k)=>{const i=at(y);return{i,p:x==null?[]:[[x,S[i][1]]],f,k}};
  const j=at(wy+41),y41=S[j][1],T=(x,f)=>sp(wy-2,x,f);
  Object.assign(A,{door:T(null,1),boxL:T(hx,1),boxR:T(hx+39,-1),lamp:sp(wy+31,zx-2,-1),mail:sp(wy+31,zx+1,1),bank:sp(L.yS,null,1),
   pots:[[T(hx+21,1),hx+25,wy-7],[{i:j,p:[[zx-11,y41]],f:-1},zx-17,wy+34]]});
- A.bench=A.door;if(A.bn){const[bx,by]=A.bn;A.bench=sp(by+9,bx+5,1);A.pots.push([sp(by+9,bx+6,1,'hold'),bx+11,by])}
+ A.bench=A.door;if(A.bn&&A.bn[1]+9<=S[S.length-1][1]){ // on short screens the bench meets the stream: he rests on the doorstep instead
+ const[bx,by]=A.bn;A.bench=sp(by+9,bx+5,1);A.pots.push([sp(by+9,bx+6,1,'hold'),bx+11,by])}
  A.bed&&(A.cols=[]);if(A.bed)for(let x=A.bed[0]+3;x<A.bed[0]+A.bed[2]-2;x+=4)A.cols.push({i:j,p:[[x+6,y41],[x+6,wy+44]],f:-1,x});
  // where his marks show: leaves along the spine (u = how far down it), debris at the stepping stones, flowers in the bed and the window boxes
  const R=mk(5),C=[0];for(let i=1;i<S.length;i++)C.push(C[i-1]+Math.hypot(S[i][0]-S[i-1][0],S[i][1]-S[i-1][1]));
  A.lv=[];for(let n=0;n<24;n++){const u=R(),d=u*C[C.length-1];let i=1;while(i<S.length-1&&C[i]<d)i++;const q=(d-C[i-1])/(C[i]-C[i-1]||1);A.lv.push({x:Math.round(S[i-1][0]+(S[i][0]-S[i-1][0])*q+R()*7-3),y:Math.round(S[i-1][1]+(S[i][1]-S[i-1][1])*q),u,th:.15+.85*R(),c:'gzyn'[R()*4|0]})}
  A.db=[];for(const[x,y]of[[zx-6,L.yS+3],[zx,L.yS+5],[zx+5,L.yS+7]])for(const[a,b]of[[-1,2],[5,0],[2,-1]])A.db.push({x:x+a,y:y+b,u:A.db.length/9+.05,th:.2+.8*R(),c:'zgy'[R()*3|0]});
- A.fl=[];const nc=A.cols?A.cols.length:0;if(A.bed)for(let y=3;y<10;y+=3)for(let x=3;x<A.bed[2]-2;x+=4)A.fl.push({x:A.bed[0]+x,y:A.bed[1]+y-1,st:(x-3)/4,c:(x+y)&1});
+ A.fl=[];const nc=A.cols?A.cols.length:0;if(A.bed)for(let y=3;y<10;y+=3)for(let x=3;x<A.bed[2]-2;x+=4)if('fij'.includes(g[A.bed[1]+y-1][A.bed[0]+x]))A.fl.push({x:A.bed[0]+x,y:A.bed[1]+y-1,st:(x-3)/4,c:(x+y)&1});
  for(const[x,st]of[[hx+6,nc],[hx+25,nc+1]])for(let k=0;k<9;k+=2)A.fl.push({x:x+k,y:L.hy+35,st,c:k>>1&1})}
 function route(a,b){const S=A.S,P=a.p.slice().reverse(),d=b.i>a.i?1:-1;for(let i=a.i;;i+=d){P.push(S[i]);if(i===b.i)break}return P.concat(b.p)}
 const plen=P=>{let n=0;for(let i=1;i<P.length;i++)n+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return n};
