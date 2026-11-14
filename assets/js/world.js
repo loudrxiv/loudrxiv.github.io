@@ -5,11 +5,11 @@ const $=s=>document.querySelector(s),main=$('.main');if(!main)return;
 // ---- palette (one dark palette, SNES 15-bit values). Chars index KEY; '.' is transparent ----
 // The man's colours, in one place: skin and its shade, hair and moustache, galabeya and its folds, imma (turban) and its wrap.
 const MAN={skin:'9C6342',shade:'734A31',hair:'211818',robe:'A59C84',fold:'7B735A',imma:'DED6C6',wrap:'ADA594'};
-const PAL={K:MAN.skin,N:MAN.shade,H:MAN.hair,A:MAN.robe,O:MAN.fold,T:MAN.imma,Q:MAN.wrap,'0':'100818',a:'102121',b:'183929',c:'214A31',d:'316339',e:'52845A','1':'212131','2':'393952','3':'5A5A73','4':'7B7B94','5':'A5A5BD',w:'291821',x:'4A2931',y:'734239',z:'9C6352',r:'391029',s:'631831',t:'942939',u:'AD4A63',p:'4A4263',q:'6B6B8C',v:'9494AD',B:'081029',C:'102152',D:'18397B',E:'295AA5',F:'8CC6E7',G:'8CC6E7',g:'E78C31',h:'FFD663',L:'E78C31',f:'D65A8C',i:'E7C642',j:'C6CEE7',k:'081821',l:'103929',m:'185A39',n:'398452',o:'6BAD73',U:'C63131','6':'18397B','7':'295AA5','8':'18397B','9':'102152'};
+const PAL={K:MAN.skin,N:MAN.shade,H:MAN.hair,A:MAN.robe,O:MAN.fold,T:MAN.imma,Q:MAN.wrap,'0':'100818',a:'102121',b:'183929',c:'214A31',d:'316339',e:'52845A','1':'212131','2':'393952','3':'5A5A73','4':'7B7B94','5':'A5A5BD',w:'291821',x:'4A2931',y:'734239',z:'9C6352',r:'391029',s:'631831',t:'942939',u:'AD4A63',p:'4A4263',q:'6B6B8C',v:'9494AD',B:'081029',C:'102152',D:'18397B',E:'295AA5',F:'8CC6E7',G:'8CC6E7',g:'E78C31',h:'FFD663',L:'E78C31',I:'FFD663',J:'E78C31',M:'E78C31',f:'D65A8C',i:'E7C642',j:'C6CEE7',k:'081821',l:'103929',m:'185A39',n:'398452',o:'6BAD73',U:'C63131','6':'18397B','7':'295AA5','8':'18397B','9':'102152'};
 const KEY='.'+Object.keys(PAL).join(''), ix=c=>KEY.indexOf(c);
 const rgba=h=>(255<<24)|(parseInt(h.slice(4,6),16)<<16)|(parseInt(h.slice(2,4),16)<<8)|parseInt(h.slice(0,2),16);
 const lut=new Uint32Array(KEY.length); for(let i=1;i<KEY.length;i++)lut[i]=rgba(PAL[KEY[i]]);
-const CYC=['D','E','D','C'].map(c=>rgba(PAL[c]));
+const CYC=['D','E','D','C'].map(c=>rgba(PAL[c])),GLASS=['21','hg','ED'].map(p=>[...p].map(c=>rgba(PAL[c]))),LAMPC=['2','g','h'].map(c=>rgba(PAL[c]));
 
 // ---- helpers ----
 const mk=s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
@@ -37,7 +37,7 @@ function houseRows(){const g=grid(40,44);
  rect(g,3,26,36,40,'q');hl(g,3,36,26,'p');hl(g,3,36,27,'p');
  for(let y=26;y<=40;y++){put(g,3,y,'y');put(g,4,y,'x');put(g,35,y,'x');put(g,36,y,'w')}
  [[8,37],[9,37],[29,31],[30,31],[14,39],[26,38],[27,38]].forEach(([x,y])=>put(g,x,y,'v'));
- const win=['wwwwwww','whgxhgw','wggxggw','wxxxxxw','whgxhgw','wggxggw','wwwwwww'],box=['fdidfdidf','zyyyyyyyx','xxxxxxxxw'];
+ const win=['wwwwwww','wIJxIJw','wJJxJJw','wxxxxxw','wIJxIJw','wJJxJJw','wwwwwww'],box=['fdidfdidf','zyyyyyyyx','xxxxxxxxw'];
  [[7,28],[26,28]].forEach(([x,y])=>{stamp(g,win,x,y);stamp(g,box,x-1,y+7)});
  hl(g,16,23,28,'x');hl(g,16,23,27,'y');stamp(g,['qwwwwq'],17,29);for(let y=30;y<=40;y++)stamp(g,['wzyyxw'],17,y);put(g,21,35,'i');
  stamp(g,['.w.','wLw','wLw','.w.'],24,30);
@@ -80,7 +80,7 @@ function gardenRows(w,h){const g=grid(w,h,'x');hl(g,0,w-1,0,'y');hl(g,0,w-1,h-1,
  return g.map(r=>r.join(''))}
 const BENCH=['.zzzzzzzzzzzzzz.','.yyyyyyyyyyyyyy.','.xxxxxxxxxxxxxx.','.w............w.','zzzzzzzzzzzzzzzz','yyyyyyyyyyyyyyyy','xxxxxxxxxxxxxxxx','.wx..........xw.','.ww..........ww.'];
 const MAIL=['.UUU.','UUUUU','UUUUU','..w..','..w..','..w..','..w..','.www.'];
-const LAMP=['.www.','.wLw.','.wLw.','.www.','..x..','..x..','..x..','..x..','..x..','..x..','..x..','..x..','.xwx.','.www.'];
+const LAMP=['.www.','.wMw.','.wMw.','.www.','..x..','..x..','..x..','..x..','..x..','..x..','..x..','..x..','.xwx.','.www.'];
 const ROCK1=['..44..','.4333.','433322','.2222.'],ROCK2=['.43.','4332','.22.'],SHROOM=['.UU.','UjUU','.zz.','.zz.'],STUMP=['..zzz..','.zyyyz.','zyzzzyx','.zyyyx.','.wxxxw.','.wxxxw.'];
 const HOUSE=houseRows(),TREE=treeRows(),WATER=waterRows(),BUSH=bushRows(),PINE=pineRows(),TREE2=tree2Rows();
 const TREEF=[shear(TREE,-1),TREE,shear(TREE,1)].map(dec),TREE2F=[shear(TREE2,-1,26),TREE2,shear(TREE2,1,26)].map(dec);
@@ -207,12 +207,18 @@ function spots(hx,wy,zx){const S=A.S,at=y=>{let i=0;while(i<S.length-1&&S[i][1]<
  Object.assign(A,{door:T(null,1),boxL:T(hx,1),boxR:T(hx+39,-1),lamp:sp(wy+31,zx-2,-1),mail:sp(wy+31,zx+1,1),bank:sp(L.yS,null,1),
   pots:[[T(hx+21,1),hx+25,wy-7],[{i:j,p:[[zx-11,y41]],f:-1},zx-17,wy+34]]});
  A.bench=A.door;if(A.bn){const[bx,by]=A.bn;A.bench=sp(by+9,bx+5,1);A.pots.push([sp(by+9,bx+6,1,'hold'),bx+11,by])}
- A.bed&&(A.cols=[]);if(A.bed)for(let x=A.bed[0]+3;x<A.bed[0]+A.bed[2]-2;x+=4)A.cols.push({i:j,p:[[x+6,y41],[x+6,wy+44]],f:-1,x})}
+ A.bed&&(A.cols=[]);if(A.bed)for(let x=A.bed[0]+3;x<A.bed[0]+A.bed[2]-2;x+=4)A.cols.push({i:j,p:[[x+6,y41],[x+6,wy+44]],f:-1,x});
+ // where his marks show: leaves along the spine (u = how far down it), debris at the stepping stones, flowers in the bed and the window boxes
+ const R=mk(5),C=[0];for(let i=1;i<S.length;i++)C.push(C[i-1]+Math.hypot(S[i][0]-S[i-1][0],S[i][1]-S[i-1][1]));
+ A.lv=[];for(let n=0;n<24;n++){const u=R(),d=u*C[C.length-1];let i=1;while(i<S.length-1&&C[i]<d)i++;const q=(d-C[i-1])/(C[i]-C[i-1]||1);A.lv.push({x:Math.round(S[i-1][0]+(S[i][0]-S[i-1][0])*q+R()*7-3),y:Math.round(S[i-1][1]+(S[i][1]-S[i-1][1])*q),u,th:.15+.85*R(),c:'gzyn'[R()*4|0]})}
+ A.db=[];for(const[x,y]of[[zx-6,L.yS+3],[zx,L.yS+5],[zx+5,L.yS+7]])for(const[a,b]of[[-1,2],[5,0],[2,-1]])A.db.push({x:x+a,y:y+b,u:A.db.length/9+.05,th:.2+.8*R(),c:'zgy'[R()*3|0]});
+ A.fl=[];const nc=A.cols?A.cols.length:0;if(A.bed)for(let y=3;y<10;y+=3)for(let x=3;x<A.bed[2]-2;x+=4)A.fl.push({x:A.bed[0]+x,y:A.bed[1]+y-1,st:(x-3)/4,c:(x+y)&1});
+ for(const[x,st]of[[hx+6,nc],[hx+25,nc+1]])for(let k=0;k<9;k+=2)A.fl.push({x:x+k,y:L.hy+35,st,c:k>>1&1})}
 function route(a,b){const S=A.S,P=a.p.slice().reverse(),d=b.i>a.i?1:-1;for(let i=a.i;;i+=d){P.push(S[i]);if(i===b.i)break}return P.concat(b.p)}
 const plen=P=>{let n=0;for(let i=1;i<P.length;i++)n+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return n};
 function plan(d){
  const r=mk(d*7919+1),swap=r()<.4,mail=r()<.6,wk=Math.floor((d+3)/7),wd=(d+3)%7,q=mk(wk*7907+3),R=q()*7|0,Pd=(R+1+(q()*6|0))%7;
- const g=[],win=DAY.map(([m],i)=>[m*60,(DAY[i+1]?DAY[i+1][0]:1440)*60]),p={g,win,mail,R:wd===R,P:wd===Pd,wd,wk,sw:[],st:[],rp:[],pk:0,dp:0,on:0,off:0};
+ const g=[],win=DAY.map(([m],i)=>[m*60,(DAY[i+1]?DAY[i+1][0]:1440)*60]),p={g,win,mail,R:wd===R,P:wd===Pd,Rd:R,Pd,wd,wk,sw:[],st:[],rp:[],pk:0,dp:0,on:0,off:0};
  let t=0,at=A.door,f=1,w=0;
  const seg=(b,k,P,tl,F)=>{if(b>t){const C=[0];for(let i=1;i<P.length;i++)C.push(C[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));g.push({a:t,b,w,k,P,C,F,t:tl});t=b}};
  const fac=P=>{const F=[f];for(let i=1;i<P.length;i++){const dx=P[i][0]-P[i-1][0];F.push(Math.abs(dx)>Math.abs(P[i][1]-P[i-1][1])?Math.sign(dx):F[i-1])}f=F[F.length-1];return F};
@@ -239,6 +245,14 @@ function plan(d){
   A:(p.R||p.P?stream:sweep).concat(bench),w:water.concat(step),E:[['g',A.lamp],['s',8,'reach',0,'on']].concat(tea)};
  DAY.forEach(([,c],i)=>{w=i;run(W[c],win[i][1])});
  return p}
+// the marks he leaves, read from today's and yesterday's plans: when did his broom (or hands) last pass this spot?
+function today(d){if(d!==pd){pd=d;pt=plan(d);py=plan(d-1)}}
+function since(k,u,s){let t=-1e9;for(let i=0;i<pt[k].length;i++){const q=pt[k][i],x=q[0]+u*(q[1]-q[0]);if(x<=s&&x>t)t=x}if(t<-1e8)for(let i=0;i<py[k].length;i++){const q=py[k][i],x=q[0]+u*(q[1]-q[0])-864e2;if(x>t)t=x}return s-t}
+const lampLit=s=>s<pt.off||s>=pt.on,glass=s=>s<22800||s>=81000?0:lampLit(s)?1:2; // windows: 0 dark (asleep), 1 lit, 2 daylight
+const fill=s=>3600*(10-4*Math.cos(2*Math.PI*(pd+s/864e2-290)/365.25)); // leaves cover the path in 6 h in late October, 14 h in April
+const leafOn=(i,s)=>since('sw',A.lv[i].u,s)>A.lv[i].th*fill(s),dirtOn=(i,s)=>since('st',A.db[i].u,s)>A.db[i].th*576e2;
+const SCH=['fi','Uj','hu','jf','iU'],bloom=(i,s)=>{const f=A.fl[i],wd=pt.wd,R=pt.Rd;return SCH[(pt.wk-(wd<R||wd===R&&!(s>=pt.rp[f.st])?1:0))*3%5][f.c]};
+const potAt=s=>{const n=A.pots.length,P=pt.Pd,wd=pt.wd;return wd===P?s<pt.pk?(pt.wk+n-1)%n:s<pt.dp?-1:pt.wk%n:(pt.wk+(wd<P?n-1:0))%n};
 // where he is at second s of the plan's day: fills `man` (no allocation)
 function pose(p,s){const g=p.g;let i=man.i;if(!(i<g.length&&g[i].a<=s))i=0;while(i<g.length-1&&g[i].b<=s)i++;man.i=i;
  const q=g[i],P=q.P,C=q.C,n=P.length-1;let k=0,x=P[0][0],y=P[0][1],dd=0;
@@ -255,9 +269,15 @@ function frame(now,still){
  for(let i=0;i<4;i++)lut[ix(String(6+i))]=CYC[still?i:(ph+i)&3];
  lut[ix('F')]=still||(n>>3)&1?rgba(PAL.F):rgba(PAL.C);lut[ix('G')]=still||((n+4)>>3)&1?rgba(PAL.F):rgba(PAL.C);
  if(still||n>=nextLant){lant=still?0:drnd()<.5;nextLant=n+1+(drnd()*3|0)}lut[ix('L')]=rgba(lant?PAL.h:PAL.g);
+ clock(Date.now());today(ck.d);const s=ck.s,gl=GLASS[glass(s)];lut[ix('I')]=gl[0];lut[ix('J')]=gl[1];lut[ix('M')]=LAMPC[lampLit(s)?1+lant:0];
  for(const [x,y,j] of tufts)blit(TUFT[1-clamp(Math.round(1.5*wind(t-(W-x)/40,still)+j),-1,1)],x,y);
  if(treeF===1&&w>.75)treeF=0;else if(treeF===0&&w<.65)treeF=1;else if(treeF===1&&w<.25)treeF=2;else if(treeF===2&&w>.35)treeF=1;
  for(const t of dynTrees)blit(t.fr[still?1:treeF],t.x,t.y);
+ // his marks: leaves on the path, debris at the stones, this week's flowers, the pot where he last set it
+ for(let i=0;i<A.lv.length;i++)if(leafOn(i,s)){const l=A.lv[i];dot(l.x,l.y,l.c);dot(l.x+1,l.y,l.c)}
+ for(let i=0;i<A.db.length;i++)if(dirtOn(i,s))dot(A.db[i].x,A.db[i].y,A.db[i].c);
+ for(let i=0;i<A.fl.length;i++)dot(A.fl[i].x,A.fl[i].y,bloom(i,s));
+ const pa=potAt(s);if(pa>=0)blit(TOOL.p[0][0],A.pots[pa][1],A.pots[pa][2]);
  // smoke from the chimney, drifting left with the wind
  if(!still&&n%12===0&&hz)puffs.push({x:hz.hx+30,y:hy-2,age:0});
  if(still&&!puffs.length&&hz)puffs.push({x:hz.hx+27,y:hy-8,age:20},{x:hz.hx+22,y:hy-14,age:40});
@@ -278,8 +298,8 @@ function frame(now,still){
    if(b.x<z.x0||b.x>z.x1){b.vx*=-1;b.x=clamp(b.x,z.x0,z.x1)}if(b.y<L.topY+8||b.y>L.yS-8){b.vy*=-1;b.y=clamp(b.y,L.topY+8,L.yS-8)}}
   const up=still||(n&1);dot(b.x-1,b.y+(up?0:1),b.c);dot(b.x+1,b.y+(up?0:1),b.c);dot(b.x,b.y+(up?1:0),'w')}
  // the man: wherever the visitor's clock puts him (frames and strokes follow the clock too, not the frame count)
- clock(Date.now());if(ck.d!==pd){pd=ck.d;pt=plan(pd);py=plan(pd-1)}pose(pt,ck.s);
- if(man.v){const fx=Math.round(man.x),fy=Math.round(man.y),s=ck.s,fl=man.f<0,k=man.k,F=k==='walk'?(man.d/3&1?FR.walk2:FR.walk):k==='kneel'?(s*2&1?FR.kneel2:FR.kneel):FR[k]||FR.stand;
+ pose(pt,s);
+ if(man.v){const fx=Math.round(man.x),fy=Math.round(man.y),fl=man.f<0,k=man.k,F=k==='walk'?(man.d/3&1?FR.walk2:FR.walk):k==='kneel'?(s*2&1?FR.kneel2:FR.kneel):FR[k]||FR.stand;
   const up=k==='sit'||k==='nap'?2:0;blit(F,fx-6,fy-F.h+1-up,fl);const T=TOOL[man.t];if(T){const f=T[0][(s*2|0)%T[0].length],dy=k==='kneel'?3:up?-1:0;blit(f,fl?fx-T[1]-f.w:fx+T[1],fy+T[2]+dy,fl)}}
  for(let i=0;i<u32.length;i++)u32[i]=lut[fb[i]];
  actx.putImageData(img,0,0);ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(art,0,0,W*k,H*k);
