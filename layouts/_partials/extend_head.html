@@ -1,2 +1,4 @@
+{{- /* The text face (assets/css/extended/type.css): every page sets text in the upright file above the fold, so fetch it with the stylesheet. */ -}}
+<link rel="preload" href="{{ "fonts/bitter-latin.woff2" | relURL }}" as="font" type="font/woff2" crossorigin>
 {{- /* The yard backdrop. params.yard: false removes it. */ -}}
 {{ if site.Params.yard }}{{ with resources.Get "js/world.js" | resources.Minify | fingerprint }}<script defer src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>{{ end }}{{ end }}

@@ -17,3 +17,4 @@ Started as a fork of [privsec.dev](https://privsec.dev/). The theme descends fro
 - Code and config: [PolyForm Noncommercial 1.0.0](LICENSE). Free for noncommercial use, including universities and other research or educational organizations. Companies need to ask.
 - Writing in `content/`: [CC BY-NC-SA 4.0](LICENSE-CONTENT.md).
 - `themes/PaperMod` keeps its own MIT license.
+- The Bitter font in `static/fonts` keeps its own [SIL Open Font License 1.1](static/fonts/OFL-Bitter.txt).

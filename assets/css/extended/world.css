@@ -5,7 +5,7 @@
  --theme:#f8fbff;--entry:#eef5fd;--primary:#12203d;--secondary:#34456a;--content:#1b2b4b;--tertiary:#c6d9f0;--border:#9fbbe0;--code-bg:#dfeaf8;--code-block-bg:#e4eefa;color:var(--content)}
 .w-cloud{position:absolute;z-index:-1;pointer-events:none;image-rendering:pixelated}
 .w-k0{padding:calc(var(--w-u)*5) calc(var(--w-u)*7)!important;margin-block:calc(var(--w-u)*6)!important}
-.w-k1,.w-k2{display:inline-block;line-height:1.4!important}
+.w-k1,.w-k2{display:inline-block;line-height:var(--t-lh-ui,1.4)!important}
 .w-k1{padding:calc(var(--w-u)*2) calc(var(--w-u)*4)!important}
 .w-k2{padding:calc(var(--w-u)*1) calc(var(--w-u)*3)!important;margin:calc(var(--w-u)*2)!important}
 /* the header: let the small clouds breathe and wrap instead of scrolling */

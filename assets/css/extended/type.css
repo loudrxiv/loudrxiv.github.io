@@ -1,0 +1,77 @@
+/* Type: one family (Bitter, self-hosted, SIL OFL; see static/fonts/OFL-Bitter.txt) for every piece of text on the clouds.
+   A sturdy, low-contrast slab serif: no hairlines to wash out on the light clouds, and its square slabs sit well with the pixel art.
+   The tokens live on :root rather than .w-host because world.js adds .w-host after the page is parsed: tokens on :root apply from
+   the first paint (no system-font flash, no reflow when the clouds arrive) and every cloud inherits them. */
+@font-face{font-family:Bitter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/bitter-latin.woff2) format("woff2");
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+/* the italic file is only fetched by a page that has italic text (em, i, cite) */
+@font-face{font-family:Bitter;font-style:italic;font-weight:100 900;font-display:swap;src:url(/fonts/bitter-latin-italic.woff2) format("woff2");
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+ --t-face:Bitter,Georgia,"Times New Roman",serif;
+ --t-mono:"Cascadia Mono",ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+ /* weights: nothing on a cloud is lighter than 500 */
+ --t-w-body:500;    /* paragraphs, lists, tables, summaries, footer */
+ --t-w-ui:650;      /* menu links, buttons, tags, search input and results */
+ --t-w-strong:700;  /* strong, b, table heads */
+ --t-w-head:700;    /* h2-h6, work-card titles */
+ --t-w-display:800; /* page and post titles, the profile title, the logo, 404 */
+ --t-w-code:600;    /* the system monospace is light; 600 matches Bitter 500 */
+ /* sizes: nothing on a cloud is smaller than 16px */
+ --t-s-small:1rem;                                   /* 16: card summaries, footer, meta, small labels */
+ --t-s-body:clamp(1.0625rem,1rem + .25vw,1.125rem);  /* 17 on phones, 18 from 800px */
+ --t-s-ui:1rem;                                      /* 16: menu links, tags (17 pushes "more info" to a second row at 345px) */
+ --t-s-button:1.125rem;                              /* 18: About and Work */
+ --t-s-code:max(1rem,.9em);                          /* never under 16 */
+ --t-s-h4:1.1875rem;                                 /* 19 */
+ --t-s-h3:clamp(1.3125rem,1.2rem + .5vw,1.5rem);     /* 21-24: h3, work-card titles */
+ --t-s-h2:clamp(1.5rem,1.3rem + 1vw,1.875rem);       /* 24-30 */
+ --t-s-h1:clamp(1.875rem,1.5rem + 1.6vw,2.5rem);     /* 30-40: page and post titles */
+ --t-s-logo:clamp(1.375rem,1.25rem + .4vw,1.5rem);   /* 22-24 */
+ --t-s-404:clamp(6rem,30vw,10rem);                   /* 96-160 */
+ --t-lh-body:1.65;--t-lh-small:1.5;--t-lh-head:1.2;--t-lh-ui:1.4;
+ --t-ls-body:0;--t-ls-ui:0;--t-ls-display:-.015em;
+ --t-ws:.04em; /* Bitter's word space is narrow (.19em, 3px at 18px on Windows); at 500+ words ran together */
+}
+
+/* body text */
+body{font-family:var(--t-face);font-weight:var(--t-w-body);font-size:var(--t-s-body);line-height:var(--t-lh-body);letter-spacing:var(--t-ls-body);word-spacing:var(--t-ws)}
+b,strong,dt,.md-content table th{font-weight:var(--t-w-strong)}
+.md-content table th,.md-content table:not(.highlight table,.gist .highlight) td{line-height:var(--t-lh-small)}
+
+/* headings */
+h1,h2,h3,h4,h5,h6{font-weight:var(--t-w-head);line-height:var(--t-lh-head)}
+.profile_inner h1,.page-header h1,.post-title,.md-content h1,.first-entry .entry-header h1{font-size:var(--t-s-h1);font-weight:var(--t-w-display);letter-spacing:var(--t-ls-display)}
+.md-content h2,.first-entry .entry-header h2{font-size:var(--t-s-h2)}
+.md-content h3,.entry-header h2{font-size:var(--t-s-h3)}
+.md-content h4{font-size:var(--t-s-h4)}
+.md-content h5{font-size:var(--t-s-body)}
+.md-content h6{font-size:var(--t-s-small)}
+
+/* small text: one size, one line height */
+.entry-content,.first-entry .entry-content,.entry-footer,.first-entry .entry-footer,.post-meta,.breadcrumbs,.breadcrumbs a,.footer,.entry-cover,
+.md-content figure>figcaption>p,.post-tags a,.pagination a,.copy-code{font-size:var(--t-s-small)}
+.entry-content,.footer,.post-meta{line-height:var(--t-lh-small)}
+.paginav .title{font-size:var(--t-s-small);letter-spacing:.04em}
+
+/* the small clouds and the controls: logo, menu, buttons, tags, search */
+.logo a{font-size:var(--t-s-logo);font-weight:var(--t-w-display);letter-spacing:var(--t-ls-display)}
+.menu a{font-size:var(--t-s-ui);font-weight:var(--t-w-ui);letter-spacing:var(--t-ls-ui)}
+.menu .active{font-weight:var(--t-w-ui)}
+.button{font-size:var(--t-s-button);font-weight:var(--t-w-ui);letter-spacing:var(--t-ls-ui)}
+.terms-tags li,.terms-tags a{font-size:var(--t-s-ui);font-weight:var(--t-w-ui);letter-spacing:var(--t-ls-ui)}
+.post-tags a{font-weight:var(--t-w-ui)}
+.searchbox input{font-weight:var(--t-w-ui)}
+.searchResults li{font-weight:var(--t-w-ui)}
+.not-found{font-size:var(--t-s-404);font-weight:var(--t-w-display);letter-spacing:var(--t-ls-display)}
+
+/* links in running text: underline thick enough to read at weight 500 (not colour alone) */
+.md-content a:not(.anchor),.footer a,.entry-cover a{text-decoration-thickness:.1em}
+
+/* code: the system monospace (no extra download), never under 16px. Hugo's default highlighter writes monokai colours inline,
+   which are unreadable on the light code background inside a cloud, so code on clouds is one colour (the body navy). */
+code,kbd,samp,pre{font-family:var(--t-mono);font-weight:var(--t-w-code);word-spacing:normal}
+.post-content code{font-size:var(--t-s-code)}
+.md-content pre code,.w-host .highlight pre,.w-host .highlight pre span{color:var(--content)!important}
+.w-host .highlight pre{background:transparent!important} /* the inline monokai background showed at the rounded corners */
