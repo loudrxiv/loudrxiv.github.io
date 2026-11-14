@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0 (2026-11-14)
+- The man in the yard keeps a day on the visitor's clock. He puts out the lamp at dawn, sweeps the steps and path, waters the plants from the stream, clears leaves from the stepping stones and checks the mail. He takes tea and a midday nap on the bench, rests by the water, lights the lamp at dusk and sleeps indoors.
+- Every visitor sees the same scene at the same minute, and the details change with the date. Each week he replants the flower bed and window boxes and moves a potted plant. Leaves gather on the path until he sweeps them. The windows are lit, dark or daylit by the hour.
+- He is drawn as a Sa'idi (Upper Egyptian) man: a white imma, a sand-coloured galabeya and a moustache. His colours are in one place, `MAN` in `assets/js/world.js`.
+
 ## 1.5.0 (2026-11-13)
 - Text on the clouds is set in Bitter, a sturdy slab serif, at heavier weights and never under 16px. The logo, menu, buttons, titles and body share one type scale.
 - Bitter is self-hosted (SIL Open Font License), with no third-party font requests.
