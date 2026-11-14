@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0 (2026-11-14)
+- `docs/yard.md` explains how the yard, the clouds, the type and the man work.
+- Removed dead code: the yard's unused frozen-scene mode, type rules for theme features the site has switched off, and an unreferenced logo image. The site renders the same.
+- Tidied config and README: dropped an unused YouTube privacy setting and a redundant default, a stale WonderMod credit, and the menu link's missing trailing slash.
+
 ## 1.6.0 (2026-11-14)
 - The man in the yard keeps a day on the visitor's clock. He puts out the lamp at dawn, sweeps the steps and path, waters the plants from the stream, clears leaves from the stepping stones and checks the mail. He takes tea and a midday nap on the bench, rests by the water, lights the lamp at dusk and sleeps indoors.
 - Every visitor sees the same scene at the same minute, and the details change with the date. Each week he replants the flower bed and window boxes and moves a potted plant. Leaves gather on the path until he sweeps them. The windows are lit, dark or daylit by the hour.
