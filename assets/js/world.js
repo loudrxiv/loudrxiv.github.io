@@ -3,7 +3,9 @@
 const $=s=>document.querySelector(s),main=$('.main');if(!main)return;
 
 // ---- palette (one dark palette, SNES 15-bit values). Chars index KEY; '.' is transparent ----
-const PAL={'0':'100818',a:'102121',b:'183929',c:'214A31',d:'316339',e:'52845A','1':'212131','2':'393952','3':'5A5A73','4':'7B7B94','5':'A5A5BD',w:'291821',x:'4A2931',y:'734239',z:'9C6352',r:'391029',s:'631831',t:'942939',u:'AD4A63',p:'4A4263',q:'6B6B8C',v:'9494AD',B:'081029',C:'102152',D:'18397B',E:'295AA5',F:'8CC6E7',G:'8CC6E7',g:'E78C31',h:'FFD663',L:'E78C31',f:'D65A8C',i:'E7C642',j:'C6CEE7',k:'081821',l:'103929',m:'185A39',n:'398452',o:'6BAD73',H:'392118',K:'C68C7B',U:'C63131',V:'293152','6':'18397B','7':'295AA5','8':'18397B','9':'102152'};
+// The man's colours, in one place: skin and its shade, hair and moustache, galabeya and its folds, imma (turban) and its wrap.
+const MAN={skin:'9C6342',shade:'734A31',hair:'211818',robe:'A59C84',fold:'7B735A',imma:'DED6C6',wrap:'ADA594'};
+const PAL={K:MAN.skin,N:MAN.shade,H:MAN.hair,A:MAN.robe,O:MAN.fold,T:MAN.imma,Q:MAN.wrap,'0':'100818',a:'102121',b:'183929',c:'214A31',d:'316339',e:'52845A','1':'212131','2':'393952','3':'5A5A73','4':'7B7B94','5':'A5A5BD',w:'291821',x:'4A2931',y:'734239',z:'9C6352',r:'391029',s:'631831',t:'942939',u:'AD4A63',p:'4A4263',q:'6B6B8C',v:'9494AD',B:'081029',C:'102152',D:'18397B',E:'295AA5',F:'8CC6E7',G:'8CC6E7',g:'E78C31',h:'FFD663',L:'E78C31',f:'D65A8C',i:'E7C642',j:'C6CEE7',k:'081821',l:'103929',m:'185A39',n:'398452',o:'6BAD73',U:'C63131','6':'18397B','7':'295AA5','8':'18397B','9':'102152'};
 const KEY='.'+Object.keys(PAL).join(''), ix=c=>KEY.indexOf(c);
 const rgba=h=>(255<<24)|(parseInt(h.slice(4,6),16)<<16)|(parseInt(h.slice(2,4),16)<<8)|parseInt(h.slice(0,2),16);
 const lut=new Uint32Array(KEY.length); for(let i=1;i<KEY.length;i++)lut[i]=rgba(PAL[KEY[i]]);
@@ -83,8 +85,22 @@ const ROCK1=['..44..','.4333.','433322','.2222.'],ROCK2=['.43.','4332','.22.'],S
 const HOUSE=houseRows(),TREE=treeRows(),WATER=waterRows(),BUSH=bushRows(),PINE=pineRows(),TREE2=tree2Rows();
 const TREEF=[shear(TREE,-1),TREE,shear(TREE,1)].map(dec),TREE2F=[shear(TREE2,-1,26),TREE2,shear(TREE2,1,26)].map(dec);
 const TUFT=[['e...e','.d.d.','.dcd.','..b..'],['.e.e.','.d.d.','.dcd.','..b..'],['e.e..','.d.d.','.dcd.','..b..']].map(dec);
-const HERO=[['....HHHH....','...HHHHHH...','..HHHHHHHH..','..HKKKKKKH..','..HK0KK0KH..','...KKKKKK...','....KKKK....','...UUUUUU...','..UUUUUUUU..','.KUUUUUUUUK.','.KUUUUUUUUK.','..UUUUUUUU..','...VVVVVV...','...VV..VV...','...VV..VV...','...00..00...'],
- ['....HHHH....','...HHHHHH...','..HHHHHHHH..','..HKKKKKKH..','..HK0KK0KH..','...KKKKKK...','....KKKK....','...UUUUUU...','..UUUUUUUU..','.KUUUUUUUUK.','.KUUUUUUUUK.','..UUUUUUUU..','...VVVVVV...','....VVVV....','....VVVV....','....0000....']].map(dec);
+// the man, three-quarter view facing right (flipped for left): imma, face with a short moustache, galabeya to the ankle
+const HEAD=['....TTTT....','...TTTTTQ...','...QQTTQQ...','...HKKKK....','...HKK0K....','...NKKKKK...','....KKHH....'],
+ BODY=['...AAKAO....','..AAAAAAAO..','..AAAAAAAO..','.AAAAAAAAAO.','.KAAAAAAAOK.','..AAAAAAAO..','..AAAAAAAO..','..AAAAAAAAO.','...ww..ww...'],
+ KNEEL=['.....TTTT...','....TTTTTQ..','....QQTTQQ..','....HKKKK...','....HKK0K...','....NKKKKK..','...AAKKHH...','..AAAAAAAAK.','.AAAAAAAAOKK','.AAAAAAAAO..','.wwAAAAAAO..'],
+ SIT=['...AAKAO....','..AAAAAAAO..','..AAAAAAAO..','.AAAAAAAAOK.','.KAAAAAAAAAA','..AAAAAAAAAO','......AAAO..','......ww.ww.'];
+const FR={stand:HEAD.concat(BODY),walk:HEAD.concat(BODY.slice(0,6),['..AAAAAAAOO.','.AAAAAAAAAO.','.ww.....ww..']),walk2:HEAD.concat(BODY.slice(0,3),['..AAAAAAAAO.','..KAAAAAAOK.'],BODY.slice(5,8),['....www.....']),
+ hold:HEAD.concat(BODY.slice(0,2),['..AAAAAAAAA.','.AAAAAAAAOKK'],BODY.slice(4).map((r,i)=>i?r:'..AAAAAAAO..')),
+ reach:['....TTTT....','...TTTTTQ...','...QQTTQQK..','...HKKKK.A..','...HKK0K.A..','...NKKKKKA..','....KKHHA...','...AAKAAO...'].concat(BODY.slice(1,4),['.KAAAAAAAO..'],BODY.slice(5)),
+ kneel:KNEEL,kneel2:KNEEL.slice(0,7).concat(['..AAAAAAAAO.','.AAAAAAAAOK.','.AAAAAAAAOKK','.wwAAAAAAO..']),
+ sit:HEAD.concat(SIT),nap:['............'].concat(HEAD.slice(0,6).map(r=>'.'+r.slice(0,11).replace('0','N')),['...AAKKHH...'],SIT.slice(1))};
+for(const k in FR)FR[k]=dec(FR[k]);
+// what he carries, by tool: frames, then x and y of the top-left corner from his feet when facing right
+const TOOL={b:[[['z...','.z..','.z..','..z.','.izi','iiiz'],['z...','z...','.z..','.z..','izi.','iiz.']],5,-5],c:[[['.qq.','qqqq','qqq.']],5,-6],
+ w:[[['qq...','qqqq.','.qqqq','....F','.....','....F'],['qq...','qqqq.','.qqqq','.....','....F','.....']],5,-7],p:[[['.nmn.','nmnmn','.zzz.','.zyz.','..y..']],2,-10],
+ l:[[['jj','jj']],5,-6],t:[[['v','j','z'],['.','j','z']],5,-8],f:[[['n','m']],5,-6],s:[[['F.','.F'],['.F','F.']],6,0]};
+for(const k in TOOL)TOOL[k][0]=TOOL[k][0].map(dec);
 const FENCE=['.v..','vqp.','vqp.','vqqq','vqp.','vqp.','vqqq','vqp.','bpb.'],LEAF=[['nm','m.'],['.n','mm'],['n.','.m']].map(dec);
 
 // ---- state ----
@@ -93,7 +109,7 @@ let L,W,H,k,dpr,ppa,st,fb,tufts,img,u32,art,actx;
 const cv=Object.assign(document.createElement('canvas'),{className:'w-canvas w-bd'}),ctx=cv.getContext('2d');
 cv.setAttribute('aria-hidden','true');document.body.prepend(cv);
 let t0=performance.now()/1000,n=0,raf=0,last=0,gustAt=0,gustPeak=0,nextGust=5;
-let props,dynTrees=[],bflies=[],leaves=[],puffs=[],flies=[],treeF=1,lant=0,nextLant=0,hero={x:0,dir:1,walk:false,f:0},A={S:[]};
+let props,dynTrees=[],bflies=[],leaves=[],puffs=[],flies=[],treeF=1,lant=0,nextLant=0,A={S:[]},pd=-1,pt,py;
 
 // ---- layout + static layer ----
 function layout(){
@@ -109,7 +125,7 @@ function layout(){
  L=L0;document.documentElement.style.setProperty('--w-u',ppa+'px');
  cv.width=W*k;cv.height=H*k;cv.style.width=W*ppa+'px';cv.style.height=H*ppa+'px';
  art=art||document.createElement('canvas');art.width=W;art.height=H;actx=art.getContext('2d');img=actx.createImageData(W,H);u32=new Uint32Array(img.data.buffer);
- build();hero.x=Math.min(hero.x||30,L.zones[0].x1-20);leaves=[];puffs=[];
+ build();pd=-1;leaves=[];puffs=[];
 }
 function build(){
  rnd=mk(ui.seed);const {zones,wy,yS}=L,g=grid(W,H,'c');tufts=[];props=[];dynTrees=[];bflies=[];
@@ -190,7 +206,7 @@ function spots(hx,wy,zx){const S=A.S,at=y=>{let i=0;while(i<S.length-1&&S[i][1]<
  const j=at(wy+41),y41=S[j][1],T=(x,f)=>sp(wy-2,x,f);
  Object.assign(A,{door:T(null,1),boxL:T(hx,1),boxR:T(hx+39,-1),lamp:sp(wy+31,zx-2,-1),mail:sp(wy+31,zx+1,1),bank:sp(L.yS,null,1),
   pots:[[T(hx+21,1),hx+25,wy-7],[{i:j,p:[[zx-11,y41]],f:-1},zx-17,wy+34]]});
- A.bench=A.door;if(A.bn){const[bx,by]=A.bn;A.bench=sp(by+9,bx+4,1);A.pots.push([sp(by+9,bx+6,1,'hold'),bx+11,by])}
+ A.bench=A.door;if(A.bn){const[bx,by]=A.bn;A.bench=sp(by+9,bx+5,1);A.pots.push([sp(by+9,bx+6,1,'hold'),bx+11,by])}
  A.bed&&(A.cols=[]);if(A.bed)for(let x=A.bed[0]+3;x<A.bed[0]+A.bed[2]-2;x+=4)A.cols.push({i:j,p:[[x+6,y41],[x+6,wy+44]],f:-1,x})}
 function route(a,b){const S=A.S,P=a.p.slice().reverse(),d=b.i>a.i?1:-1;for(let i=a.i;;i+=d){P.push(S[i]);if(i===b.i)break}return P.concat(b.p)}
 const plen=P=>{let n=0;for(let i=1;i<P.length;i++)n+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);return n};
@@ -218,7 +234,7 @@ function plan(d){
  const np=A.pots.length,[o,n]=[A.pots[(wk+np-1)%np],A.pots[wk%np]];
  const pot=[['g',o[0]],['s',6,o[0].k||'kneel',0,'pk'],['g',n[0],'p'],['s',6,n[0].k||'kneel','p','dp']].concat(stream);
  const W={z:home,u:home,i:home,M:[['g',A.lamp],['s',8,'reach',0,'off']].concat(swap?water:sweep,home),W:(swap?sweep:water).concat(step),t:tea,
-  X:(p.R?plant:p.P?pot:stream).concat(bench),m:[['g',A.mail],['s',8,'reach'],['g',A.door,mail?'l':0],['s',0,'in']],
+  X:(p.R?plant:p.P?pot:stream).concat(bench),m:[['g',A.mail],['s',8,'hold'],['g',A.door,mail?'l':0],['s',0,'in']],
   r:[['g',A.bench,mail?'l':0]].concat(mail?[['s',900,'sit','l'],['g',A.door]]:[['g',A.door]],[['g',A.bench,'t'],['s',1800,'sit','t'],['s',0,'nap']]),
   A:(p.R||p.P?stream:sweep).concat(bench),w:water.concat(step),E:[['g',A.lamp],['s',8,'reach',0,'on']].concat(tea)};
  DAY.forEach(([,c],i)=>{w=i;run(W[c],win[i][1])});
@@ -261,9 +277,10 @@ function frame(now,still){
  for(const b of bflies){const z=b.z;if(!still){b.vx=clamp(b.vx+(drnd()-.5)*.9,-1.6,1.6);b.vy=clamp(b.vy+(drnd()-.5)*.9,-1,1);b.x+=b.vx;b.y+=b.vy;
    if(b.x<z.x0||b.x>z.x1){b.vx*=-1;b.x=clamp(b.x,z.x0,z.x1)}if(b.y<L.topY+8||b.y>L.yS-8){b.vy*=-1;b.y=clamp(b.y,L.topY+8,L.yS-8)}}
   const up=still||(n&1);dot(b.x-1,b.y+(up?0:1),b.c);dot(b.x+1,b.y+(up?0:1),b.c);dot(b.x,b.y+(up?1:0),'w')}
- // the character stands on the lower lawn with a 2-frame idle bob (pacing is built in but off)
- if(hz){const lo=6,hi=hz.x1-18,y=Math.min(wy+22,L.yS-17);if(hero.walk&&!still){hero.x+=hero.dir*48/ppa*(1000/ui.fps)/1000;if(hero.x>hi){hero.x=hi;hero.dir=-1}if(hero.x<lo){hero.x=lo;hero.dir=1}hero.f=n>>1&1}else hero.f=0;
-  blit(HERO[hero.f],hero.x,y+(!hero.walk&&(n>>2)&1?1:0),hero.dir<0)}
+ // the man: wherever the visitor's clock puts him (frames and strokes follow the clock too, not the frame count)
+ clock(Date.now());if(ck.d!==pd){pd=ck.d;pt=plan(pd);py=plan(pd-1)}pose(pt,ck.s);
+ if(man.v){const fx=Math.round(man.x),fy=Math.round(man.y),s=ck.s,fl=man.f<0,k=man.k,F=k==='walk'?(man.d/3&1?FR.walk2:FR.walk):k==='kneel'?(s*2&1?FR.kneel2:FR.kneel):FR[k]||FR.stand;
+  const up=k==='sit'||k==='nap'?2:0;blit(F,fx-6,fy-F.h+1-up,fl);const T=TOOL[man.t];if(T){const f=T[0][(s*2|0)%T[0].length],dy=k==='kneel'?3:up?-1:0;blit(f,fl?fx-T[1]-f.w:fx+T[1],fy+T[2]+dy,fl)}}
  for(let i=0;i<u32.length;i++)u32[i]=lut[fb[i]];
  actx.putImageData(img,0,0);ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(art,0,0,W*k,H*k);
 }
