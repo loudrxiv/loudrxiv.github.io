@@ -1,7 +1,6 @@
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s),main=$('.main');if(!main)return;
-const store={get(k,d){try{const v=localStorage.getItem('yard.'+k);return v===null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem('yard.'+k,v)}catch(e){}}};
 
 // ---- palette (one dark palette, SNES 15-bit values). Chars index KEY; '.' is transparent ----
 const PAL={'0':'100818',a:'102121',b:'183929',c:'214A31',d:'316339',e:'52845A','1':'212131','2':'393952','3':'5A5A73','4':'7B7B94','5':'A5A5BD',w:'291821',x:'4A2931',y:'734239',z:'9C6352',r:'391029',s:'631831',t:'942939',u:'AD4A63',p:'4A4263',q:'6B6B8C',v:'9494AD',B:'081029',C:'102152',D:'18397B',E:'295AA5',F:'8CC6E7',G:'8CC6E7',g:'E78C31',h:'FFD663',L:'E78C31',f:'D65A8C',i:'E7C642',j:'C6CEE7',k:'081821',l:'103929',m:'185A39',n:'398452',o:'6BAD73',H:'392118',K:'C68C7B',U:'C63131',V:'293152','6':'18397B','7':'295AA5','8':'18397B','9':'102152'};
@@ -90,34 +89,31 @@ const FENCE=['.v..','vqp.','vqp.','vqqq','vqp.','vqp.','vqqq','vqp.','bpb.'],LEA
 
 // ---- state ----
 const ui={fps:10,seed:11};
-let paused=store.get('paused','0')==='1',L,W,H,k,dpr,ppa,st,fb,mask,tufts,img,u32,art,actx;
-const el=(t,c)=>Object.assign(document.createElement(t),{className:c}),cv=el('canvas','w-canvas'),ctx=cv.getContext('2d'),strip=el('div','w-strip'),pb=el('button','w-pause');
-cv.setAttribute('aria-hidden','true');strip.hidden=true;pb.type='button';main.after(strip);
-let t0=performance.now()/1000,n=0,raf=0,last=0,inView=true,gustAt=0,gustPeak=0,nextGust=5;
+let L,W,H,k,dpr,ppa,st,fb,tufts,img,u32,art,actx;
+const cv=Object.assign(document.createElement('canvas'),{className:'w-canvas w-bd'}),ctx=cv.getContext('2d');
+cv.setAttribute('aria-hidden','true');document.body.prepend(cv);
+let t0=performance.now()/1000,n=0,raf=0,last=0,gustAt=0,gustPeak=0,nextGust=5;
 let props,dynTrees=[],bflies=[],leaves=[],puffs=[],flies=[],treeF=1,lant=0,nextLant=0,hero={x:0,dir:1,walk:false,f:0};
 
 // ---- layout + static layer ----
 function layout(){
  const vw=document.documentElement.clientWidth,vh=innerHeight;dpr=devicePixelRatio||1;
- const col=main.getBoundingClientRect(),nav=($('.header-nav')||main).getBoundingClientRect();
+ const col=main.getBoundingClientRect();
  const s=vw<1280?2:vw<1700?3:4;k=Math.max(1,Math.round(s*dpr));ppa=k/dpr;
- const mode=(vw<1024||col.left/ppa<56)?'strip':'backdrop';
- W=Math.ceil(vw/ppa);H=mode==='strip'?128:Math.ceil(vh/ppa);
- const wy=Math.round(.6*H),L0={mode,W,H,wy,hy:wy-50,ty:wy+6-55,yS:H-22,rects:[],zones:[]};
- if(mode==='backdrop'){const a=Math.floor(col.left/ppa),b=Math.ceil(col.right/ppa)-1;
-  L0.rects=[[a,0,b,H-1],[Math.floor(nav.left/ppa),0,Math.ceil(nav.right/ppa)-1,Math.ceil((nav.bottom+scrollY)/ppa)-1]];
-  L0.zones=[{x0:0,x1:a-1,house:1,hx:Math.round((a-40)/2)},{x0:b+1,x1:W-1,tree:1,tx:b+1+Math.round((W-b-1-44)/2)}];
- }else{L0.rects=[[0,-60,W-1,-1,18]]; // strip: fade the top edge into the page
-  L0.zones=[{x0:0,x1:W-85,house:1,hx:8},{x0:W-84,x1:W-1,tree:1,tx:W-84+30}]}
- L=L0;cv.remove();strip.hidden=mode!=='strip';inView=mode!=='strip'||!io;if(io){io.unobserve(strip);io.observe(strip)}
- if(mode==='strip'){strip.style.height=H*ppa+'px';strip.append(cv,pb);cv.className='w-canvas'}else{document.body.prepend(cv);document.body.append(pb);cv.className='w-canvas w-bd'}
+ const wide=vw>=1024&&col.left/ppa>=56; // margins beside the column: house left, tree right; else both stacked in the viewport
+ W=Math.ceil(vw/ppa);H=Math.max(160,Math.ceil(vh/ppa));
+ const wy=Math.round(.6*H),L0={mode:wide?'wide':'narrow',W,H,wy,hy:wy-50,ty:wy+6-55,yS:H-22,zones:[]};
+ if(wide){const a=Math.floor(col.left/ppa),b=Math.ceil(col.right/ppa)-1;
+  L0.zones=[{x0:0,x1:b,house:1,hx:Math.round((a-40)/2)},{x0:b+1,x1:W-1,tree:1,tx:b+1+Math.round((W-b-1-44)/2)}];
+ }else L0.zones=[{x0:0,x1:W-85,house:1,hx:8},{x0:W-84,x1:W-1,tree:1,tx:W-84+30}];
+ L=L0;document.documentElement.style.setProperty('--w-u',ppa+'px');
  cv.width=W*k;cv.height=H*k;cv.style.width=W*ppa+'px';cv.style.height=H*ppa+'px';
  art=art||document.createElement('canvas');art.width=W;art.height=H;actx=art.getContext('2d');img=actx.createImageData(W,H);u32=new Uint32Array(img.data.buffer);
  build();hero.x=Math.min(hero.x||30,L.zones[0].x1-20);leaves=[];puffs=[];
 }
 function build(){
- rnd=mk(ui.seed);const {zones,rects,wy,yS}=L,g=grid(W,H,'c');tufts=[];props=[];dynTrees=[];bflies=[];
- const occ=new Uint8Array(W*H),topY=L.topY=L.mode==='backdrop'?Math.round(.2*H):8;
+ rnd=mk(ui.seed);const {zones,wy,yS}=L,g=grid(W,H,'c');tufts=[];props=[];dynTrees=[];bflies=[];
+ const occ=new Uint8Array(W*H),topY=L.topY=Math.round(.2*H);
  const claim=(x,y,w,h)=>{for(let j=Math.max(0,y);j<Math.min(H,y+h);j++)for(let i=Math.max(0,x);i<Math.min(W,x+w);i++)occ[j*W+i]=1};
  const free=(x,y,w,h)=>{if(x<0||y<0||x+w>W||y+h>H)return false;for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)if(occ[j*W+i])return false;return true};
  const shadow=(cx,cy,rx,ry)=>{for(let y=Math.floor(cy-ry);y<=cy+ry;y++)for(let x=Math.floor(cx-rx);x<=cx+rx;x++){const ex=(x-cx)/rx,ey=(y-cy)/ry;if(ex*ex+ey*ey<1&&g[y]&&g[y][x])g[y][x]=DARK[g[y][x]]||g[y][x]}};
@@ -125,7 +121,7 @@ function build(){
  const top=.35*H;for(let y=0;y<top;y++){const lv=2*(1-y/top);let n0=Math.floor(lv);for(let x=0;x<W;x++){let m=n0;if(BAYER[y&3][x&3]/16<lv-n0)m++;for(;m>0;m--)g[y][x]=DARK[g[y][x]]||g[y][x]}}
  // forest edge along the top of the margins: a dark back row, then a lit front row
  const clump=(cx,cy,r,front)=>{for(let y=cy-r;y<=cy+r;y++)for(let x=cx-r;x<=cx+r;x++){const dx=x+.5-cx,dy=y+.5-cy,d=Math.hypot(dx,dy);if(d>r)continue;const lit=dx/r*-.6+dy/r*-.8;let c=front?(lit>.5?'n':lit>0?'m':'l'):(lit>.3?'l':'k');if(front&&d>r-1&&lit<.2)c='k';put(g,x,y,c)}};
- if(L.mode==='backdrop'){for(const z of zones)for(const front of[0,1])for(let x=z.x0-4;x<z.x1+8;x+=7+(rnd()*5|0))clump(x,Math.round(.07*H)+(rnd()*.05*H|0)+(front?0:-3),5+(rnd()*4|0)+(front?0:3),front);claim(0,0,W,topY)}
+ for(const z of zones)for(const front of[0,1])for(let x=z.x0-4;x<z.x1+8;x+=7+(rnd()*5|0))clump(x,Math.round(.07*H)+(rnd()*.05*H|0)+(front?0:-3),5+(rnd()*4|0)+(front?0:3),front);claim(0,0,W,topY);
  for(const z of zones){const hy=L.hy,hx=z.hx,tx=z.tx,ty=L.ty;
   for(let y=0;y<wy;y++)for(let x=z.x0;x<=z.x1;x++)if(g[y][x]==='c'&&rnd()<.02)g[y][x]='d';
   if(z.house){
@@ -138,8 +134,9 @@ function build(){
    for(let i=0;i<14;i++){const x=hx+2+(rnd()*36|0);if(x>hx+11&&x<hx+29)continue;put(g,x,hy+44,'d');put(g,x,hy+43+(rnd()<.5?1:0),'fij'[rnd()*3|0])}
    let px=hx+19,pmin=px,pmax=px;for(let y=wy+13;y<yS;y+=2){px+=Math.round(Math.sin(y/9)*1.2);pmin=Math.min(pmin,px);pmax=Math.max(pmax,px);stamp(g,['1544541','1233321'],px-3+(y%4?1:0),y)}z.px=px;
    for(let x=z.x0;x<=z.x1-3;x+=4)if(Math.abs(x-px)>7)stamp(g,FENCE,x,wy+20);
+   stamp(g,BUSH,z.x1-9,wy+3);stamp(g,BUSH,z.x1-8,wy+20); // the wall and the fence end behind a bush
    const zw=z.x1-z.x0+1;claim(z.x0,wy-3,zw,16);claim(z.x0,wy+19,zw,25);claim(hx-10,hy-22,60,wy-hy+20);claim(pmin-5,wy+13,pmax-pmin+12,yS-wy-13);
-   if(L.mode==='backdrop'){
+   {
     stamp(g,MAIL,px+4,wy+20);stamp(g,LAMP,px-9,wy+15);
     const gw=Math.min(30,hx-2-(z.x0+2)),gy=wy+46;if(gw>=16&&gy+12<yS-2&&free(z.x0+2,gy,gw,12)){stamp(g,gardenRows(gw,12),z.x0+2,gy);claim(z.x0+2,gy,gw,12)}
     const bx=pmax+9;if(bx+16<=z.x1&&free(bx,wy+46,16,10)){shadow(bx+8,wy+55,10,1.5);stamp(g,BENCH,bx,wy+46);claim(bx,wy+46,16,10)}
@@ -161,7 +158,7 @@ function build(){
   for(let i=0;i<Math.round(area/4500);i++){const p=spot(28,33,2);if(p){shadow(p[0]+14,p[1]+31,12,3);dynTrees.push({fr:TREE2F,x:p[0],y:p[1]})}}
   add(PINE,Math.round(area/3800),2);add(BUSH,Math.round(area/2200),1);add(ROCK1,Math.round(area/3000),1);add(ROCK2,Math.round(area/3000),1);add(SHROOM,Math.round(area/6000),1);if(area>9000)add(STUMP,1,2);
   for(let i=0;i<Math.round(area/650);i++){const p=spot(8,6,0);if(p)for(let k=0;k<6;k++){const x=p[0]+(rnd()*8|0),y=p[1]+(rnd()*5|0);put(g,x,y,'fij'[rnd()*3|0]);put(g,x,y+1,'m')}}
-  for(let i=0;i<(L.mode==='backdrop'?2:1);i++)bflies.push({x:z.x0+rnd()*zw,y:topY+10+rnd()*(yS-topY-20),vx:0,vy:0,c:'fji'[rnd()*3|0],z});
+  for(let i=0;i<(L.mode==='wide'?2:1);i++)bflies.push({x:z.x0+rnd()*zw,y:topY+10+rnd()*(yS-topY-20),vx:0,vy:0,c:'fji'[rnd()*3|0],z});
  }
  props.sort((a,b)=>a.y+a.rows.length-(b.y+b.rows.length));
  for(const p of props){shadow(p.x+p.rows[0].length/2,p.y+p.rows.length-1,p.rows[0].length/2,1.5);stamp(g,p.rows,p.x,p.y)}
@@ -170,10 +167,7 @@ function build(){
  for(let x=0;x<W;x++){for(let j=0;j<12;j++)put(g,x,yS+j,WATER[j][x%32]);if(rnd()<.3)put(g,x,yS+1,'b');if(rnd()<.25)put(g,x,yS+10,'c')}
  for(const z of zones)if(z.px)[[z.px-6,yS+3],[z.px,yS+5],[z.px+5,yS+7]].forEach(([x,y])=>{stamp(g,['.454.','33333','.222.'],x,y);put(g,x+5,y+1,'F');put(g,x-1,y+1,'j')});
  for(let y=yS+12;y<H;y++)for(let x=0;x<W;x++)g[y][x]=rnd()<.2?'d':'c';
- // text rects: cleared, with a 6 px ordered-dither edge. Moving sprites skip masked pixels.
- mask=new Uint8Array(W*H);
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)for(const [x0,y0,x1,y1,E=6] of rects){const d=Math.max(x0-x,x-x1,y0-y,y-y1,0);if(d===0||(d<E&&BAYER[y&3][x&3]>=16*d/E)){mask[y*W+x]=1;break}}
- st=new Uint8Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const o=y*W+x;if(!mask[o])st[o]=ix(g[y][x])}
+ st=new Uint8Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++)st[y*W+x]=ix(g[y][x]);
  fb=new Uint8Array(W*H);
 }
 
@@ -183,8 +177,8 @@ const wind=(t,still)=>still?.2:.35+.25*Math.sin(2*Math.PI*t/11)+.15*Math.sin(2*M
 function doGust(t){gustAt=t;gustPeak=.6+.4*drnd()}
 
 // ---- drawing ----
-const blit=(sp,x,y,flip)=>{x|=0;y|=0;for(let j=0;j<sp.h;j++){const yy=y+j;if(yy<0||yy>=H)continue;for(let i=0;i<sp.w;i++){const v=sp.d[j*sp.w+(flip?sp.w-1-i:i)];if(!v)continue;const xx=x+i;if(xx<0||xx>=W)continue;const o=yy*W+xx;if(!mask[o])fb[o]=v}}};
-const dot=(x,y,ch)=>{x|=0;y|=0;if(x>=0&&x<W&&y>=0&&y<H&&!mask[y*W+x])fb[y*W+x]=ix(ch)};
+const blit=(sp,x,y,flip)=>{x|=0;y|=0;for(let j=0;j<sp.h;j++){const yy=y+j;if(yy<0||yy>=H)continue;for(let i=0;i<sp.w;i++){const v=sp.d[j*sp.w+(flip?sp.w-1-i:i)];if(!v)continue;const xx=x+i;if(xx<0||xx>=W)continue;fb[yy*W+xx]=v}}};
+const dot=(x,y,ch)=>{x|=0;y|=0;if(x>=0&&x<W&&y>=0&&y<H)fb[y*W+x]=ix(ch)};
 function frame(now,still){
  const t=now/1000-t0,w=wind(t,still),{zones,wy,hy,ty}=L,hz=zones[0],tz=zones.find(z=>z.tree);n++;
  if(!still&&t>nextGust){doGust(t);nextGust=t+6+8*drnd()}
@@ -201,7 +195,7 @@ function frame(now,still){
  puffs=puffs.filter(p=>p.age<64);for(const p of puffs){if(!still){p.age++;p.y-=.3;p.x-=.5*w}const r=p.age<20?1:p.age<40?2:3,dn=p.age<20?1:p.age<40?.5:.25;
   for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++)if(i*i+j*j<=r*r+1&&BAYER[(p.y+j)&3&3][(p.x+i)&3]<16*dn)dot(p.x+i,p.y+j,Math.abs(i)+Math.abs(j)<r?'v':'q')}
  // leaves: spawn from the canopy, blow left, rest on the lawn, dither out
- const cap=L.mode==='strip'?10:24;
+ const cap=L.mode==='narrow'?10:24;
  if(tz){if(still&&!leaves.length)for(let i=0;i<3;i++)leaves.push({x:tz.tx-6-i*9,y:ty+48+i*3,vx:0,vy:0,phi:i,rest:40,fade:0});
   if(!still&&leaves.length<cap&&drnd()<.12+.5*w+(gust(t)>.3?.4:0))leaves.push({x:tz.tx+2+drnd()*40,y:ty+10+drnd()*28,vx:0,vy:0,phi:drnd()*6,rest:0,fade:0,gy:ty+46+drnd()*14})}
  leaves=leaves.filter(l=>l.x>-4&&l.x<W+4&&l.fade<10);for(const l of leaves){
@@ -221,18 +215,42 @@ function frame(now,still){
  actx.putImageData(img,0,0);ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(art,0,0,W*k,H*k);
 }
 
-// ---- loop control ----
-const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
-const want=()=>!paused&&!reduced()&&!document.hidden&&inView;
+// ---- clouds: a pixel-art cloud behind each section of text, drawn from the page's own layout ----
+const clouds=(()=>{
+ // [selector, kind]: 0 section cloud, 1 small cloud on the yard (logo, menu), 2 small cloud on a cloud (buttons)
+ const HOSTS=[['.profile_inner',0],['.post-single',0],['.post-entry',0],['.page-header',0],['#searchbox',0],['.terms-tags',0],['.not-found',0],['.footer',0],['.logo',1],['#menu a',1],['.button',2]];
+ const abgr=h=>(255<<24)|(parseInt(h.slice(4),16)<<16)|(parseInt(h.slice(2,4),16)<<8)|parseInt(h.slice(0,2),16);
+ const SK=[[7,'F8FBFF','DCEBFA','BFD8F2','7FA6D6'],[4,'F8FBFF','DCEBFA','BFD8F2','7FA6D6'],[3,'CFE3F8','B4D0EE','98BBE4','6F97C9']].map(([r,...c])=>({r,c:c.map(abgr)}));
+ const hosts=new Map();let ro=null,seed=0;
+ function draw(el,h){
+  if(el.offsetWidth<2||el.offsetHeight<2)return;
+  const sk=SK[h.k],r=sk.r,m=r+1,c=h.c,Wa=Math.ceil(el.offsetWidth/ppa)+2*m,Ha=Math.ceil(el.offsetHeight/ppa)+2*m;
+  c.width=Wa;c.height=Ha;c.style.cssText=`left:${-m*ppa}px;top:${-m*ppa}px;width:${Wa*ppa}px;height:${Ha*ppa}px`;
+  const R=mk(h.s),M=new Uint8Array(Wa*Ha),on=(x,y)=>x>=0&&y>=0&&x<Wa&&y<Ha&&M[y*Wa+x];
+  const disc=(cx,cy,q)=>{for(let y=Math.floor(cy-q);y<=cy+q;y++)for(let x=Math.floor(cx-q);x<=cx+q;x++)if(x>=0&&y>=0&&x<Wa&&y<Ha&&(x+.5-cx)**2+(y+.5-cy)**2<=q*q)M[y*Wa+x]=1};
+  const x0=m,y0=m,x1=Wa-m-1,y1=Ha-m-1; // the element's box, in art pixels
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)M[y*Wa+x]=1;
+  const edge=(ax,ay,bx,by)=>{const len=Math.hypot(bx-ax,by-ay)||1;for(let d=0;d<=len;d+=r*.9+R()*r*.6){const t=d/len;disc(ax+(bx-ax)*t,ay+(by-ay)*t,r*(.6+R()*.4))}};
+  edge(x0,y0,x1,y0);edge(x0,y1,x1,y1);edge(x0,y0,x0,y1);edge(x1,y0,x1,y1); // puffs along all four edges
+  // white, shaded toward the underside, outlined where the cloud meets the air
+  const cx=c.getContext('2d'),id=cx.createImageData(Wa,Ha),u=new Uint32Array(id.data.buffer),yb=new Int16Array(Wa).fill(-1);
+  for(let x=0;x<Wa;x++)for(let y=Ha-1;y>=0;y--)if(M[y*Wa+x]){yb[x]=y;break}
+  for(let y=0;y<Ha;y++)for(let x=0;x<Wa;x++)if(M[y*Wa+x]){const d=yb[x]-y;u[y*Wa+x]=sk.c[!on(x-1,y)||!on(x+1,y)||!on(x,y-1)||!on(x,y+1)?3:d<=3?2:d<=6?1:0]}
+  cx.putImageData(id,0,0)}
+ function adopt(el,k){if(hosts.has(el))return;const c=document.createElement('canvas'),h={k,c,s:++seed};c.className='w-cloud';c.setAttribute('aria-hidden','true');
+  el.classList.add('w-host','w-k'+k);el.prepend(c);hosts.set(el,h);if(ro)ro.observe(el)}
+ const scan=()=>{for(const [sel,k] of HOSTS)document.querySelectorAll(sel).forEach(el=>adopt(el,k))};
+ return{start(){if(typeof ResizeObserver==='function')ro=new ResizeObserver(es=>es.forEach(e=>{const h=hosts.get(e.target);if(h)draw(e.target,h)}));
+   scan();hosts.forEach((h,el)=>{if(ro)ro.observe(el);draw(el,h)});new MutationObserver(scan).observe(document.body,{childList:true,subtree:true})},
+  refresh(){hosts.forEach((h,el)=>draw(el,h))}}
+})();
+
+// ---- loop control: the yard always runs (owner decision); it only rests while the tab is hidden ----
+const want=()=>!document.hidden;
 function loop(now){raf=0;if(!want())return;raf=requestAnimationFrame(loop);if(now-last<1000/ui.fps-2)return;last=now;frame(now,false)}
 function sync(){if(want()&&!raf)raf=requestAnimationFrame(loop);if(!want()&&raf){cancelAnimationFrame(raf);raf=0}}
-function redraw(){layout();frame(performance.now(),reduced());sync()}
-// ---- wiring ----
-const paint=()=>{pb.textContent=paused?'play':'pause';pb.setAttribute('aria-pressed',paused);pb.setAttribute('aria-label',(paused?'Play':'Pause')+' the yard animation');pb.hidden=reduced()};
-pb.onclick=()=>{paused=!paused;store.set('paused',paused?'1':'0');paint();sync()};
+function redraw(){layout();clouds.refresh();frame(performance.now(),false);sync()}
 document.addEventListener('visibilitychange',sync);
-matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>{paint();frame(performance.now(),reduced());sync()});
-const io=typeof IntersectionObserver==='function'?new IntersectionObserver(e=>{inView=L.mode!=='strip'||e[e.length-1].isIntersecting;sync()}):null;
 let rt=0;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(redraw,150)});
-paint();layout();frame(performance.now(),reduced());sync();
+layout();clouds.start();frame(performance.now(),false);sync();
 })();

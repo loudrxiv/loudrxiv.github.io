@@ -1,7 +1,17 @@
 .w-canvas{display:block;image-rendering:pixelated;pointer-events:none}
 .w-bd{position:fixed;top:0;left:0;z-index:-1}
-.w-strip{position:relative;width:100%;overflow:hidden;margin-top:var(--gap)}
-.w-pause{position:fixed;left:12px;bottom:12px;z-index:5;min-width:44px;min-height:44px;padding:0 14px;background:var(--entry);color:var(--primary);border:1px solid var(--border);border-radius:8px;font:inherit;font-size:14px;cursor:pointer}
-.w-pause:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-@media print{.w-canvas,.w-strip,.w-pause{display:none}}
-.w-strip .w-pause{position:absolute}
+/* clouds: the yard shows through between sections; each section sits on a light cloud with dark text */
+.w-host{position:relative;z-index:0;background:none!important;border:0!important;box-shadow:none!important;color-scheme:light;
+ --theme:#f8fbff;--entry:#eef5fd;--primary:#12203d;--secondary:#34456a;--content:#1b2b4b;--tertiary:#c6d9f0;--border:#9fbbe0;--code-bg:#dfeaf8;--code-block-bg:#e4eefa;color:var(--content)}
+.w-cloud{position:absolute;z-index:-1;pointer-events:none;image-rendering:pixelated}
+.w-k0{padding:calc(var(--w-u)*5) calc(var(--w-u)*7)!important;margin-block:calc(var(--w-u)*6)!important}
+.w-k1,.w-k2{display:inline-block;line-height:1.4!important}
+.w-k1{padding:calc(var(--w-u)*2) calc(var(--w-u)*4)!important}
+.w-k2{padding:calc(var(--w-u)*1) calc(var(--w-u)*3)!important;margin:calc(var(--w-u)*2)!important}
+/* the header: let the small clouds breathe and wrap instead of scrolling */
+.header-nav{align-items:center;padding-top:calc(var(--w-u)*6)!important;padding-bottom:calc(var(--w-u)*2)!important;row-gap:calc(var(--w-u)*3)}
+#menu{overflow:visible!important;flex-wrap:wrap;white-space:normal!important;row-gap:calc(var(--w-u)*3);column-gap:calc(var(--w-u)*8);justify-content:flex-end}
+@media print{.w-canvas,.w-cloud{display:none}}
+/* keep the puffs inside the viewport: the page and footer are inset by one cloud edge (9 art px) */
+.main{padding-inline:calc(var(--w-u)*9)!important}
+.footer{width:calc(100% - var(--w-u)*18)}
