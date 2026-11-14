@@ -9,8 +9,9 @@ hugo serve   # Hugo 0.158 or newer
 
 `main` deploys. `dev` and pull requests only build.
 Update the theme with `git submodule update --remote themes/PaperMod`, and Hugo with `HUGO_VERSION` in `.github/workflows/hugo.yaml`.
+How the animated yard, the clouds, the type and the man in the yard work is in [docs/yard.md](docs/yard.md).
 
-Started as a fork of [privsec.dev](https://privsec.dev/). The theme descends from [WonderMod](https://github.com/Wonderfall/hugo-WonderMod), a fork of PaperMod (MIT).
+Started as a fork of [privsec.dev](https://privsec.dev/).
 
 ## License
 

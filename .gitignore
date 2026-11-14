@@ -3,8 +3,9 @@
 /resources/_gen/
 /.hugo_build.lock
 
-# Local drafts and notes (not for the public repo)
-/prototypes/
+# Local process notes from the superpowers workflow (specs, plans, ledgers); not for the public repo.
+# docs/ is otherwise tracked.
+/docs/superpowers/
 .superpowers/
 
 # Secrets
