@@ -23,7 +23,7 @@ const dec=rows=>({w:rows[0].length,h:rows.length,d:Uint8Array.from(rows.join('')
 const BAYER=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]], DARK={c:'b',d:'c',b:'a',e:'d',a:'a'};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-// ---- sprites (string grids; verified in the planning scratch render) ----
+// ---- sprites (string grids) ----
 function houseRows(){const g=grid(40,44);
  hl(g,27,34,0,'4');put(g,27,0,'5');hl(g,27,34,1,'2');
  for(let y=2;y<=7;y++){hl(g,28,33,y,'3');put(g,28,y,'4');put(g,33,y,'2')}hl(g,29,32,4,'2');put(g,30,4,'3');
@@ -191,7 +191,7 @@ function build(){
 
 // ---- wind: one curve drives everything ----
 const gust=t=>{const a=t-gustAt;return a<0?0:gustPeak*(a<1.5?a/1.5:Math.max(0,1-(a-1.5)/3))};
-const wind=(t,still)=>still?.2:.35+.25*Math.sin(2*Math.PI*t/11)+.15*Math.sin(2*Math.PI*t/4.3)+gust(t);
+const wind=t=>.35+.25*Math.sin(2*Math.PI*t/11)+.15*Math.sin(2*Math.PI*t/4.3)+gust(t);
 function doGust(t){gustAt=t;gustPeak=.6+.4*drnd()}
 
 // ---- the man's day: a pure function of the local date and the wall-clock second ----
@@ -263,41 +263,40 @@ function pose(p,s){const g=p.g;let i=man.i;if(!(i<g.length&&g[i].a<=s))i=0;while
 // ---- drawing ----
 const blit=(sp,x,y,flip)=>{x|=0;y|=0;for(let j=0;j<sp.h;j++){const yy=y+j;if(yy<0||yy>=H)continue;for(let i=0;i<sp.w;i++){const v=sp.d[j*sp.w+(flip?sp.w-1-i:i)];if(!v)continue;const xx=x+i;if(xx<0||xx>=W)continue;fb[yy*W+xx]=v}}};
 const dot=(x,y,ch)=>{x|=0;y|=0;if(x>=0&&x<W&&y>=0&&y<H)fb[y*W+x]=ix(ch)};
-function frame(now,still){
- const t=now/1000-t0,w=wind(t,still),{zones,wy,hy,ty}=L,hz=zones[0],tz=zones.find(z=>z.tree);n++;
- if(!still&&t>nextGust){doGust(t);nextGust=t+6+8*drnd()}
+function frame(now){
+ const t=now/1000-t0,w=wind(t),{zones,wy,hy,ty}=L,hz=zones[0],tz=zones.find(z=>z.tree);n++;
+ if(t>nextGust){doGust(t);nextGust=t+6+8*drnd()}
  fb.set(st);const ph=n>>1;
- for(let i=0;i<4;i++)lut[ix(String(6+i))]=CYC[still?i:(ph+i)&3];
- lut[ix('F')]=still||(n>>3)&1?rgba(PAL.F):rgba(PAL.C);lut[ix('G')]=still||((n+4)>>3)&1?rgba(PAL.F):rgba(PAL.C);
- if(still||n>=nextLant){lant=still?0:drnd()<.5;nextLant=n+1+(drnd()*3|0)}lut[ix('L')]=rgba(lant?PAL.h:PAL.g);
+ for(let i=0;i<4;i++)lut[ix(String(6+i))]=CYC[(ph+i)&3];
+ lut[ix('F')]=(n>>3)&1?rgba(PAL.F):rgba(PAL.C);lut[ix('G')]=((n+4)>>3)&1?rgba(PAL.F):rgba(PAL.C);
+ if(n>=nextLant){lant=drnd()<.5;nextLant=n+1+(drnd()*3|0)}lut[ix('L')]=rgba(lant?PAL.h:PAL.g);
  clock(Date.now());today(ck.d);const s=ck.s,gl=GLASS[glass(s)];lut[ix('I')]=gl[0];lut[ix('J')]=gl[1];lut[ix('M')]=LAMPC[lampLit(s)?1+lant:0];
- for(const [x,y,j] of tufts)blit(TUFT[1-clamp(Math.round(1.5*wind(t-(W-x)/40,still)+j),-1,1)],x,y);
+ for(const [x,y,j] of tufts)blit(TUFT[1-clamp(Math.round(1.5*wind(t-(W-x)/40)+j),-1,1)],x,y);
  if(treeF===1&&w>.75)treeF=0;else if(treeF===0&&w<.65)treeF=1;else if(treeF===1&&w<.25)treeF=2;else if(treeF===2&&w>.35)treeF=1;
- for(const t of dynTrees)blit(t.fr[still?1:treeF],t.x,t.y);
+ for(const t of dynTrees)blit(t.fr[treeF],t.x,t.y);
  // his marks: leaves on the path, debris at the stones, this week's flowers, the pot where he last set it
  for(let i=0;i<A.lv.length;i++)if(leafOn(i,s)){const l=A.lv[i];dot(l.x,l.y,l.c);dot(l.x+1,l.y,l.c)}
  for(let i=0;i<A.db.length;i++)if(dirtOn(i,s))dot(A.db[i].x,A.db[i].y,A.db[i].c);
  for(let i=0;i<A.fl.length;i++)dot(A.fl[i].x,A.fl[i].y,bloom(i,s));
  const pa=potAt(s);if(pa>=0)blit(TOOL.p[0][0],A.pots[pa][1],A.pots[pa][2]);
  // smoke from the chimney, drifting left with the wind
- if(!still&&n%12===0&&hz)puffs.push({x:hz.hx+30,y:hy-2,age:0});
- if(still&&!puffs.length&&hz)puffs.push({x:hz.hx+27,y:hy-8,age:20},{x:hz.hx+22,y:hy-14,age:40});
- puffs=puffs.filter(p=>p.age<64);for(const p of puffs){if(!still){p.age++;p.y-=.3;p.x-=.5*w}const r=p.age<20?1:p.age<40?2:3,dn=p.age<20?1:p.age<40?.5:.25;
+ if(n%12===0&&hz)puffs.push({x:hz.hx+30,y:hy-2,age:0});
+ puffs=puffs.filter(p=>p.age<64);for(const p of puffs){p.age++;p.y-=.3;p.x-=.5*w;const r=p.age<20?1:p.age<40?2:3,dn=p.age<20?1:p.age<40?.5:.25;
   for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++)if(i*i+j*j<=r*r+1&&BAYER[(p.y+j)&3&3][(p.x+i)&3]<16*dn)dot(p.x+i,p.y+j,Math.abs(i)+Math.abs(j)<r?'v':'q')}
  // leaves: spawn from the canopy, blow left, rest on the lawn, dither out
  const cap=L.mode==='narrow'?10:24;
- if(tz){if(still&&!leaves.length)for(let i=0;i<3;i++)leaves.push({x:tz.tx-6-i*9,y:ty+48+i*3,vx:0,vy:0,phi:i,rest:40,fade:0});
-  if(!still&&leaves.length<cap&&drnd()<.12+.5*w+(gust(t)>.3?.4:0))leaves.push({x:tz.tx+2+drnd()*40,y:ty+10+drnd()*28,vx:0,vy:0,phi:drnd()*6,rest:0,fade:0,gy:ty+46+drnd()*14})}
+ if(tz){
+  if(leaves.length<cap&&drnd()<.12+.5*w+(gust(t)>.3?.4:0))leaves.push({x:tz.tx+2+drnd()*40,y:ty+10+drnd()*28,vx:0,vy:0,phi:drnd()*6,rest:0,fade:0,gy:ty+46+drnd()*14})}
  leaves=leaves.filter(l=>l.x>-4&&l.x<W+4&&l.fade<10);for(const l of leaves){
-  if(!still){if(l.rest>0){if(--l.rest===0)l.fade=1}else if(l.fade){l.fade++}else{l.phi+=.6;l.vx=clamp(-1.2*w+.4*Math.sin(l.phi),-2,2);l.vy=clamp(.35+.25*Math.sin(2*l.phi),-2,2);l.x+=l.vx;l.y+=l.vy;if(l.y>=l.gy){l.rest=30+(drnd()*30|0);l.y=l.gy}}}
+  if(l.rest>0){if(--l.rest===0)l.fade=1}else if(l.fade){l.fade++}else{l.phi+=.6;l.vx=clamp(-1.2*w+.4*Math.sin(l.phi),-2,2);l.vy=clamp(.35+.25*Math.sin(2*l.phi),-2,2);l.x+=l.vx;l.y+=l.vy;if(l.y>=l.gy){l.rest=30+(drnd()*30|0);l.y=l.gy}}
   if(l.fade&&BAYER[(l.y|0)&3][(l.x|0)&3]<l.fade*1.6)continue;blit(LEAF[Math.floor(l.phi*1.5)%3|0],l.x,l.y)}
  // fireflies in the tree's margin
  if(tz){if(!flies.length)for(let i=0;i<6;i++)flies.push({x:tz.x0+drnd()*(tz.x1-tz.x0),y:ty+25+drnd()*40,on:drnd()*30|0});
-  for(const f of flies){if(!still){f.x=clamp(f.x+(drnd()-.5)*1.2,tz.x0,tz.x1);f.y=clamp(f.y+(drnd()-.5)*1.2,ty+20,H-30);f.on=(f.on+1)%(20+f.on%20+10)}
+  for(const f of flies){f.x=clamp(f.x+(drnd()-.5)*1.2,tz.x0,tz.x1);f.y=clamp(f.y+(drnd()-.5)*1.2,ty+20,H-30);f.on=(f.on+1)%(20+f.on%20+10);
    if(f.on<12){dot(f.x,f.y,'h');[[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b],q)=>{if(q%2===n%2)dot(f.x+a,f.y+b,'g')})}}}
- for(const b of bflies){const z=b.z;if(!still){b.vx=clamp(b.vx+(drnd()-.5)*.9,-1.6,1.6);b.vy=clamp(b.vy+(drnd()-.5)*.9,-1,1);b.x+=b.vx;b.y+=b.vy;
-   if(b.x<z.x0||b.x>z.x1){b.vx*=-1;b.x=clamp(b.x,z.x0,z.x1)}if(b.y<L.topY+8||b.y>L.yS-8){b.vy*=-1;b.y=clamp(b.y,L.topY+8,L.yS-8)}}
-  const up=still||(n&1);dot(b.x-1,b.y+(up?0:1),b.c);dot(b.x+1,b.y+(up?0:1),b.c);dot(b.x,b.y+(up?1:0),'w')}
+ for(const b of bflies){const z=b.z;b.vx=clamp(b.vx+(drnd()-.5)*.9,-1.6,1.6);b.vy=clamp(b.vy+(drnd()-.5)*.9,-1,1);b.x+=b.vx;b.y+=b.vy;
+   if(b.x<z.x0||b.x>z.x1){b.vx*=-1;b.x=clamp(b.x,z.x0,z.x1)}if(b.y<L.topY+8||b.y>L.yS-8){b.vy*=-1;b.y=clamp(b.y,L.topY+8,L.yS-8)}
+  const up=n&1;dot(b.x-1,b.y+(up?0:1),b.c);dot(b.x+1,b.y+(up?0:1),b.c);dot(b.x,b.y+(up?1:0),'w')}
  // the man: wherever the visitor's clock puts him (frames and strokes follow the clock too, not the frame count)
  pose(pt,s);
  if(man.v){const fx=Math.round(man.x),fy=Math.round(man.y),fl=man.f<0,k=man.k,F=k==='walk'?(man.d/3&1?FR.walk2:FR.walk):k==='kneel'?(s*2&1?FR.kneel2:FR.kneel):FR[k]||FR.stand;
@@ -338,10 +337,10 @@ const clouds=(()=>{
 
 // ---- loop control: the yard always runs (owner decision); it only rests while the tab is hidden ----
 const want=()=>!document.hidden;
-function loop(now){raf=0;if(!want())return;raf=requestAnimationFrame(loop);if(now-last<1000/ui.fps-2)return;last=now;frame(now,false)}
+function loop(now){raf=0;if(!want())return;raf=requestAnimationFrame(loop);if(now-last<1000/ui.fps-2)return;last=now;frame(now)}
 function sync(){if(want()&&!raf)raf=requestAnimationFrame(loop);if(!want()&&raf){cancelAnimationFrame(raf);raf=0}}
-function redraw(){layout();clouds.refresh();frame(performance.now(),false);sync()}
+function redraw(){layout();clouds.refresh();frame(performance.now());sync()}
 document.addEventListener('visibilitychange',sync);
 let rt=0;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(redraw,150)});
-layout();clouds.start();frame(performance.now(),false);sync();
+layout();clouds.start();frame(performance.now());sync();
 })();

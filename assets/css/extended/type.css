@@ -42,18 +42,16 @@ b,strong,dt,.md-content table th{font-weight:var(--t-w-strong)}
 
 /* headings */
 h1,h2,h3,h4,h5,h6{font-weight:var(--t-w-head);line-height:var(--t-lh-head)}
-.profile_inner h1,.page-header h1,.post-title,.md-content h1,.first-entry .entry-header h1{font-size:var(--t-s-h1);font-weight:var(--t-w-display);letter-spacing:var(--t-ls-display)}
-.md-content h2,.first-entry .entry-header h2{font-size:var(--t-s-h2)}
+.profile_inner h1,.page-header h1,.post-title,.md-content h1{font-size:var(--t-s-h1);font-weight:var(--t-w-display);letter-spacing:var(--t-ls-display)}
+.md-content h2{font-size:var(--t-s-h2)}
 .md-content h3,.entry-header h2{font-size:var(--t-s-h3)}
 .md-content h4{font-size:var(--t-s-h4)}
 .md-content h5{font-size:var(--t-s-body)}
 .md-content h6{font-size:var(--t-s-small)}
 
 /* small text: one size, one line height */
-.entry-content,.first-entry .entry-content,.entry-footer,.first-entry .entry-footer,.post-meta,.breadcrumbs,.breadcrumbs a,.footer,.entry-cover,
-.md-content figure>figcaption>p,.post-tags a,.pagination a,.copy-code{font-size:var(--t-s-small)}
-.entry-content,.footer,.post-meta{line-height:var(--t-lh-small)}
-.paginav .title{font-size:var(--t-s-small);letter-spacing:.04em}
+.entry-content,.footer,.md-content figure>figcaption>p,.post-tags a{font-size:var(--t-s-small)}
+.entry-content,.footer{line-height:var(--t-lh-small)}
 
 /* the small clouds and the controls: logo, menu, buttons, tags, search */
 .logo a{font-size:var(--t-s-logo);font-weight:var(--t-w-display);letter-spacing:var(--t-ls-display)}
@@ -67,7 +65,7 @@ h1,h2,h3,h4,h5,h6{font-weight:var(--t-w-head);line-height:var(--t-lh-head)}
 .not-found{font-size:var(--t-s-404);font-weight:var(--t-w-display);letter-spacing:var(--t-ls-display)}
 
 /* links in running text: underline thick enough to read at weight 500 (not colour alone) */
-.md-content a:not(.anchor),.footer a,.entry-cover a{text-decoration-thickness:.1em}
+.md-content a:not(.anchor),.footer a{text-decoration-thickness:.1em}
 
 /* code: the system monospace (no extra download), never under 16px. Hugo's default highlighter writes monokai colours inline,
    which are unreadable on the light code background inside a cloud, so code on clouds is one colour (the body navy). */
